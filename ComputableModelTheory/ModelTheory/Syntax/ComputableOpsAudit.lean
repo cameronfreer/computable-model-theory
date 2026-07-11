@@ -62,10 +62,25 @@ theorem test_primrec_subst {σf : α → L.Term β} (hσ : Primrec σf) :
     Primrec fun t : L.Term α ↦ t.subst σf :=
   primrec_subst hσ
 
-/-- Computable corollary for relabelling. -/
-theorem test_computable_relabel {g : α → β} (hg : Primrec g) :
+/-- The public contract: the variable constructor is computable. -/
+theorem test_computable_var : Computable (Term.var : α → L.Term α) :=
+  computable_var
+
+/-- The public contract: relabelling along a merely computable map is computable. -/
+theorem test_computable_relabel {g : α → β} (hg : Computable g) :
     Computable fun t : L.Term α ↦ t.relabel g :=
   computable_relabel hg
+
+/-- The public contract: substitution along a merely computable assignment is
+computable. -/
+theorem test_computable_subst {σf : α → L.Term β} (hσ : Computable σf) :
+    Computable fun t : L.Term α ↦ t.subst σf :=
+  computable_subst hσ
+
+/-- Computable functions are closed under list map (the new combinator itself). -/
+theorem test_computable_list_map {g : α → β} (hg : Computable g) :
+    Computable fun l : List α ↦ l.map g :=
+  Computable.list_map hg
 
 end
 
@@ -76,4 +91,7 @@ end
 #assert_standard_axioms test_primrec_var
 #assert_standard_axioms test_primrec_relabel
 #assert_standard_axioms test_primrec_subst
+#assert_standard_axioms test_computable_var
 #assert_standard_axioms test_computable_relabel
+#assert_standard_axioms test_computable_subst
+#assert_standard_axioms test_computable_list_map

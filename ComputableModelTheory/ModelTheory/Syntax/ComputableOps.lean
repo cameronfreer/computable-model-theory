@@ -3,6 +3,7 @@ Copyright (c) 2026 Cameron Freer. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
+import ComputableModelTheory.Computability.ListComputable
 import ComputableModelTheory.ModelTheory.Syntax.Primcodable
 
 /-!
@@ -106,13 +107,40 @@ theorem primrec_subst {σf : α → L.Term β} (hσ : Primrec σf) :
 /-- The variable constructor is computable. -/
 theorem computable_var : Computable (var : α → L.Term α) := primrec_var.to_comp
 
-/-- Relabelling along a primitive recursive map is computable. -/
-theorem computable_relabel {g : α → β} (hg : Primrec g) :
-    Computable fun t : L.Term α ↦ t.relabel g := (primrec_relabel hg).to_comp
+/-- `listEncode` is computable. -/
+theorem computable_listEncode :
+    Computable (listEncode : L.Term α → List (α ⊕ (Σ i, L.Functions i))) :=
+  primrec_listEncode.to_comp
 
-/-- Substitution along a primitive recursive assignment is computable. -/
-theorem computable_subst {σf : α → L.Term β} (hσ : Primrec σf) :
-    Computable fun t : L.Term α ↦ t.subst σf := (primrec_subst hσ).to_comp
+/-- Relabelling along a computable map is computable: the public contract. The stronger
+primitive recursive form is `primrec_relabel`. -/
+theorem computable_relabel {g : α → β} (hg : Computable g) :
+    Computable fun t : L.Term α ↦ t.relabel g := by
+  have hsym : Computable (Sum.map g (id : (Σ i, L.Functions i) → Σ i, L.Functions i)) :=
+    Computable.sumCasesOn Computable.id
+      ((Computable.sumInl.comp (hg.comp Computable.snd)).to₂)
+      ((Computable.sumInr.comp Computable.snd).to₂) |>.of_eq fun s ↦ by cases s <;> rfl
+  refine Computable.encode_iff.1 <|
+    (Computable.encode.comp
+      ((Computable.list_map hsym).comp computable_listEncode)).of_eq fun t ↦ ?_
+  rw [show ∀ u : L.Term β, encode u = encode u.listEncode from fun _ ↦ rfl,
+    listEncode_relabel]
+
+/-- Substitution along a computable assignment is computable: the public contract. The
+stronger primitive recursive form is `primrec_subst`. -/
+theorem computable_subst {σf : α → L.Term β} (hσ : Computable σf) :
+    Computable fun t : L.Term α ↦ t.subst σf := by
+  have hsym : Computable (Sum.elim (fun a ↦ (σf a).listEncode)
+      (fun F : Σ i, L.Functions i ↦ ([Sum.inr F] : List (β ⊕ (Σ i, L.Functions i))))) :=
+    Computable.sumCasesOn Computable.id
+      ((computable_listEncode.comp (hσ.comp Computable.snd)).to₂)
+      (((Primrec.list_cons.comp Primrec.sumInr (Primrec.const [])).to_comp.comp
+        Computable.snd).to₂) |>.of_eq fun s ↦ by cases s <;> rfl
+  refine Computable.encode_iff.1 <|
+    (Computable.encode.comp
+      ((Computable.list_flatMap hsym).comp computable_listEncode)).of_eq fun t ↦ ?_
+  rw [show ∀ u : L.Term β, encode u = encode u.listEncode from fun _ ↦ rfl,
+    listEncode_subst]
 
 end Primrec
 
