@@ -33,7 +33,8 @@ variable {k : ℕ}
 /-- Two tuples agree on term equalities. -/
 def TermEqualitiesAgree (L : Language) [L.Structure M] [L.Structure N]
     (a : Fin k → M) (b : Fin k → N) : Prop :=
-  ∀ t₁ t₂ : L.Term (Fin k), t₁.realize a = t₂.realize a ↔ t₁.realize b = t₂.realize b
+  ∀ t₁ t₂ : L.Term (Fin k),
+    t₁.realize a = t₂.realize a ↔ t₁.realize b = t₂.realize b
 
 /-- Two tuples agree on relation atoms. -/
 def RelationsAgree (L : Language) [L.Structure M] [L.Structure N]
