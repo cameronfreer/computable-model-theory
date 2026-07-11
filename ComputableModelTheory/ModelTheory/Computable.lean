@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
 import ComputableModelTheory.Computability.OraclePred
+import ComputableModelTheory.ModelTheory.Computable.GraphExample
 import ComputableModelTheory.ModelTheory.Computable.Structure
 import Mathlib.ModelTheory.Basic
 import Mathlib.ModelTheory.Semantics

@@ -3,6 +3,7 @@ Copyright (c) 2026 Cameron Freer. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
+import ComputableModelTheory.ModelTheory.Computable.GraphExample
 import ComputableModelTheory.ModelTheory.Computable.Structure
 import ComputableModelTheory.Util.AssertAxioms
 
@@ -23,8 +24,12 @@ section
 
 variable {O : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage] [L.Structure ℕ]
 
-/-- Fixed-arity symbol fibers are primitively codable. -/
+/-- Fixed-arity function-symbol fibers are primitively codable. -/
 @[reducible] def test_functions_primcodable (n : ℕ) : Primcodable (L.Functions n) :=
+  inferInstance
+
+/-- Fixed-arity relation-symbol fibers are primitively codable. -/
+@[reducible] def test_relations_primcodable (n : ℕ) : Primcodable (L.Relations n) :=
   inferInstance
 
 /-- Computable structures are c.e. -/
@@ -47,9 +52,23 @@ theorem test_empty_computable {O : Set (ℕ →. ℕ)} :
     ComputableStructureIn O Language.empty :=
   ⟨inferInstance⟩
 
+/-- The graph language is effective. -/
+@[reducible] def test_graph_effective : Language.graph.EffectiveLanguage :=
+  inferInstance
+
+/-- The roadmap acceptance gate: a finite graph language with a computable edge
+relation, namely the path graph on `ℕ`. -/
+theorem test_pathGraph_computable {O : Set (ℕ →. ℕ)} :
+    letI := pathGraphStructure
+    IsComputableStructureIn O Language.graph :=
+  pathGraph_isComputable
+
 end
 
 #assert_standard_axioms test_functions_primcodable
+#assert_standard_axioms test_relations_primcodable
+#assert_standard_axioms test_graph_effective
+#assert_standard_axioms test_pathGraph_computable
 #assert_standard_axioms test_to_ce
 #assert_standard_axioms test_funGraph
 #assert_standard_axioms test_empty_computable
