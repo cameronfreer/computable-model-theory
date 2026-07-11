@@ -12,6 +12,7 @@ import ComputableModelTheory.ModelTheory.Computable.GraphExample
 import ComputableModelTheory.ModelTheory.Computable.QFSatisfaction
 import ComputableModelTheory.ModelTheory.Computable.Structure
 import ComputableModelTheory.ModelTheory.Computable.SuccExample
+import ComputableModelTheory.ModelTheory.Computable.TermClosure
 import ComputableModelTheory.ModelTheory.Computable.TermEvaluation
 import Mathlib.ModelTheory.Basic
 import Mathlib.ModelTheory.Semantics

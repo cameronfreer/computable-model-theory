@@ -36,3 +36,4 @@ jobs:
           lake env lean
           ComputableModelTheory/ModelTheory/Computable/GeneratedPresentationAudit.lean
       - run: lake env lean ComputableModelTheory/ModelTheory/Computable/AtomicEquivAudit.lean
+      - run: lake env lean ComputableModelTheory/ModelTheory/Computable/TermClosureAudit.lean
