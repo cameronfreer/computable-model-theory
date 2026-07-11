@@ -88,4 +88,61 @@ theorem natDecodeStackStep_encode_inr {β : Type*} [Primcodable β]
   have h2 : encode (Sum.inr s : β ⊕ (Σ i, L.Functions i)) / 2 = encode s := by omega
   rw [natDecodeStackStep_odd_some L h1 (by rw [h2, arityOfCode, encodek]; rfl)]
 
+/-! ### Primitive recursiveness -/
+
+
+/-- Reading the arity off a symbol code is primitive recursive. -/
+theorem primrec_arityOfCode : Primrec (arityOfCode L) :=
+  Primrec.option_map Primrec.decode
+    (((primrec_functionSymbol_arity (L := L)).comp Primrec.snd).to₂)
+
+/-- The code-level stack machine step is primitive recursive. -/
+theorem primrec_natDecodeStackStep : Primrec₂ (natDecodeStackStep L) := by
+  have hbranch : Primrec fun p : ℕ × List (List ℕ) ↦
+      Option.casesOn (motive := fun _ ↦ List (List ℕ)) (arityOfCode L (p.1 / 2)) []
+        fun n ↦ if n ≤ p.2.length then (p.1 :: (p.2.take n).flatten) :: p.2.drop n
+          else [] := by
+    have ho : Primrec fun p : ℕ × List (List ℕ) ↦ arityOfCode L (p.1 / 2) :=
+      (primrec_arityOfCode L).comp
+        (Primrec.nat_div.comp Primrec.fst (Primrec.const 2))
+    have hg : Primrec₂ fun (p : ℕ × List (List ℕ)) (n : ℕ) ↦
+        if n ≤ p.2.length then (p.1 :: (p.2.take n).flatten) :: p.2.drop n else [] := by
+      have hn : Primrec fun q : (ℕ × List (List ℕ)) × ℕ ↦ q.2 := Primrec.snd
+      have hacc : Primrec fun q : (ℕ × List (List ℕ)) × ℕ ↦ q.1.2 :=
+        Primrec.snd.comp Primrec.fst
+      exact (Primrec.ite (Primrec.nat_le.comp hn (Primrec.list_length.comp hacc))
+        (Primrec.list_cons.comp
+          (Primrec.list_cons.comp (Primrec.fst.comp Primrec.fst)
+            (Primrec.list_flatten.comp (Primrec.list_take.comp hn hacc)))
+          (Primrec.list_drop.comp hn hacc))
+        (Primrec.const [])).to₂
+    exact Primrec.option_casesOn ho (Primrec.const []) hg
+  have hwhole : Primrec fun p : ℕ × List (List ℕ) ↦
+      if p.1 % 2 = 1 then
+        Option.casesOn (motive := fun _ ↦ List (List ℕ)) (arityOfCode L (p.1 / 2)) []
+          fun n ↦ if n ≤ p.2.length then (p.1 :: (p.2.take n).flatten) :: p.2.drop n
+            else []
+      else [p.1] :: p.2 :=
+    Primrec.ite
+      (Primrec.eq.comp (Primrec.nat_mod.comp Primrec.fst (Primrec.const 2))
+        (Primrec.const 1))
+      hbranch
+      (Primrec.list_cons.comp
+        (Primrec.list_cons.comp Primrec.fst (Primrec.const [])) Primrec.snd)
+  have h2 : Primrec fun p : ℕ × List (List ℕ) ↦ natDecodeStackStep L p.1 p.2 := by
+    refine hwhole.of_eq fun p ↦ ?_
+    rcases p with ⟨c, acc⟩
+    rw [natDecodeStackStep]
+    rcases arityOfCode L (c / 2) with - | n <;> rfl
+  exact h2
+
+/-- The code-level stack machine is primitive recursive. -/
+theorem primrec_natDecodeStack : Primrec (natDecodeStack L) := by
+  have hfold : Primrec fun l : List ℕ ↦
+      l.foldr (fun c s ↦ natDecodeStackStep L c s) [] :=
+    Primrec.list_foldr Primrec.id (Primrec.const [])
+      (((primrec_natDecodeStackStep L).comp (Primrec.fst.comp Primrec.snd)
+        (Primrec.snd.comp Primrec.snd)).to₂)
+  exact hfold.of_eq fun l ↦ rfl
+
 end FirstOrder.Language.Term
