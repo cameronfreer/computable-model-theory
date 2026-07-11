@@ -22,9 +22,11 @@ course-of-values recursion on suffix length. ω-presented computable structures 
 defined — uniformly over application
 data, so a single algorithm interprets every symbol — with the empty language, a graph
 language, and a unary-function language on `ℕ` as computable examples. Term evaluation
-and atomic satisfaction in computable structures are computable in the oracle, and the
-partial and total characteristic oracles are proven interchangeable. The remaining
-model-theoretic layers are import skeletons awaiting content.
+and atomic and quantifier-free satisfaction in computable structures are computable in
+the oracle — quantifier-free satisfaction by a satisfaction stack machine run in
+parallel with mathlib's formula decoder — and the partial and total characteristic
+oracles are proven interchangeable. The remaining model-theoretic layers are import
+skeletons awaiting content.
 
 ## Staging
 
