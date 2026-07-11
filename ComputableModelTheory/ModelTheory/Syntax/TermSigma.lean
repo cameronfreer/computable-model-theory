@@ -22,8 +22,6 @@ namespace FirstOrder.Language.Term
 
 variable (L : Language) [L.EffectiveLanguage] (α : Type*) [Primcodable α]
 
-variable (L : Language) [L.EffectiveLanguage] (α : Type*) [Primcodable α]
-
 /-- The decode-encode composite of the sigma of terms over all `Fin` variable bounds,
 computed entirely on codes. -/
 def sigmaTermNatP (n : ℕ) : ℕ :=

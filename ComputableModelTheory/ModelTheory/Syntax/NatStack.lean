@@ -16,9 +16,9 @@ machine is uniform in the variable type — that uniformity is the point: it is 
 level at which the `Primcodable` instance for `Σ k, L.Term (α ⊕ Fin k)` can state its
 primitive recursion witness uniformly in `k`.
 
-This file defines the machine and its step invariants; primitive recursiveness,
-soundness against each fiber's `decodeStack`, completeness on canonical codes, and
-canonicalization follow in later files.
+This file defines the machine and its step invariants, proves the machine primitive
+recursive, proves it sound against each fiber's `decodeStack`, and provides the code
+canonicalization for the term alphabet, in that order below.
 -/
 
 open Encodable

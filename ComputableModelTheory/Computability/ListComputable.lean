@@ -25,12 +25,12 @@ variable {β σ : Type*} [Primcodable β] [Primcodable σ]
 
 /-- Step-bounded elementwise evaluation of a code over a list: `some` exactly when every
 element's evaluation halts within `k` steps and its result decodes. -/
-def mapEvaln (c : Nat.Partrec.Code) (k : ℕ) : List β → Option (List σ)
+private def mapEvaln (c : Nat.Partrec.Code) (k : ℕ) : List β → Option (List σ)
   | [] => some []
   | b :: l => ((evaln k c (encode b)).bind fun e ↦ decode (α := σ) e).bind
       fun x ↦ (mapEvaln c k l).map (x :: ·)
 
-theorem mapEvaln_mono {c : Nat.Partrec.Code} {k₁ k₂ : ℕ} (hk : k₁ ≤ k₂) :
+private theorem mapEvaln_mono {c : Nat.Partrec.Code} {k₁ k₂ : ℕ} (hk : k₁ ≤ k₂) :
     ∀ {l : List β} {m : List σ}, m ∈ mapEvaln c k₁ l → m ∈ mapEvaln c k₂ l := by
   intro l
   induction l with
@@ -42,7 +42,7 @@ theorem mapEvaln_mono {c : Nat.Partrec.Code} {k₁ k₂ : ℕ} (hk : k₁ ≤ k�
     obtain ⟨x, ⟨e, he, hd⟩, m', hm', rfl⟩ := hm
     exact ⟨x, ⟨e, evaln_mono hk he, hd⟩, m', ih hm', rfl⟩
 
-theorem mapEvaln_complete {c : Nat.Partrec.Code} {g : β → σ}
+private theorem mapEvaln_complete {c : Nat.Partrec.Code} {g : β → σ}
     (hc : ∀ b : β, encode (g b) ∈ c.eval (encode b)) (l : List β) :
     ∃ k, l.map g ∈ mapEvaln (β := β) (σ := σ) c k l := by
   induction l with
@@ -56,7 +56,7 @@ theorem mapEvaln_complete {c : Nat.Partrec.Code} {g : β → σ}
     exact ⟨g b, ⟨encode (g b), evaln_mono (le_max_left _ _) hk₁, encodek _⟩,
       l.map g, mapEvaln_mono (le_max_right _ _) hk₂, rfl⟩
 
-theorem primrec₂_mapEvaln (c : Nat.Partrec.Code) :
+private theorem primrec₂_mapEvaln (c : Nat.Partrec.Code) :
     Primrec₂ fun (l : List β) (k : ℕ) ↦ mapEvaln (σ := σ) c k l := by
   have hev : Primrec fun r : (List β × ℕ) × β × Option (List σ) ↦
       evaln r.1.2 c (encode r.2.1) :=

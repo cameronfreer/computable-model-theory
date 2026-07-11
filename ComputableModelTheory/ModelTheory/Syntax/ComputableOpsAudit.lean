@@ -82,6 +82,11 @@ theorem test_computable_list_map {g : α → β} (hg : Computable g) :
     Computable fun l : List α ↦ l.map g :=
   Computable.list_map hg
 
+/-- Computable functions are closed under list flatMap. -/
+theorem test_computable_list_flatMap {g : α → List β} (hg : Computable g) :
+    Computable fun l : List α ↦ l.flatMap g :=
+  Computable.list_flatMap hg
+
 end
 
 #assert_standard_axioms test_listEncode_relabel
@@ -95,3 +100,4 @@ end
 #assert_standard_axioms test_computable_relabel
 #assert_standard_axioms test_computable_subst
 #assert_standard_axioms test_computable_list_map
+#assert_standard_axioms test_computable_list_flatMap
