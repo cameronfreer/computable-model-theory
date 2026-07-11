@@ -6,13 +6,14 @@ Authors: Cameron Freer
 import ComputableModelTheory.Computability.OraclePred
 import ComputableModelTheory.ModelTheory.Computable.GraphExample
 import ComputableModelTheory.ModelTheory.Computable.Structure
+import ComputableModelTheory.ModelTheory.Computable.TermEvaluation
 import Mathlib.ModelTheory.Basic
 import Mathlib.ModelTheory.Semantics
 
 /-!
 # Computable structures
 
-Umbrella module for the computable-structure layer: ω-presented computable structures,
-with computability of term evaluation, quantifier-free satisfaction, and
+Umbrella module for the computable-structure layer: ω-presented computable structures
+and computable term evaluation, with quantifier-free satisfaction and
 atomic/quantifier-free diagrams to come.
 -/
