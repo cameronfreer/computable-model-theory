@@ -91,4 +91,44 @@ theorem REPredIn.of_eq (hp : REPredIn O p) (H : ∀ a, p a ↔ q a) : REPredIn O
 theorem REPredIn.mono (hO : O₁ ⊆ O₂) (hp : REPredIn O₁ p) : REPredIn O₂ p :=
   RecursiveIn.mono hO hp
 
+/-! ### Boolean closure -/
+
+namespace ComputablePredIn
+
+/-- Constant predicates are computable in any oracle set. -/
+theorem const (b : Prop) [Decidable b] : ComputablePredIn O fun _ : α ↦ b :=
+  ⟨fun _ ↦ ‹Decidable b›, ComputableIn.const (decide b)⟩
+
+/-- Oracle-computable predicates are closed under negation. -/
+protected theorem not : ComputablePredIn O p → ComputablePredIn O fun a ↦ ¬p a
+  | ⟨_, hp⟩ =>
+    ComputableIn.computablePredIn <|
+      (Primrec.not.to_comp.computableIn.comp hp).of_eq fun a ↦ by simp
+
+/-- Oracle-computable predicates are closed under conjunction. -/
+protected theorem and : ComputablePredIn O p → ComputablePredIn O q →
+    ComputablePredIn O fun a ↦ p a ∧ q a
+  | ⟨_, hp⟩, ⟨_, hq⟩ =>
+    ComputableIn.computablePredIn <|
+      (Primrec.and.to_comp.computableIn₂.comp hp hq).of_eq fun a ↦ by simp
+
+/-- Oracle-computable predicates are closed under disjunction. -/
+protected theorem or : ComputablePredIn O p → ComputablePredIn O q →
+    ComputablePredIn O fun a ↦ p a ∨ q a
+  | ⟨_, hp⟩, ⟨_, hq⟩ =>
+    ComputableIn.computablePredIn <|
+      (Primrec.or.to_comp.computableIn₂.comp hp hq).of_eq fun a ↦ by simp
+
+/-- Oracle-computable predicates are closed under implication. -/
+protected theorem imp (hp : ComputablePredIn O p) (hq : ComputablePredIn O q) :
+    ComputablePredIn O fun a ↦ p a → q a :=
+  (hp.not.or hq).of_eq fun _ ↦ imp_iff_not_or.symm
+
+/-- Oracle-computable predicates are closed under bi-implication. -/
+protected theorem iff (hp : ComputablePredIn O p) (hq : ComputablePredIn O q) :
+    ComputablePredIn O fun a ↦ (p a ↔ q a) :=
+  ((hp.imp hq).and (hq.imp hp)).of_eq fun _ ↦ iff_iff_implies_and_implies.symm
+
+end ComputablePredIn
+
 end
