@@ -334,7 +334,8 @@ theorem atomicData?_eq_some_of_rel {n : ℕ} (R : L.Relations n)
 theorem atomicData?_isSome_iff (φ : L.Formula α) :
     (atomicData? φ).isSome ↔ (φ : L.BoundedFormula α 0).IsAtomic := by
   cases φ with
-  | falsum => exact iff_of_false (by simp [atomicData?, BoundedFormula.listEncode]) (by rintro ⟨⟩)
+  | falsum =>
+    exact iff_of_false (by simp [atomicData?, BoundedFormula.listEncode]) (by rintro ⟨⟩)
   | equal t₁ t₂ =>
     exact iff_of_true (by rw [atomicData?_eq_some_of_equal]; rfl)
       (BoundedFormula.IsAtomic.equal t₁ t₂)

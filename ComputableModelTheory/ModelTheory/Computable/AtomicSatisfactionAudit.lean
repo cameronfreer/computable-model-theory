@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Computable.AtomicSatisfaction
+import ComputableModelTheory.ModelTheory.Computable.GraphExample
 import ComputableModelTheory.Util.AssertAxioms
 
 /-!
@@ -78,6 +79,68 @@ theorem test_realize_pointwise [IsComputableStructureIn O L] (φ : L.Formula (Fi
 
 end
 
+section ConcreteDispatch
+
+/-- A two-variable equality over the empty language. -/
+private def eqForm : Language.empty.Formula (Fin 2) :=
+  BoundedFormula.equal (Term.var (Sum.inl 0)) (Term.var (Sum.inl 1))
+
+attribute [local instance] FirstOrder.Language.emptyStructure
+
+private instance :
+    DecidablePred (RelationApplicationData.relMap (L := Language.empty) (M := ℕ)) :=
+  fun d ↦ isEmptyElim d
+
+/-- Dispatch semantics: the equality branch accepts a true equation. -/
+theorem test_atomicSatBool_equal_true :
+    atomicSatBool (eqForm, ![3, 3]) = true :=
+  (atomicSatBool_iff _).2 ⟨BoundedFormula.IsAtomic.equal _ _, by
+    rw [Formula.Realize]
+    exact (BoundedFormula.realize_bdEqual _ _).2 rfl⟩
+
+/-- Dispatch semantics: the equality branch rejects a false equation. -/
+theorem test_atomicSatBool_equal_false :
+    atomicSatBool (eqForm, ![3, 4]) = false := by
+  refine Bool.eq_false_iff.2 fun hB ↦ ?_
+  have h := ((atomicSatBool_iff _).1 hB).2
+  rw [Formula.Realize] at h
+  have h2 := (BoundedFormula.realize_bdEqual _ _).1 h
+  simp at h2
+
+/-- The adjacency formula of the graph language on two variables. -/
+private def adjForm : Language.graph.Formula (Fin 2) :=
+  BoundedFormula.rel .adj ![Term.var (Sum.inl 0), Term.var (Sum.inl 1)]
+
+section
+
+attribute [local instance] pathGraphStructure
+
+/-- Dispatch semantics: the relation branch accepts an adjacent pair of the path
+graph. -/
+theorem test_atomicSatBool_rel_true :
+    atomicSatBool (adjForm, ![2, 3]) = true :=
+  (atomicSatBool_iff _).2 ⟨BoundedFormula.IsAtomic.rel _ _, by
+    rw [Formula.Realize]
+    exact BoundedFormula.realize_rel.2 (Or.inl rfl)⟩
+
+/-- Dispatch semantics: the relation branch rejects a non-adjacent pair of the path
+graph. -/
+theorem test_atomicSatBool_rel_false :
+    atomicSatBool (adjForm, ![2, 4]) = false := by
+  refine Bool.eq_false_iff.2 fun hB ↦ ?_
+  have h := ((atomicSatBool_iff _).1 hB).2
+  rw [Formula.Realize] at h
+  have h2 := BoundedFormula.realize_rel.1 h
+  rcases h2 with h2 | h2 <;> simp at h2
+
+end
+
+end ConcreteDispatch
+
+#assert_standard_axioms test_atomicSatBool_equal_true
+#assert_standard_axioms test_atomicSatBool_equal_false
+#assert_standard_axioms test_atomicSatBool_rel_true
+#assert_standard_axioms test_atomicSatBool_rel_false
 #assert_standard_axioms test_atomicData?_isSome_iff
 #assert_standard_axioms test_atomicData?_equal
 #assert_standard_axioms test_atomicData?_rel

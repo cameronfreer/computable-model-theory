@@ -10,11 +10,13 @@ import ComputableModelTheory.ModelTheory.Syntax.Complexity
 # Computable atomic satisfaction
 
 The roadmap PR 7 second half: in an ω-presented computable structure, satisfaction of
-atomic formulas is a computable predicate. The decider dispatches on the nondependent
-atomic data extracted by `atomicData?`: an equality is decided by evaluating both terms
-through computable term evaluation and comparing; a relation is decided by evaluating
-the argument-term list, packaging the values as uniform relation application data, and
-calling the structure's uniform relation decider.
+atomic formulas is a computable predicate. The decider `atomicSatBool` — parameterized
+by decidability of the structure's uniform relation interpretation, which the
+computability hypothesis supplies — dispatches on the nondependent atomic data extracted
+by `atomicData?`: an equality is decided by evaluating both terms through computable
+term evaluation and comparing; a relation is decided by evaluating the argument-term
+list, packaging the values as uniform relation application data, and deciding the
+uniform interpretation.
 
 Three public forms: the diagram-ready total predicate
 `atomic_realize_computablePredIn` (atomicity together with satisfaction, deciding
@@ -44,10 +46,11 @@ private theorem realize_relabelElim (t : L.Term (Fin k ⊕ Fin 0)) (v : Fin k �
   · rfl
   · exact i.elim0
 
-open Classical in
 /-- The atomic-satisfaction decider: dispatch on the extracted atomic data, deciding
-`false` off the atomic fragment. -/
-noncomputable def atomicSatBool (p : L.Formula (Fin k) × (Fin k → ℕ)) : Bool :=
+`false` off the atomic fragment. Decidability of the uniform relation interpretation is
+a parameter; the computability hypothesis supplies it. -/
+def atomicSatBool [DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))]
+    (p : L.Formula (Fin k) × (Fin k → ℕ)) : Bool :=
   Option.casesOn (motive := fun _ ↦ Bool) (atomicData? p.1) false fun d ↦
     Sum.casesOn (motive := fun _ ↦ Bool) d
       (fun q ↦ decide (q.1.realize p.2 = q.2.realize p.2))
@@ -63,9 +66,10 @@ private theorem atomicData?_eq_none_of_not_isAtomic {φ : L.Formula (Fin k)}
   Option.not_isSome_iff_eq_none.1 fun hs ↦ h ((atomicData?_isSome_iff φ).1 hs)
 
 omit [L.EffectiveLanguage] in
-open Classical in
 /-- The decider decides atomicity together with satisfaction. -/
-theorem atomicSatBool_iff (p : L.Formula (Fin k) × (Fin k → ℕ)) :
+theorem atomicSatBool_iff
+    [DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))]
+    (p : L.Formula (Fin k) × (Fin k → ℕ)) :
     atomicSatBool p = true ↔
       ((p.1 : L.BoundedFormula (Fin k) 0).IsAtomic ∧ p.1.Realize p.2) := by
   rcases p with ⟨φ, v⟩
@@ -125,63 +129,72 @@ theorem atomicSatBool_iff (p : L.Formula (Fin k) × (Fin k → ℕ)) :
         List.getElem_finRange]
       exact realize_relabelElim _ v _
 
-set_option maxHeartbeats 4000000 in
-private theorem computableIn_atomicSatAux (O : Set (ℕ →. ℕ))
+/-- The dispatch context of the decider: the input together with its atomic data. -/
+private abbrev AtomicCtx (L : Language) (k : ℕ) :=
+  (L.Formula (Fin k) × (Fin k → ℕ)) × AtomicData L (Fin k)
+
+set_option maxHeartbeats 1000000 in
+private theorem computableIn_atomicSat_eqBranch (O : Set (ℕ →. ℕ))
+    [IsComputableStructureIn O L] (k : ℕ) :
+    ComputableIn O fun x : AtomicCtx L k × (L.Term (Fin k) × L.Term (Fin k)) ↦
+      decide (x.2.1.realize x.1.1.2 = x.2.2.realize x.1.1.2) := by
+  have hcmp : ComputableIn O fun y : (L.Term (Fin k) × (Fin k → ℕ)) ×
+      (L.Term (Fin k) × (Fin k → ℕ)) ↦
+      decide (y.1.1.realize y.1.2 = y.2.1.realize y.2.2) :=
+    (Primrec.eq (α := ℕ)).decide.to_comp.computableIn₂.comp
+      ((Term.realize_computableIn O (m := k)).comp ComputableIn.fst)
+      ((Term.realize_computableIn O (m := k)).comp ComputableIn.snd)
+  have hproj : ComputableIn O fun x : AtomicCtx L k ×
+      (L.Term (Fin k) × L.Term (Fin k)) ↦
+      ((x.2.1, x.1.1.2), (x.2.2, x.1.1.2)) :=
+    ((ComputableIn.fst.comp ComputableIn.snd).pair
+      (ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst))).pair
+      ((ComputableIn.snd.comp ComputableIn.snd).pair
+        (ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst)))
+  exact (hcmp.comp hproj).of_eq fun _ ↦ rfl
+
+set_option maxHeartbeats 1000000 in
+private theorem computableIn_atomicSat_relBranch (O : Set (ℕ →. ℕ))
     [IsComputableStructureIn O L] (k : ℕ)
-    (hdec : DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ)))
-    (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ @decide _ (hdec d)) :
-    ComputableIn O fun p : L.Formula (Fin k) × (Fin k → ℕ) ↦
-      Option.casesOn (motive := fun _ ↦ Bool) (atomicData? p.1) false fun d ↦
-        Sum.casesOn (motive := fun _ ↦ Bool) d
-          (fun q ↦ decide (q.1.realize p.2 = q.2.realize p.2))
-          fun q ↦
-            Option.casesOn (motive := fun _ ↦ Bool)
-              (RelationApplicationData.ofSymbolArgs?
-                (q.1, q.2.map fun t ↦ t.realize p.2)) false
-              fun d ↦ @decide _ (hdec d) := by
-  have hval : ComputableIn O fun q : ((L.Formula (Fin k) × (Fin k → ℕ)) ×
-      AtomicData L (Fin k)) × L.Term (Fin k) ↦ q.2.realize q.1.1.2 :=
-    (Term.realize_computableIn O (m := k)).comp
-      (ComputableIn.snd.pair
-        ((Computable.snd.computableIn).comp
-          ((Computable.fst.computableIn).comp ComputableIn.fst)))
-  have hEq : ComputableIn₂ O fun (x : (L.Formula (Fin k) × (Fin k → ℕ)) ×
-      AtomicData L (Fin k)) (q : L.Term (Fin k) × L.Term (Fin k)) ↦
-      decide (q.1.realize x.1.2 = q.2.realize x.1.2) :=
-    ((Primrec.eq (α := ℕ)).decide.to_comp.computableIn₂.comp
-      (hval.comp (ComputableIn.fst.pair
-        (Computable.fst.computableIn.comp ComputableIn.snd)))
-      (hval.comp (ComputableIn.fst.pair
-        (Computable.snd.computableIn.comp ComputableIn.snd)))).to₂
-  have hRel : ComputableIn₂ O fun (x : (L.Formula (Fin k) × (Fin k → ℕ)) ×
-      AtomicData L (Fin k)) (q : L.RelationSymbol × List (L.Term (Fin k))) ↦
+    [hdec : DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))]
+    (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ decide d.relMap) :
+    ComputableIn O fun x : AtomicCtx L k ×
+        (L.RelationSymbol × List (L.Term (Fin k))) ↦
       Option.casesOn (motive := fun _ ↦ Bool)
         (RelationApplicationData.ofSymbolArgs?
-          (q.1, q.2.map fun t ↦ t.realize x.1.2)) false
-        fun d ↦ @decide _ (hdec d) := by
-    have hvals : ComputableIn O fun y : ((L.Formula (Fin k) × (Fin k → ℕ)) ×
-        AtomicData L (Fin k)) × L.RelationSymbol × List (L.Term (Fin k)) ↦
-        y.2.2.map fun t ↦ t.realize y.1.1.2 :=
-      ComputableIn.list_map
-        ((Computable.snd.computableIn).comp ComputableIn.snd)
-        (((Term.realize_computableIn O (m := k)).comp
-          (ComputableIn.snd.pair
-            ((Computable.snd.computableIn).comp
-              ((Computable.fst.computableIn).comp
-                (ComputableIn.fst.comp ComputableIn.fst))))).to₂)
-    have hofs : ComputableIn O fun y : ((L.Formula (Fin k) × (Fin k → ℕ)) ×
-        AtomicData L (Fin k)) × L.RelationSymbol × List (L.Term (Fin k)) ↦
-        RelationApplicationData.ofSymbolArgs?
-          (y.2.1, y.2.2.map fun t ↦ t.realize y.1.1.2) :=
-      (RelationApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn).comp
-        (((Computable.fst.computableIn).comp ComputableIn.snd).pair hvals)
-    exact (ComputableIn.option_casesOn hofs (ComputableIn.const false)
-      ((hcomp.comp ComputableIn.snd).to₂)).to₂
-  exact ComputableIn.option_casesOn
-    ((primrec_atomicData?.to_comp.computableIn).comp
-      (Computable.fst.computableIn))
+          (x.2.1, x.2.2.map fun t ↦ t.realize x.1.1.2)) false
+        fun d ↦ decide d.relMap := by
+  have hvals : ComputableIn O fun y : AtomicCtx L k ×
+      (L.RelationSymbol × List (L.Term (Fin k))) ↦
+      y.2.2.map fun t ↦ t.realize y.1.1.2 :=
+    ComputableIn.list_map
+      (ComputableIn.snd.comp ComputableIn.snd)
+      (((Term.realize_computableIn O (m := k)).comp
+        (ComputableIn.snd.pair
+          (ComputableIn.snd.comp
+            (ComputableIn.fst.comp
+              (ComputableIn.fst.comp ComputableIn.fst))))).to₂)
+  have hofs : ComputableIn O fun y : AtomicCtx L k ×
+      (L.RelationSymbol × List (L.Term (Fin k))) ↦
+      RelationApplicationData.ofSymbolArgs?
+        (y.2.1, y.2.2.map fun t ↦ t.realize y.1.1.2) :=
+    (RelationApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn).comp
+      ((ComputableIn.fst.comp ComputableIn.snd).pair hvals)
+  exact ComputableIn.option_casesOn hofs (ComputableIn.const false)
+    ((hcomp.comp ComputableIn.snd).to₂)
+
+set_option maxHeartbeats 1000000 in
+private theorem computableIn_atomicSatAux (O : Set (ℕ →. ℕ))
+    [IsComputableStructureIn O L] (k : ℕ)
+    [hdec : DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))]
+    (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ decide d.relMap) :
+    ComputableIn O (atomicSatBool (L := L) (k := k)) :=
+  ComputableIn.option_casesOn
+    ((primrec_atomicData?.to_comp.computableIn).comp ComputableIn.fst)
     (ComputableIn.const false)
-    ((ComputableIn.sumCasesOn ComputableIn.snd hEq hRel).to₂)
+    ((ComputableIn.sumCasesOn ComputableIn.snd
+      ((computableIn_atomicSat_eqBranch O k).to₂)
+      ((computableIn_atomicSat_relBranch O k hcomp).to₂)).to₂)
 
 /-- The roadmap PR 7 gate in diagram-ready total form: atomicity together with
 satisfaction is a computable predicate on formulas with tuples, deciding `false` off
@@ -192,27 +205,14 @@ theorem atomic_realize_computablePredIn (O : Set (ℕ →. ℕ))
       (p.1 : L.BoundedFormula (Fin k) 0).IsAtomic ∧ p.1.Realize p.2 := by
   obtain ⟨hdec, hcomp⟩ :=
     IsComputableStructureIn.relMap_computablePredIn (O := O) (L := L)
+  letI := hdec
   have hwit : DecidablePred fun p : L.Formula (Fin k) × (Fin k → ℕ) ↦
       (p.1 : L.BoundedFormula (Fin k) 0).IsAtomic ∧ p.1.Realize p.2 := fun p ↦
     if hB : atomicSatBool p = true
     then Decidable.isTrue ((atomicSatBool_iff p).1 hB)
     else Decidable.isFalse fun h ↦ hB ((atomicSatBool_iff p).2 h)
   refine ⟨hwit, ?_⟩
-  refine (computableIn_atomicSatAux O k hdec hcomp).of_eq fun p ↦ ?_
-  have hdd : ∀ d : RelationApplicationData L ℕ,
-      @decide _ (hdec d) = @decide _ (Classical.propDecidable d.relMap) := fun d ↦ by
-    by_cases h : d.relMap <;> simp [h]
-  have hBeq : (Option.casesOn (motive := fun _ ↦ Bool) (atomicData? p.1) false fun d ↦
-      Sum.casesOn (motive := fun _ ↦ Bool) d
-        (fun q ↦ decide (q.1.realize p.2 = q.2.realize p.2))
-        fun q ↦
-          Option.casesOn (motive := fun _ ↦ Bool)
-            (RelationApplicationData.ofSymbolArgs?
-              (q.1, q.2.map fun t ↦ t.realize p.2)) false
-            fun d ↦ @decide _ (hdec d)) = atomicSatBool p := by
-    rw [atomicSatBool]
-    simp only [hdd]
-  rw [hBeq]
+  refine (computableIn_atomicSatAux O k hcomp).of_eq fun p ↦ ?_
   by_cases hB : atomicSatBool p = true
   · rw [hB]
     exact (@decide_eq_true _ (hwit p) ((atomicSatBool_iff p).1 hB)).symm
@@ -226,9 +226,7 @@ theorem atomic_realize_computablePredIn (O : Set (ℕ →. ℕ))
 predicate. -/
 theorem atomicFormula_realize_computablePredIn (O : Set (ℕ →. ℕ))
     [IsComputableStructureIn O L] (k : ℕ) :
-    ComputablePredIn O
-      fun p : { φ : L.Formula (Fin k) //
-          (φ : L.BoundedFormula (Fin k) 0).IsAtomic } × (Fin k → ℕ) ↦
+    ComputablePredIn O fun p : AtomicFormula L (Fin k) × (Fin k → ℕ) ↦
       (p.1 : L.Formula (Fin k)).Realize p.2 :=
   ((atomic_realize_computablePredIn O k).comp
     ((Primrec.subtype_val.to_comp.computableIn.comp ComputableIn.fst).pair
@@ -241,8 +239,7 @@ theorem realize_computablePredIn_of_isAtomic (O : Set (ℕ →. ℕ))
     (hφ : (φ : L.BoundedFormula (Fin k) 0).IsAtomic) :
     ComputablePredIn O fun v : Fin k → ℕ ↦ φ.Realize v :=
   (atomicFormula_realize_computablePredIn O k).comp
-    ((ComputableIn.const (⟨φ, hφ⟩ : { φ : L.Formula (Fin k) //
-      (φ : L.BoundedFormula (Fin k) 0).IsAtomic })).pair ComputableIn.id)
+    ((ComputableIn.const (⟨φ, hφ⟩ : AtomicFormula L (Fin k))).pair ComputableIn.id)
 
 end AtomicSatisfaction
 

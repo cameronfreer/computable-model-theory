@@ -84,7 +84,8 @@ theorem test_primrec_sigmaEx : Primrec (sigmaEx (L := L) (α := α)) :=
 omit [Primcodable α] [L.EffectiveLanguage] in
 /-- Mismatch semantics: `sigmaEqual` on unequal variable bounds is `default`. -/
 theorem test_sigmaEqual_mismatch {m n} (t₁ : L.Term (α ⊕ Fin m))
-    (t₂ : L.Term (α ⊕ Fin n)) (h : m ≠ n) : sigmaEqual ⟨m, t₁⟩ ⟨n, t₂⟩ = default :=
+    (t₂ : L.Term (α ⊕ Fin n)) (h : m ≠ n) :
+    sigmaEqual ⟨m, t₁⟩ ⟨n, t₂⟩ = default :=
   sigmaEqual_of_ne t₁ t₂ h
 
 omit [Primcodable α] [L.EffectiveLanguage] in

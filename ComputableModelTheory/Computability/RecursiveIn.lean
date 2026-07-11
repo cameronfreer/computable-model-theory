@@ -313,8 +313,8 @@ protected theorem to₂ {f : α × β →. σ} (hf : RecursiveIn O f) :
 
 /-- Case analysis on a computed natural with partial successor branch: the oracle mirror
 of `Partrec.nat_casesOn_right`. -/
-theorem nat_casesOn_right {f : α → ℕ} {g : α → σ} {h : α → ℕ →. σ} (hf : ComputableIn O f)
-    (hg : ComputableIn O g) (hh : RecursiveIn₂ O h) :
+theorem nat_casesOn_right {f : α → ℕ} {g : α → σ} {h : α → ℕ →. σ}
+    (hf : ComputableIn O f) (hg : ComputableIn O g) (hh : RecursiveIn₂ O h) :
     RecursiveIn O fun a ↦ (f a).casesOn (Part.some (g a)) (h a) :=
   (RecursiveIn.nat_rec hf hg
     (hh.comp ComputableIn.fst
