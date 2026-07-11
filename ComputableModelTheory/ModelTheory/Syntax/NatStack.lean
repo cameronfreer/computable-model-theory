@@ -145,4 +145,28 @@ theorem primrec_natDecodeStack : Primrec (natDecodeStack L) := by
         (Primrec.snd.comp Primrec.snd)).to₂)
   exact hfold.of_eq fun l ↦ rfl
 
+/-! ### Soundness -/
+
+
+/-- Soundness of the code-level machine: on encode-images it computes exactly the
+fiber machine `decodeStack`, uniformly in the variable type. -/
+theorem natDecodeStack_map_encode {β : Type*} [Primcodable β]
+    (l : List (β ⊕ (Σ i, L.Functions i))) :
+    natDecodeStack L (l.map encode) = (decodeStack l).map (List.map encode) := by
+  induction l with
+  | nil => rfl
+  | cons g l ih =>
+    rw [List.map_cons, natDecodeStack_cons, ih,
+      show decodeStack (g :: l) = decodeStackStep g (decodeStack l) from rfl]
+    cases g with
+    | inl b => rw [natDecodeStackStep_encode_inl]; rfl
+    | inr s =>
+      rw [natDecodeStackStep_encode_inr, decodeStackStep]
+      rw [List.length_map]
+      by_cases h : s.1 ≤ (decodeStack l).length
+      · rw [if_pos h, if_pos h, List.map_cons, List.map_cons, ← List.map_drop,
+          ← List.map_take, List.map_flatten]
+      · rw [if_neg h, if_neg h]
+        rfl
+
 end FirstOrder.Language.Term
