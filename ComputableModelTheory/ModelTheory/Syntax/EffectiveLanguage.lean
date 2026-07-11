@@ -22,6 +22,19 @@ symbols without destructing arities by hand.
 
 open Encodable
 
+/-- Any function out of an empty `Primcodable` type is primitive recursive. Upstream
+candidate for mathlib. -/
+theorem Primrec.of_isEmpty {α σ : Type*} [Primcodable α] [Primcodable σ] [IsEmpty α]
+    (f : α → σ) : Primrec f := by
+  change Nat.Primrec fun n ↦ encode ((decode (α := α) n).map f)
+  have h : (fun n ↦ encode ((decode (α := α) n).map f)) = fun _ ↦ 0 := by
+    funext n
+    rcases h : decode (α := α) n with - | a
+    · simp
+    · exact isEmptyElim a
+  rw [h]
+  exact Nat.Primrec.zero
+
 /-- Any function out of an empty `Primcodable` type is computable. Upstream candidate for
 mathlib. -/
 theorem Computable.of_isEmpty {α σ : Type*} [Primcodable α] [Primcodable σ] [IsEmpty α]
@@ -53,12 +66,13 @@ def RelationSymbol.arity : L.RelationSymbol → ℕ := Sigma.fst
 variable (L)
 
 /-- A first-order language is *effective* when its function and relation symbols are
-primitively codable and the arity maps are computable. -/
+primitively codable and the arity maps are primitive recursive. (Primitive recursion,
+rather than mere computability, is what the `Primcodable` instances for syntax require.) -/
 class EffectiveLanguage where
   [instFunctionSymbols : Primcodable L.FunctionSymbol]
   [instRelationSymbols : Primcodable L.RelationSymbol]
-  computable_functionArity : Computable (FunctionSymbol.arity (L := L))
-  computable_relationArity : Computable (RelationSymbol.arity (L := L))
+  primrec_functionArity : Primrec (FunctionSymbol.arity (L := L))
+  primrec_relationArity : Primrec (RelationSymbol.arity (L := L))
 
 attribute [reducible] EffectiveLanguage.instFunctionSymbols EffectiveLanguage.instRelationSymbols
 attribute [instance] EffectiveLanguage.instFunctionSymbols EffectiveLanguage.instRelationSymbols
@@ -69,13 +83,21 @@ section
 
 variable [L.EffectiveLanguage]
 
+/-- The arity map on function symbols of an effective language is primitive recursive. -/
+theorem primrec_functionSymbol_arity : Primrec (FunctionSymbol.arity (L := L)) :=
+  EffectiveLanguage.primrec_functionArity
+
+/-- The arity map on relation symbols of an effective language is primitive recursive. -/
+theorem primrec_relationSymbol_arity : Primrec (RelationSymbol.arity (L := L)) :=
+  EffectiveLanguage.primrec_relationArity
+
 /-- The arity map on function symbols of an effective language is computable. -/
 theorem computable_functionSymbol_arity : Computable (FunctionSymbol.arity (L := L)) :=
-  EffectiveLanguage.computable_functionArity
+  primrec_functionSymbol_arity.to_comp
 
 /-- The arity map on relation symbols of an effective language is computable. -/
 theorem computable_relationSymbol_arity : Computable (RelationSymbol.arity (L := L)) :=
-  EffectiveLanguage.computable_relationArity
+  primrec_relationSymbol_arity.to_comp
 
 end
 
@@ -125,7 +147,7 @@ instance : Primcodable Language.empty.RelationSymbol :=
 
 /-- The empty language is effective. -/
 instance : EffectiveLanguage Language.empty where
-  computable_functionArity := Computable.of_isEmpty _
-  computable_relationArity := Computable.of_isEmpty _
+  primrec_functionArity := Primrec.of_isEmpty _
+  primrec_relationArity := Primrec.of_isEmpty _
 
 end FirstOrder.Language
