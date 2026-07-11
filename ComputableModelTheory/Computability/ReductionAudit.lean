@@ -18,6 +18,8 @@ lake env lean ComputableModelTheory/Computability/ReductionAudit.lean
 ```
 -/
 
+open Encodable
+
 section
 
 variable {α β : Type*} [Primcodable α] [Primcodable β] {O₁ O₂ : Set (ℕ →. ℕ)}
@@ -57,9 +59,46 @@ theorem test_reducible_and_not (h : PredTuringReducible p q) :
   obtain ⟨D, h⟩ := h
   exact ⟨D, h.and h.not⟩
 
+/-- The total characteristic oracle answers valid codes with the decided value. -/
+theorem test_predOracleTotal_encode (p : α → Prop) [DecidablePred p] (a : α) :
+    predOracleTotal p (encode a) = Part.some (encode (decide (p a))) :=
+  predOracleTotal_encode p a
+
+/-- The total characteristic oracle answers invalid codes with `encode false`. -/
+theorem test_predOracleTotal_of_decode_none (p : α → Prop) [DecidablePred p] {n : ℕ}
+    (h : decode (α := α) n = Option.none) :
+    predOracleTotal p n = Part.some (encode false) :=
+  predOracleTotal_of_decode_none p h
+
+/-- The partial characteristic oracle computes the total one. -/
+theorem test_recursiveIn_total_of_partial (p : α → Prop) [DecidablePred p] :
+    RecursiveIn {predOracle p} (predOracleTotal p) :=
+  recursiveIn_predOracleTotal_of_predOracle p
+
+/-- The total characteristic oracle computes the partial one. -/
+theorem test_recursiveIn_partial_of_total (p : α → Prop) [DecidablePred p] :
+    RecursiveIn {predOracleTotal p} (predOracle p) :=
+  recursiveIn_predOracle_of_predOracleTotal p
+
+/-- The discharged obligation: the two characteristic oracles are interchangeable. -/
+theorem test_predOracle_iff_total (p : α → Prop) [DecidablePred p] {q : β → Prop} :
+    ComputablePredIn {predOracle p} q ↔ ComputablePredIn {predOracleTotal p} q :=
+  computablePredIn_predOracle_iff_total p
+
+/-- A decidable predicate is computable from its own total characteristic oracle. -/
+theorem test_predOracleTotal_self (p : α → Prop) [DecidablePred p] :
+    ComputablePredIn {predOracleTotal p} p :=
+  computablePredIn_predOracleTotal_self p
+
 end
 
 #assert_standard_axioms test_predOracle_self
+#assert_standard_axioms test_predOracleTotal_encode
+#assert_standard_axioms test_predOracleTotal_of_decode_none
+#assert_standard_axioms test_recursiveIn_total_of_partial
+#assert_standard_axioms test_recursiveIn_partial_of_total
+#assert_standard_axioms test_predOracle_iff_total
+#assert_standard_axioms test_predOracleTotal_self
 #assert_standard_axioms test_predTuringReducible_refl
 #assert_standard_axioms test_predTuringReducible_trans
 #assert_standard_axioms test_transport
