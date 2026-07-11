@@ -18,3 +18,4 @@ jobs:
       - run: lake env lean ComputableModelTheory/Computability/OraclePredAudit.lean
       - run: lake env lean ComputableModelTheory/Computability/ReductionAudit.lean
       - run: lake env lean ComputableModelTheory/ModelTheory/Syntax/EffectiveLanguageAudit.lean
+      - run: lake env lean ComputableModelTheory/ModelTheory/Syntax/PrimcodableAudit.lean
