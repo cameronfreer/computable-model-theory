@@ -26,7 +26,9 @@ and atomic and quantifier-free satisfaction in computable structures are computa
 the oracle — quantifier-free satisfaction by a satisfaction stack machine run in
 parallel with mathlib's formula decoder — and the partial and total characteristic
 oracles are proven interchangeable. The signed atomic and quantifier-free diagram
-predicates at fixed width are computable in the oracle. The remaining model-theoretic
+predicates at fixed width are computable in the oracle. Finite tuples are list-backed
+with a fixed-width view, and the central semantic gate identifies membership in a
+tuple's closure with term realization over the tuple. The remaining model-theoretic
 layers are import skeletons awaiting content.
 
 ## Staging
