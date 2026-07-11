@@ -98,6 +98,26 @@ theorem Tuple.mem_closure_iff_exists_term (a : Tuple M) {x : M} :
     x ∈ Tuple.closure L a ↔ ∃ t : L.Term (Fin a.length), t.realize a.view = x := by
   rw [Tuple.closure_eq, mem_closure_range_iff_exists_term]
 
+/-- A list tuple generates the structure when its closure is everything. -/
+def Tuple.Generates (L : Language) [L.Structure M] (a : Tuple M) : Prop :=
+  Tuple.closure L a = ⊤
+
+/-- A list tuple generates exactly when every element is a term value over its view. -/
+theorem Tuple.generates_iff (a : Tuple M) :
+    Tuple.Generates L a ↔
+      ∀ x : M, ∃ t : L.Term (Fin a.length), t.realize a.view = x := by
+  constructor
+  · intro h x
+    exact (Tuple.mem_closure_iff_exists_term a).1 (h ▸ Substructure.mem_top x)
+  · intro h
+    refine eq_top_iff.2 fun x _ ↦ ?_
+    exact (Tuple.mem_closure_iff_exists_term a).2 (h x)
+
+/-- List-form monotonicity: entry containment yields closure containment. -/
+theorem Tuple.closure_mono {a b : Tuple M} (h : ∀ x ∈ a, x ∈ b) :
+    Tuple.closure L a ≤ Tuple.closure L b :=
+  Substructure.closure_mono h
+
 /-- A fixed-width tuple generates the structure when its closure is everything. -/
 def Generates (L : Language) [L.Structure M] (a : Fin k → M) : Prop :=
   Substructure.closure L (Set.range a) = ⊤
@@ -125,6 +145,14 @@ theorem map_closure_range (f : M →[L] N) (a : Fin k → M) :
     (Substructure.closure L (Set.range a)).map f =
       Substructure.closure L (Set.range (f ∘ a)) := by
   rw [Substructure.map_closure, Set.range_comp]
+
+/-- A homomorphism maps a list tuple's closure onto the mapped tuple's closure. -/
+theorem Tuple.map_closure (f : M →[L] N) (a : Tuple M) :
+    (Tuple.closure L a).map f = Tuple.closure L (a.map f) := by
+  rw [Tuple.closure, Tuple.closure, Substructure.map_closure]
+  congr 1
+  ext x
+  simp
 
 end TupleClosure
 

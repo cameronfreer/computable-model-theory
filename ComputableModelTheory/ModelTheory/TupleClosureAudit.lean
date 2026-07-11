@@ -52,6 +52,22 @@ theorem test_map_closure_range (f : M →[L] N) (a : Fin k → M) :
       Substructure.closure L (Set.range (f ∘ a)) :=
   map_closure_range f a
 
+/-- List-form generation is every element being a term value over the view. -/
+theorem test_tuple_generates_iff (a : Tuple M) :
+    Tuple.Generates L a ↔
+      ∀ x : M, ∃ t : L.Term (Fin a.length), t.realize a.view = x :=
+  Tuple.generates_iff a
+
+/-- List-form closure monotonicity. -/
+theorem test_tuple_closure_mono (a b : Tuple M) (h : ∀ x ∈ a, x ∈ b) :
+    Tuple.closure L a ≤ Tuple.closure L b :=
+  Tuple.closure_mono h
+
+/-- List-form homomorphic image of a tuple closure. -/
+theorem test_tuple_map_closure (f : M →[L] N) (a : Tuple M) :
+    (Tuple.closure L a).map f = Tuple.closure L (a.map f) :=
+  Tuple.map_closure f a
+
 end
 
 section ConcreteClosure
@@ -72,6 +88,19 @@ theorem test_succ_generates : Generates succLang (M := ℕ) ![0] := by
     show (![t] 0).realize ![0] + 1 = n + 1
     rw [Matrix.cons_val_zero, ht]
 
+/-- The list tuple `[0]` generates the successor structure on `ℕ`. -/
+theorem test_succ_tuple_generates : Tuple.Generates succLang ([0] : Tuple ℕ) := by
+  rw [Tuple.generates_iff]
+  intro x
+  induction x with
+  | zero => exact ⟨Term.var ⟨0, by simp⟩, rfl⟩
+  | succ n ih =>
+    obtain ⟨t, ht⟩ := ih
+    refine ⟨Term.func SuccFunctions.succ ![t], ?_⟩
+    rw [Term.realize_func]
+    show (![t] 0).realize (Tuple.view ([0] : Tuple ℕ)) + 1 = n + 1
+    rw [Matrix.cons_val_zero, ht]
+
 /-- A concrete closure membership through the gate: `2` lies in the closure of the
 tuple `0` in the successor structure. -/
 theorem test_succ_closure_mem :
@@ -86,5 +115,9 @@ end ConcreteClosure
 #assert_standard_axioms test_generates_iff
 #assert_standard_axioms test_closure_range_mono
 #assert_standard_axioms test_map_closure_range
+#assert_standard_axioms test_tuple_generates_iff
+#assert_standard_axioms test_tuple_closure_mono
+#assert_standard_axioms test_tuple_map_closure
 #assert_standard_axioms test_succ_generates
+#assert_standard_axioms test_succ_tuple_generates
 #assert_standard_axioms test_succ_closure_mem
