@@ -45,4 +45,9 @@ theorem decode_fin_of_lt {k j : ℕ} (h : j < k) : decode (α := Fin k) j = some
   have := Encodable.encodek (⟨j, h⟩ : Fin k)
   rwa [encode_fin_val] at this
 
+/-- Out-of-range naturals do not decode into `Fin`: the noncanonical direction needed by
+canonicalization arguments. -/
+theorem decode_fin_eq_none_of_le {k j : ℕ} (h : k ≤ j) : decode (α := Fin k) j = none := by
+  simp [decode, Encodable.decodeSubtype, Nat.not_lt.2 h]
+
 end Encodable

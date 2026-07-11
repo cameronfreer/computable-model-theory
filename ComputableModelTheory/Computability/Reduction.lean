@@ -29,7 +29,12 @@ variable {O O₁ O₂ : Set (ℕ →. ℕ)} {p q : α → Prop} {f : α → σ}
 /-- The characteristic oracle of a decidable predicate: on the code of `a` it returns the
 encoding of `decide (p a)`, and it diverges on non-codes. Partiality keeps the oracle
 itself recursive in any oracle set that computes `p`, which drives transitivity of
-`PredTuringReducible`. -/
+`PredTuringReducible`.
+
+Note: because it diverges off valid codes, this is not literally the conventional total
+characteristic oracle. Before Turing degrees are introduced, either rename this to
+emphasize coded partiality or prove transport/equivalence with a total default-valued
+oracle. -/
 def predOracle (p : α → Prop) [DecidablePred p] : ℕ →. ℕ :=
   fun n ↦ (decode (α := α) n : Part α).map fun a ↦ encode (decide (p a))
 
