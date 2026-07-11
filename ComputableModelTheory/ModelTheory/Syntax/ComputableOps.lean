@@ -17,9 +17,10 @@ primitive recursiveness from the list level to the term level. In particular `li
 itself is primitive recursive definitionally, being the term instance's `encode` read at
 the list level.
 
-Operations whose statements need `Primcodable` instances for formulas or for the uniform
-sigma of terms (`func` application data, formula constructors, complexity predicates) are
-deferred until those instances exist.
+Operations whose statements need the uniform sigma of terms (`func` application data)
+are deferred; the formula constructors live in
+`ComputableModelTheory.ModelTheory.Syntax.FormulaOps` on top of the formula
+`Primcodable` instances.
 -/
 
 

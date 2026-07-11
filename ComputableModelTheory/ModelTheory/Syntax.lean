@@ -5,6 +5,7 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Syntax.ComputableOps
 import ComputableModelTheory.ModelTheory.Syntax.EffectiveLanguage
+import ComputableModelTheory.ModelTheory.Syntax.FormulaOps
 import ComputableModelTheory.ModelTheory.Syntax.FormulaSigma
 import ComputableModelTheory.ModelTheory.Syntax.NatStack
 import ComputableModelTheory.ModelTheory.Syntax.Primcodable
@@ -19,6 +20,6 @@ import Mathlib.ModelTheory.Syntax
 Umbrella module for the syntax layer: effective-language conventions on top of mathlib's
 `FirstOrder.Language`, `Primcodable` instances for terms (including uniformly over all
 `Fin` variable bounds) and for bounded formulas, formulas, and sentences, and
-computability of term operations; the formula half of the computable operations is
-still to come.
+computability of term operations and of the sigma-level formula constructors; formula
+relabelling/substitution and the prenex operations are still to come.
 -/
