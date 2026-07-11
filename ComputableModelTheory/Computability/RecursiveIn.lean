@@ -11,9 +11,9 @@ import Mathlib.Computability.RecursiveIn
 This file supplements `Mathlib.Computability.RecursiveIn` with typed combinators for
 `RecursiveIn` and `ComputableIn`: composition, pairing, bind, map, Boolean conditionals,
 μ-search, primitive recursion (`Nat.RecursiveIn.prec'` through `ComputableIn.nat_rec`,
-`nat_casesOn`, and `nat_iterate`), list folds (`ComputableIn.list_foldl` and
-`list_foldr`, by running the fold as a partial recursion over positions and discharging
-totality), and option and sum case analysis (through
+`nat_casesOn`, and `nat_iterate`), list folds and maps (`ComputableIn.list_foldl`,
+`list_foldr`, and `list_map`, by running the fold as a partial recursion over positions
+and discharging totality), and option and sum case analysis (through
 `RecursiveIn.nat_casesOn_right` and the `decode` bridges, mirroring the absolute
 proofs), together with thin domain and specification wrappers for `Nat.rfind` over
 total `Bool`-valued predicates. Each combinator is proved by descending to the
@@ -287,6 +287,18 @@ theorem list_foldr {f : α → List β} {g : α → σ} {h : α → β × σ →
       ((ComputableIn.snd.comp ComputableIn.snd).pair
         (ComputableIn.fst.comp ComputableIn.snd))).to₂)).of_eq
     fun a ↦ by rw [List.foldl_reverse]
+
+/-- `List.map` of an oracle-computable function over a list. -/
+theorem list_map {f : α → List β} {g : α → β → σ}
+    (hf : ComputableIn O f) (hg : ComputableIn₂ O g) :
+    ComputableIn O fun a ↦ (f a).map (g a) :=
+  (ComputableIn.list_foldr hf (ComputableIn.const [])
+    ((Computable.list_cons.computableIn₂ (O := O)).comp
+      (hg.comp ComputableIn.fst (ComputableIn.fst.comp ComputableIn.snd))
+      (ComputableIn.snd.comp ComputableIn.snd)).to₂).of_eq fun a ↦ by
+    induction f a with
+    | nil => rfl
+    | cons b l ih => rw [List.foldr_cons, ih, List.map_cons]
 
 end ComputableIn
 

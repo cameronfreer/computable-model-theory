@@ -95,6 +95,16 @@ theorem test_computableIn_list_foldr :
 theorem test_list_foldr_value : ([1, 2, 3] : List ℕ).foldr (fun b s ↦ b + s) 0 = 6 :=
   rfl
 
+/-- List-map gate: doubling every entry is computable in any oracle set. -/
+theorem test_computableIn_list_map :
+    ComputableIn O fun l : List ℕ ↦ l.map fun b ↦ b + b :=
+  ComputableIn.list_map ComputableIn.id
+    ((Primrec.nat_add.comp Primrec.snd Primrec.snd).to_comp.computableIn.to₂)
+
+/-- Semantic equation: the map doubles the list. -/
+theorem test_list_map_value : ([1, 2, 3] : List ℕ).map (fun b ↦ b + b) = [2, 4, 6] :=
+  rfl
+
 /-- Option case analysis gate: `Option.getD` via cases is computable in any oracle
 set. -/
 theorem test_computableIn_option_casesOn {f : α → Option ℕ} (hf : ComputableIn O f) :
@@ -125,3 +135,5 @@ end
 #assert_standard_axioms test_list_foldl_value
 #assert_standard_axioms test_computableIn_list_foldr
 #assert_standard_axioms test_list_foldr_value
+#assert_standard_axioms test_computableIn_list_map
+#assert_standard_axioms test_list_map_value
