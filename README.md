@@ -9,10 +9,13 @@ paper-specific statements kept in wrapper modules under `ComputableModelTheory/P
 ## Current status
 
 The relative-computability substrate is in place: typed `RecursiveIn`/`ComputableIn`
-combinators (composition, pairing, bind, map, conditionals, μ-search) and the
+combinators (composition, pairing, bind, map, conditionals, μ-search), the
 oracle-relative predicate layer `ComputablePredIn`/`REPredIn` with Boolean closure,
-finite quantifiers, and r.e. closure lemmas. The model-theoretic layers below are import
-skeletons awaiting content.
+finite quantifiers, and r.e. closure lemmas, and lightweight reductions with oracle
+transport. On the syntax side, `EffectiveLanguage` provides computability data for
+first-order languages, terms of effective languages are `Primcodable`, and bounded
+formulas, formulas, and sentences are `Encodable`. The remaining model-theoretic layers
+are import skeletons awaiting content.
 
 ## Staging
 
