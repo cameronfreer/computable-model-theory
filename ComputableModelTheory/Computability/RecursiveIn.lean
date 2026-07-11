@@ -10,7 +10,10 @@ import Mathlib.Computability.RecursiveIn
 
 This file supplements `Mathlib.Computability.RecursiveIn` with typed combinators for
 `RecursiveIn` and `ComputableIn`: composition, pairing, bind, map, Boolean conditionals,
-and μ-search, together with thin domain and specification wrappers for `Nat.rfind` over
+μ-search, primitive recursion (`Nat.RecursiveIn.prec'` through `ComputableIn.nat_rec`,
+`nat_casesOn`, and `nat_iterate`), and list folds (`ComputableIn.list_foldl` and
+`list_foldr`, by running the fold as a partial recursion over positions and discharging
+totality), together with thin domain and specification wrappers for `Nat.rfind` over
 total `Bool`-valued predicates. Each combinator is proved by descending to the
 `Nat.RecursiveIn` constructors through `Primcodable` encodings, following the proofs of
 the corresponding absolute facts in `Mathlib.Computability.Partrec`.
@@ -164,6 +167,126 @@ theorem rfind_total {f : α → ℕ → Bool} (hf : ComputableIn₂ O f) :
   RecursiveIn.rfind (p := fun a n ↦ Part.some (f a n)) hf
 
 end RecursiveIn
+
+/-! ### Recursion and folds -/
+
+namespace Nat.RecursiveIn
+
+/-- Primitive recursion with a computed recursion argument: the oracle mirror of
+`Nat.Partrec.prec'`. -/
+protected theorem prec' {f g h : ℕ →. ℕ} (hf : Nat.RecursiveIn O f)
+    (hg : Nat.RecursiveIn O g) (hh : Nat.RecursiveIn O h) :
+    Nat.RecursiveIn O fun a ↦ (f a).bind fun n ↦ n.rec (g a)
+      fun y IH ↦ do {let i ← IH; h (Nat.pair a (Nat.pair y i))} :=
+  ((hg.prec hh).comp (Nat.RecursiveIn.some.pair hf)).of_eq fun a ↦
+    Part.ext fun s ↦ by simp [Seq.seq]
+
+end Nat.RecursiveIn
+
+namespace RecursiveIn
+
+/-- Primitive recursion with partial base and step: the oracle mirror of
+`Partrec.nat_rec`. -/
+protected theorem nat_rec {f : α → ℕ} {g : α →. σ} {h : α → ℕ × σ →. σ}
+    (hf : ComputableIn O f) (hg : RecursiveIn O g) (hh : RecursiveIn₂ O h) :
+    RecursiveIn O fun a ↦ (f a).rec (g a) fun y IH ↦ IH.bind fun i ↦ h a (y, i) :=
+  (Nat.RecursiveIn.prec' hf hg hh).of_eq fun n ↦ by
+    rcases e : decode (α := α) n with - | a
+    · simp
+    · simp only [coe_some, bind_some]
+      induction f a <;> simp_all
+
+end RecursiveIn
+
+namespace ComputableIn
+
+/-- Primitive recursion of oracle-computable functions: the oracle mirror of
+`Computable.nat_rec`. -/
+protected theorem nat_rec {f : α → ℕ} {g : α → σ} {h : α → ℕ × σ → σ}
+    (hf : ComputableIn O f) (hg : ComputableIn O g) (hh : ComputableIn₂ O h) :
+    ComputableIn O fun a ↦
+      Nat.rec (motive := fun _ ↦ σ) (g a) (fun y IH ↦ h a (y, IH)) (f a) :=
+  (RecursiveIn.nat_rec hf hg hh.recursiveIn₂).of_eq fun a ↦ by
+    simp
+    induction f a <;> simp [*]
+
+/-- Case analysis on a computed natural number: the oracle mirror of
+`Computable.nat_casesOn`. -/
+protected theorem nat_casesOn {f : α → ℕ} {g : α → σ} {h : α → ℕ → σ}
+    (hf : ComputableIn O f) (hg : ComputableIn O g) (hh : ComputableIn₂ O h) :
+    ComputableIn O fun a ↦ Nat.casesOn (motive := fun _ ↦ σ) (f a) (g a) (h a) :=
+  ComputableIn.nat_rec hf hg
+    (hh.comp ComputableIn.fst (ComputableIn.fst.comp ComputableIn.snd)).to₂
+
+/-- Iteration of an oracle-computable function: the oracle mirror of
+`Primrec.nat_iterate`. -/
+protected theorem nat_iterate {f : α → ℕ} {g : α → β} {h : α → β → β}
+    (hf : ComputableIn O f) (hg : ComputableIn O g) (hh : ComputableIn₂ O h) :
+    ComputableIn O fun a ↦ (h a)^[f a] (g a) :=
+  (ComputableIn.nat_rec hf hg
+    (hh.comp ComputableIn.fst (ComputableIn.snd.comp ComputableIn.snd)).to₂).of_eq
+    fun a ↦ by
+      induction f a with
+      | zero => rfl
+      | succ n ih => rw [Function.iterate_succ_apply', ← ih]
+
+end ComputableIn
+
+omit [Primcodable β] [Primcodable σ] in
+private theorem nat_rec_getElem_foldl (l : List β) (op : σ → β → σ) (init : σ) :
+    ∀ n, n ≤ l.length →
+      Nat.rec (motive := fun _ ↦ Part σ) (Part.some init)
+        (fun y IH ↦ IH.bind fun s ↦ (l[y]? : Part β).map fun b ↦ op s b) n =
+      Part.some ((l.take n).foldl op init)
+  | 0, _ => by simp
+  | n + 1, hn => by
+    rw [show Nat.rec (motive := fun _ ↦ Part σ) (Part.some init)
+        (fun y IH ↦ IH.bind fun s ↦ (l[y]? : Part β).map fun b ↦ op s b) (n + 1) =
+      (Nat.rec (motive := fun _ ↦ Part σ) (Part.some init)
+        (fun y IH ↦ IH.bind fun s ↦ (l[y]? : Part β).map fun b ↦ op s b) n).bind
+        (fun s ↦ (l[n]? : Part β).map fun b ↦ op s b) from rfl,
+      nat_rec_getElem_foldl l op init n (by omega),
+      List.getElem?_eq_getElem (show n < l.length by omega)]
+    simp only [Part.bind_some, Part.coe_some, Part.map_some, List.take_add_one,
+      List.getElem?_eq_getElem (show n < l.length by omega), Option.toList_some,
+      List.foldl_append, List.foldl_cons, List.foldl_nil]
+
+namespace ComputableIn
+
+/-- Left fold of an oracle-computable function over a list: the workhorse for list
+recursion at the oracle level. -/
+theorem list_foldl {f : α → List β} {g : α → σ} {h : α → σ × β → σ}
+    (hf : ComputableIn O f) (hg : ComputableIn O g) (hh : ComputableIn₂ O h) :
+    ComputableIn O fun a ↦ (f a).foldl (fun s b ↦ h a (s, b)) (g a) := by
+  have hstep : RecursiveIn₂ O fun (a : α) (p : ℕ × σ) ↦
+      ((f a)[p.1]? : Part β).map fun b ↦ h a (p.2, b) :=
+    RecursiveIn.map
+      (ComputableIn.ofOption
+        (Computable.list_getElem?.computableIn.comp
+          ((hf.comp ComputableIn.fst).pair (ComputableIn.fst.comp ComputableIn.snd))))
+      ((hh.comp (ComputableIn.fst.comp ComputableIn.fst)
+        ((ComputableIn.snd.comp (ComputableIn.snd.comp ComputableIn.fst)).pair
+          ComputableIn.snd)).to₂)
+  have hF : RecursiveIn O fun a ↦
+      Nat.rec (motive := fun _ ↦ Part σ) (Part.some (g a))
+        (fun y IH ↦ IH.bind fun s ↦ ((f a)[y]? : Part β).map fun b ↦ h a (s, b))
+        (f a).length :=
+    RecursiveIn.nat_rec (Computable.list_length.computableIn.comp hf) hg hstep
+  exact hF.of_eq fun a ↦ by
+    rw [nat_rec_getElem_foldl (f a) (fun s b ↦ h a (s, b)) (g a) (f a).length le_rfl,
+      List.take_length]
+
+/-- Right fold of an oracle-computable function over a list. -/
+theorem list_foldr {f : α → List β} {g : α → σ} {h : α → β × σ → σ}
+    (hf : ComputableIn O f) (hg : ComputableIn O g) (hh : ComputableIn₂ O h) :
+    ComputableIn O fun a ↦ (f a).foldr (fun b s ↦ h a (b, s)) (g a) :=
+  (list_foldl (Computable.list_reverse.computableIn.comp hf) hg
+    ((hh.comp ComputableIn.fst
+      ((ComputableIn.snd.comp ComputableIn.snd).pair
+        (ComputableIn.fst.comp ComputableIn.snd))).to₂)).of_eq
+    fun a ↦ by rw [List.foldl_reverse]
+
+end ComputableIn
 
 end
 
