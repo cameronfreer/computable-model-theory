@@ -22,4 +22,5 @@ jobs:
       - run: lake env lean ComputableModelTheory/ModelTheory/Syntax/PrimcodableAudit.lean
       - run: lake env lean ComputableModelTheory/ModelTheory/Syntax/ComputableOpsAudit.lean
       - run: lake env lean ComputableModelTheory/ModelTheory/Syntax/TermSigmaAudit.lean
+      - run: lake env lean ComputableModelTheory/ModelTheory/Syntax/FormulaSigmaAudit.lean
       - run: lake env lean ComputableModelTheory/ModelTheory/Computable/StructureAudit.lean

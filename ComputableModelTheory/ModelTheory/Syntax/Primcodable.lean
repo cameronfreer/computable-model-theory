@@ -17,10 +17,11 @@ shadowing `Term.listDecode` with a stack machine `decodeStack` acting on
 are already `Primcodable` (`decodeStack_eq_map_listEncode` is the bridge).
 
 Bounded formulas (packaged over all numbers of free variables), formulas, and sentences
-receive `Encodable` instances on top of the term instance. The uniform sigma instance
-`Primcodable (Σ k, L.Term (α ⊕ Fin k))` — the alphabet of the formula encoding — is
-provided in `ComputableModelTheory.ModelTheory.Syntax.TermSigma`; upgrading the formula
-instances to `Primcodable` now requires only a second stack machine over that alphabet.
+receive `Encodable` instances on top of the term instance. Their `Primcodable` upgrades
+live in `ComputableModelTheory.ModelTheory.Syntax.FormulaSigma`, built on the uniform
+sigma instance `Primcodable (Σ k, L.Term (α ⊕ Fin k))` of
+`ComputableModelTheory.ModelTheory.Syntax.TermSigma` and a second stack machine over
+that alphabet; the instances there retain the `Encodable` instances defined here.
 -/
 
 open Encodable
@@ -163,7 +164,8 @@ section FormulaEncodable
 variable [Primcodable α] [L.EffectiveLanguage]
 
 /-- Bounded formulas of an effective language, packaged over all numbers of free
-variables, are encodable. (`Primcodable` is future work; see the module docstring.) -/
+variables, are encodable. (The `Primcodable` upgrade, reusing this instance, is in
+`ComputableModelTheory.ModelTheory.Syntax.FormulaSigma`.) -/
 instance instEncodableSigmaBoundedFormula : Encodable (Σ n, L.BoundedFormula α n) :=
   Encodable.ofLeftInjection (fun φ ↦ φ.2.listEncode)
     (fun l ↦ (BoundedFormula.listDecode l)[0]?) fun φ ↦ by

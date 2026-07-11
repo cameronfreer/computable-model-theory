@@ -840,4 +840,88 @@ end PrimrecStep
 
 end BoundedFormula
 
+section Instances
+
+variable [Primcodable α] [L.EffectiveLanguage]
+
+/-- Bounded formulas of an effective language over a `Primcodable` variable type,
+packaged over all numbers of free variables, are primitively codable — with the same
+underlying `Encodable` instance as before. The witness runs the formula stack machine
+on the decoded symbol list and reads off the head entry's symbol list. -/
+instance instPrimcodableSigmaBoundedFormula :
+    Primcodable (Σ n, L.BoundedFormula α n) where
+  toEncodable := inferInstance
+  prim := by
+    have hF : Primrec fun l : List (FormulaSymbol L α) ↦
+        ((BoundedFormula.decodeStack (L := L) l)[0]?).map Prod.snd :=
+      Primrec.option_map
+        (Primrec.list_getElem?.comp BoundedFormula.primrec_decodeStack (Primrec.const 0))
+        ((Primrec.snd.comp Primrec.snd).to₂)
+    have hG : Primrec fun n : ℕ ↦
+        encode ((decode (α := List (FormulaSymbol L α)) n).bind
+          fun l ↦ ((BoundedFormula.decodeStack (L := L) l)[0]?).map Prod.snd) :=
+      Primrec.encode.comp
+        (Primrec.option_bind Primrec.decode ((hF.comp Primrec.snd).to₂))
+    refine Primrec.nat_iff.1 (hG.of_eq fun n ↦ ?_)
+    change encode ((decode (α := List (FormulaSymbol L α)) n).bind
+        fun l ↦ ((BoundedFormula.decodeStack (L := L) l)[0]?).map Prod.snd) =
+      encode ((decode (α := List (FormulaSymbol L α)) n).bind
+        fun l ↦ (BoundedFormula.listDecode l)[0]?)
+    cases hd : decode (α := List (FormulaSymbol L α)) n with
+    | none => rfl
+    | some l =>
+      change encode (((BoundedFormula.decodeStack (L := L) l)[0]?).map Prod.snd) =
+        encode ((BoundedFormula.listDecode (L := L) (α := α) l)[0]?)
+      rw [BoundedFormula.decodeStack_eq_map_listEncode, List.getElem?_map]
+      cases hh : (BoundedFormula.listDecode (L := L) (α := α) l)[0]? with
+      | none => rfl
+      | some φ => rfl
+
+/-- Formulas of an effective language over a `Primcodable` variable type are primitively
+codable — with the same underlying `Encodable` instance as before (the left injection
+into the packaged bounded formulas at index `0`). The witness reads the head entry of
+the formula stack machine and keeps it exactly when its index is `0`. -/
+instance instPrimcodableFormula : Primcodable (L.Formula α) where
+  toEncodable := inferInstance
+  prim := by
+    have hF : Primrec fun l : List (FormulaSymbol L α) ↦
+        ((BoundedFormula.decodeStack (L := L) l)[0]?).bind
+          fun p ↦ if p.1 = 0 then some p.2 else none :=
+      Primrec.option_bind
+        (Primrec.list_getElem?.comp BoundedFormula.primrec_decodeStack (Primrec.const 0))
+        (((Primrec.ite (Primrec.eq.comp Primrec.fst (Primrec.const 0))
+          (Primrec.option_some.comp Primrec.snd)
+          (Primrec.const none)).comp Primrec.snd).to₂)
+    have hG : Primrec fun n : ℕ ↦
+        encode ((decode (α := List (FormulaSymbol L α)) n).bind
+          fun l ↦ ((BoundedFormula.decodeStack (L := L) l)[0]?).bind
+            fun p ↦ if p.1 = 0 then some p.2 else none) :=
+      Primrec.encode.comp
+        (Primrec.option_bind Primrec.decode ((hF.comp Primrec.snd).to₂))
+    refine Primrec.nat_iff.1 (hG.of_eq fun n ↦ ?_)
+    change encode ((decode (α := List (FormulaSymbol L α)) n).bind
+        fun l ↦ ((BoundedFormula.decodeStack (L := L) l)[0]?).bind
+          fun p ↦ if p.1 = 0 then some p.2 else none) =
+      encode (((decode (α := List (FormulaSymbol L α)) n).bind
+          fun l ↦ (BoundedFormula.listDecode l)[0]?).bind
+        fun s ↦ (match s with
+          | ⟨0, φ⟩ => some φ
+          | _ => none : Option (L.Formula α)))
+    cases hd : decode (α := List (FormulaSymbol L α)) n with
+    | none => rfl
+    | some l =>
+      change encode (((BoundedFormula.decodeStack (L := L) l)[0]?).bind
+          fun p ↦ if p.1 = 0 then some p.2 else none) =
+        encode (((BoundedFormula.listDecode (L := L) (α := α) l)[0]?).bind
+          fun s ↦ (match s with
+            | ⟨0, φ⟩ => some φ
+            | _ => none : Option (L.Formula α)))
+      rw [BoundedFormula.decodeStack_eq_map_listEncode, List.getElem?_map]
+      cases hh : (BoundedFormula.listDecode (L := L) (α := α) l)[0]? with
+      | none => rfl
+      | some s =>
+        rcases s with ⟨- | k, φ⟩ <;> rfl
+
+end Instances
+
 end FirstOrder.Language

@@ -18,7 +18,7 @@ import Mathlib.ModelTheory.Syntax
 
 Umbrella module for the syntax layer: effective-language conventions on top of mathlib's
 `FirstOrder.Language`, `Primcodable` instances for terms (including uniformly over all
-`Fin` variable bounds), `Encodable` instances for formulas (their `Primcodable` upgrade
-is pending), and computability of term operations; the formula half of the computable
-operations is still to come.
+`Fin` variable bounds) and for bounded formulas, formulas, and sentences, and
+computability of term operations; the formula half of the computable operations is
+still to come.
 -/
