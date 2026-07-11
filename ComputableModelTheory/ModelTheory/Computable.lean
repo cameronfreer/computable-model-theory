@@ -6,6 +6,7 @@ Authors: Cameron Freer
 import ComputableModelTheory.Computability.OraclePred
 import ComputableModelTheory.ModelTheory.Computable.GraphExample
 import ComputableModelTheory.ModelTheory.Computable.Structure
+import ComputableModelTheory.ModelTheory.Computable.SuccExample
 import ComputableModelTheory.ModelTheory.Computable.TermEvaluation
 import Mathlib.ModelTheory.Basic
 import Mathlib.ModelTheory.Semantics
