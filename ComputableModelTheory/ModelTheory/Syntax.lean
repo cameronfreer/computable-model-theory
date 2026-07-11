@@ -5,6 +5,7 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Syntax.ComputableOps
 import ComputableModelTheory.ModelTheory.Syntax.EffectiveLanguage
+import ComputableModelTheory.ModelTheory.Syntax.NatStack
 import ComputableModelTheory.ModelTheory.Syntax.Primcodable
 import Mathlib.ModelTheory.Complexity
 import Mathlib.ModelTheory.Encoding
