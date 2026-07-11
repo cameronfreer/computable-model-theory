@@ -95,9 +95,11 @@ theorem REPredIn.mono (hO : O₁ ⊆ O₂) (hp : REPredIn O₁ p) : REPredIn O�
 
 namespace ComputablePredIn
 
-/-- Constant predicates are computable in any oracle set. -/
-theorem const (b : Prop) : ComputablePredIn O fun _ : α ↦ b :=
-  haveI := Classical.dec b
+set_option linter.unusedDecidableInType false in
+/-- Constant predicates are computable in any oracle set. The `Decidable` hypothesis keeps
+the proof constructive; it could be discharged with `Classical.dec` at the cost of a
+`Classical.choice` dependency. -/
+theorem const (b : Prop) [Decidable b] : ComputablePredIn O fun _ : α ↦ b :=
   ⟨fun _ ↦ ‹Decidable b›, ComputableIn.const (decide b)⟩
 
 /-- Oracle-computable predicates are closed under negation. -/
