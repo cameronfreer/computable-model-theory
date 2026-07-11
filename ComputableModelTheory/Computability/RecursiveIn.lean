@@ -11,9 +11,11 @@ import Mathlib.Computability.RecursiveIn
 This file supplements `Mathlib.Computability.RecursiveIn` with typed combinators for
 `RecursiveIn` and `ComputableIn`: composition, pairing, bind, map, Boolean conditionals,
 μ-search, primitive recursion (`Nat.RecursiveIn.prec'` through `ComputableIn.nat_rec`,
-`nat_casesOn`, and `nat_iterate`), and list folds (`ComputableIn.list_foldl` and
+`nat_casesOn`, and `nat_iterate`), list folds (`ComputableIn.list_foldl` and
 `list_foldr`, by running the fold as a partial recursion over positions and discharging
-totality), together with thin domain and specification wrappers for `Nat.rfind` over
+totality), and option and sum case analysis (through
+`RecursiveIn.nat_casesOn_right` and the `decode` bridges, mirroring the absolute
+proofs), together with thin domain and specification wrappers for `Nat.rfind` over
 total `Bool`-valued predicates. Each combinator is proved by descending to the
 `Nat.RecursiveIn` constructors through `Primcodable` encodings, following the proofs of
 the corresponding absolute facts in `Mathlib.Computability.Partrec`.
@@ -285,6 +287,124 @@ theorem list_foldr {f : α → List β} {g : α → σ} {h : α → β × σ →
       ((ComputableIn.snd.comp ComputableIn.snd).pair
         (ComputableIn.fst.comp ComputableIn.snd))).to₂)).of_eq
     fun a ↦ by rw [List.foldl_reverse]
+
+end ComputableIn
+
+/-! ### Option and sum case analysis -/
+
+namespace RecursiveIn
+
+/-- Repackage an oracle-partial-recursive function on a product as a binary one. -/
+protected theorem to₂ {f : α × β →. σ} (hf : RecursiveIn O f) :
+    RecursiveIn₂ O fun a b ↦ f (a, b) :=
+  hf.of_eq fun ⟨_, _⟩ ↦ rfl
+
+/-- Case analysis on a computed natural with partial successor branch: the oracle mirror
+of `Partrec.nat_casesOn_right`. -/
+theorem nat_casesOn_right {f : α → ℕ} {g : α → σ} {h : α → ℕ →. σ} (hf : ComputableIn O f)
+    (hg : ComputableIn O g) (hh : RecursiveIn₂ O h) :
+    RecursiveIn O fun a ↦ (f a).casesOn (Part.some (g a)) (h a) :=
+  (RecursiveIn.nat_rec hf hg
+    (hh.comp ComputableIn.fst
+      ((Primrec.pred.to_comp.computableIn).comp (hf.comp ComputableIn.fst))).to₂).of_eq
+    fun a ↦ by
+      simp only [Nat.pred_eq_sub_one]
+      rcases f a with - | n
+      · simp
+      · refine Part.ext fun b ↦ ⟨fun H ↦ ?_, fun H ↦ ?_⟩
+        · rcases Part.mem_bind_iff.1 H with ⟨c, _, h₂⟩
+          exact h₂
+        · have : ∀ m, (Nat.rec (motive := fun _ ↦ Part σ)
+              (Part.some (g a)) (fun y IH ↦ IH.bind fun _ ↦ h a n) m).Dom := by
+            intro m
+            induction m <;> simp [*, H.fst]
+          exact ⟨⟨this n, H.fst⟩, H.snd⟩
+
+end RecursiveIn
+
+namespace ComputableIn
+
+/-- `Option.some` is computable in any oracle set. -/
+protected theorem option_some : ComputableIn O (@Option.some α) :=
+  Computable.option_some.computableIn
+
+/-- A total function is oracle-computable iff its `Option.some`-lift is. -/
+theorem option_some_iff {f : α → σ} :
+    (ComputableIn O fun a ↦ Option.some (f a)) ↔ ComputableIn O f :=
+  ⟨fun h ↦ encode_iff.1 ((Primrec.pred.to_comp.computableIn).comp (encode_iff.2 h)),
+    fun hf ↦ ComputableIn.option_some.comp hf⟩
+
+/-- Precomposing an oracle-computable `Option`-valued binary function with `decode`:
+one direction of the oracle mirror of `Computable.bind_decode_iff`. -/
+theorem bind_decode {f : α → β → Option σ} (hf : ComputableIn₂ O f) :
+    ComputableIn₂ O fun a n ↦ (decode (α := β) n).bind (f a) := by
+  have h : RecursiveIn O fun a : α × ℕ ↦
+      (encode (decode (α := β) a.2)).casesOn
+        (Part.some (Option.none : Option σ))
+        fun n ↦ Part.map (f a.1) (Part.ofOption (decode (α := β) n)) :=
+    RecursiveIn.nat_casesOn_right
+      ((Primrec.encdec.to_comp.computableIn).comp ComputableIn.snd)
+      (ComputableIn.const Option.none)
+      ((RecursiveIn.map
+        (ComputableIn.ofOption ((Computable.decode.computableIn).comp ComputableIn.snd))
+        ((hf.comp (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst))
+          ComputableIn.snd).to₂)).to₂)
+  refine h.of_eq fun a ↦ ?_
+  rcases hd : decode (α := β) a.2 with - | b <;> simp [hd, encodek]
+
+/-- Postcomposing `decode` with an oracle-computable binary function: one direction of
+the oracle mirror of `Computable.map_decode_iff`. -/
+theorem map_decode {f : α → β → σ} (hf : ComputableIn₂ O f) :
+    ComputableIn₂ O fun a n ↦ (decode (α := β) n).map (f a) :=
+  (bind_decode (f := fun a b ↦ Option.some (f a b))
+    (ComputableIn.option_some.comp hf)).of_eq fun p ↦ by
+    dsimp only
+    rcases hd : decode (α := β) p.2 with - | b <;> simp
+
+/-- Case analysis on a computed option: the oracle mirror of
+`Computable.option_casesOn`. -/
+theorem option_casesOn {o : α → Option β} {f : α → σ} {g : α → β → σ}
+    (ho : ComputableIn O o) (hf : ComputableIn O f) (hg : ComputableIn₂ O g) :
+    ComputableIn O fun a ↦ Option.casesOn (motive := fun _ ↦ σ) (o a) (f a) (g a) :=
+  option_some_iff.1 <|
+    (ComputableIn.nat_casesOn (encode_iff.2 ho) (option_some_iff.2 hf)
+      (map_decode hg)).of_eq fun a ↦ by
+        cases o a <;> simp [encodek]
+
+/-- `Option.bind` of oracle-computable functions: the oracle mirror of
+`Computable.option_bind`. -/
+theorem option_bind {f : α → Option β} {g : α → β → Option σ}
+    (hf : ComputableIn O f) (hg : ComputableIn₂ O g) :
+    ComputableIn O fun a ↦ (f a).bind (g a) :=
+  (option_casesOn hf (ComputableIn.const Option.none) hg).of_eq fun a ↦ by
+    cases f a <;> rfl
+
+/-- `Option.map` by an oracle-computable function: the oracle mirror of
+`Computable.option_map`. -/
+theorem option_map {f : α → Option β} {g : α → β → σ} (hf : ComputableIn O f)
+    (hg : ComputableIn₂ O g) : ComputableIn O fun a ↦ (f a).map (g a) :=
+  (option_bind hf (g := fun a b ↦ Option.some (g a b))
+    (ComputableIn.option_some.comp hg)).of_eq fun a ↦ by
+    cases f a <;> rfl
+
+/-- `Option.getD` of oracle-computable functions. -/
+theorem option_getD {f : α → Option β} {g : α → β} (hf : ComputableIn O f)
+    (hg : ComputableIn O g) : ComputableIn O fun a ↦ (f a).getD (g a) :=
+  (option_casesOn hf hg
+    (show ComputableIn₂ O fun _ b ↦ b from ComputableIn.snd)).of_eq
+    fun a ↦ by cases f a <;> rfl
+
+/-- Case analysis on a computed sum: the oracle mirror of `Computable.sumCasesOn`. -/
+theorem sumCasesOn {f : α → β ⊕ γ} {g : α → β → σ} {h : α → γ → σ}
+    (hf : ComputableIn O f) (hg : ComputableIn₂ O g) (hh : ComputableIn₂ O h) :
+    ComputableIn O fun a ↦ Sum.casesOn (motive := fun _ ↦ σ) (f a) (g a) (h a) :=
+  option_some_iff.1 <|
+    (ComputableIn.cond ((Primrec.nat_bodd.to_comp.computableIn).comp (encode_iff.2 hf))
+      (option_map ((Computable.decode.computableIn).comp
+        ((Primrec.nat_div2.to_comp.computableIn).comp (encode_iff.2 hf))) hh)
+      (option_map ((Computable.decode.computableIn).comp
+        ((Primrec.nat_div2.to_comp.computableIn).comp (encode_iff.2 hf))) hg)).of_eq
+      fun a ↦ by rcases f a with b | c <;> simp [Nat.div2_val]
 
 end ComputableIn
 

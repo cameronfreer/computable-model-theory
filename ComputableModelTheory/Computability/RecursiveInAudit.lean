@@ -95,8 +95,24 @@ theorem test_computableIn_list_foldr :
 theorem test_list_foldr_value : ([1, 2, 3] : List ℕ).foldr (fun b s ↦ b + s) 0 = 6 :=
   rfl
 
+/-- Option case analysis gate: `Option.getD` via cases is computable in any oracle
+set. -/
+theorem test_computableIn_option_casesOn {f : α → Option ℕ} (hf : ComputableIn O f) :
+    ComputableIn O fun a ↦ Option.casesOn (motive := fun _ ↦ ℕ) (f a) 0 fun b ↦ b :=
+  ComputableIn.option_casesOn hf (ComputableIn.const 0) ComputableIn.snd.to₂
+
+/-- Sum case analysis gate: `Sum.elim` of oracle-computable functions is computable in
+any oracle set. -/
+theorem test_computableIn_sumCasesOn {f : α → ℕ ⊕ ℕ} (hf : ComputableIn O f) :
+    ComputableIn O fun a ↦ Sum.casesOn (motive := fun _ ↦ ℕ) (f a) (fun b ↦ b) fun c ↦
+      c + 1 :=
+  ComputableIn.sumCasesOn hf ComputableIn.snd.to₂
+    ((Primrec.succ.comp Primrec.snd).to_comp.computableIn.to₂)
+
 end
 
+#assert_standard_axioms test_computableIn_option_casesOn
+#assert_standard_axioms test_computableIn_sumCasesOn
 #assert_standard_axioms test_recursiveIn_prec'
 #assert_standard_axioms test_recursiveIn_nat_rec
 #assert_standard_axioms test_computableIn_nat_casesOn
