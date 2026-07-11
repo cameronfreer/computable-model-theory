@@ -183,4 +183,66 @@ theorem forall_finset {p : α → β → Prop} (s : Finset β)
 
 end ComputablePredIn
 
+/-! ### Recursively enumerable closure
+
+`REPredIn.exists_fin` (a finite existential over oracle-r.e. predicates) is deliberately
+absent: it requires a dovetailing/parallel-merge primitive for partial recognizers, which
+mathlib's `RecursiveIn` layer does not yet support. -/
+-- TODO(dovetail): add `REPredIn.exists_fin` once a relative dovetailing primitive exists.
+
+namespace REPredIn
+
+/-- Unbounded existential quantification over `ℕ` turns an oracle-computable predicate into
+an oracle-r.e. one, by μ-search. -/
+theorem exists_nat_of_computablePredIn {p : α → ℕ → Prop}
+    (hp : ComputablePredIn O fun x : α × ℕ ↦ p x.1 x.2) :
+    REPredIn O fun a ↦ ∃ n, p a n := by
+  obtain ⟨D, hd⟩ := hp
+  set f : α → ℕ → Bool := fun a n ↦ @decide (p a n) (D (a, n)) with hf
+  have hpf : ∀ a n, f a n = true ↔ p a n := fun a n ↦ by simp [hf]
+  have hsearch : RecursiveIn O fun a ↦ Nat.rfind fun n ↦ Part.some (f a n) :=
+    RecursiveIn.rfind_total (f := f) hd
+  refine (RecursiveIn.map hsearch ((ComputableIn.const ()).to₂)).of_eq fun a ↦
+    Part.ext fun u ↦ ?_
+  simp only [Part.mem_map_iff, Part.mem_assert_iff, Part.mem_some_iff]
+  constructor
+  · rintro ⟨n, hn, -⟩
+    exact ⟨⟨n, (hpf a n).1 (RecursiveIn.rfind_spec hn)⟩, by trivial⟩
+  · rintro ⟨⟨n, hn⟩, -⟩
+    obtain ⟨m, hm⟩ := Part.dom_iff_mem.1 <|
+      (RecursiveIn.rfind_dom_iff (f := f)).2 ⟨n, (hpf a n).2 hn⟩
+    exact ⟨m, hm, by trivial⟩
+
+end REPredIn
+
+/-- Every oracle-computable predicate is oracle-r.e. -/
+theorem ComputablePredIn.to_rePredIn (hp : ComputablePredIn O p) : REPredIn O p :=
+  (REPredIn.exists_nat_of_computablePredIn (p := fun a (_ : ℕ) ↦ p a)
+      (hp.comp ComputableIn.fst)).of_eq
+    fun _ ↦ ⟨fun ⟨_, h⟩ ↦ h, fun h ↦ ⟨0, h⟩⟩
+
+namespace REPredIn
+
+/-- Conjunction of an oracle-computable predicate (left) with an oracle-r.e. predicate
+(right) is oracle-r.e. -/
+theorem and_computable_left (hp : ComputablePredIn O p) (hq : REPredIn O q) :
+    REPredIn O fun a ↦ p a ∧ q a := by
+  have hg : RecursiveIn₂ O fun a (_ : Unit) ↦ Part.assert (q a) fun _ ↦ Part.some () :=
+    RecursiveIn.comp (f := fun a ↦ Part.assert (q a) fun _ ↦ Part.some ()) hq ComputableIn.fst
+  refine (RecursiveIn.bind hp.to_rePredIn hg).of_eq fun a ↦ Part.ext fun u ↦ ?_
+  simp only [Part.mem_bind_iff, Part.mem_assert_iff, Part.mem_some_iff]
+  constructor
+  · rintro ⟨-, ⟨hpa, -⟩, hqa, -⟩
+    exact ⟨⟨hpa, hqa⟩, by trivial⟩
+  · rintro ⟨⟨hpa, hqa⟩, -⟩
+    exact ⟨(), ⟨hpa, by trivial⟩, hqa, by trivial⟩
+
+/-- Conjunction of an oracle-r.e. predicate (left) with an oracle-computable predicate
+(right) is oracle-r.e. -/
+theorem and_computable_right (hp : REPredIn O p) (hq : ComputablePredIn O q) :
+    REPredIn O fun a ↦ p a ∧ q a :=
+  (and_computable_left hq hp).of_eq fun _ ↦ and_comm
+
+end REPredIn
+
 end
