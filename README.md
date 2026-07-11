@@ -13,8 +13,11 @@ combinators (composition, pairing, bind, map, conditionals, μ-search), the
 oracle-relative predicate layer `ComputablePredIn`/`REPredIn` with Boolean closure,
 finite quantifiers, and r.e. closure lemmas, and lightweight reductions with oracle
 transport. On the syntax side, `EffectiveLanguage` provides computability data for
-first-order languages, terms of effective languages are `Primcodable`, and bounded
-formulas, formulas, and sentences are `Encodable`. The remaining model-theoretic layers
+first-order languages, terms of effective languages are `Primcodable` — including
+uniformly over all `Fin` variable bounds, via a stack machine on natural-number symbol
+codes — with computable term operations, and bounded formulas, formulas, and sentences
+are `Encodable`. ω-presented computable structures are defined, with the empty language
+and a graph language on `ℕ` as computable examples. The remaining model-theoretic layers
 are import skeletons awaiting content.
 
 ## Staging

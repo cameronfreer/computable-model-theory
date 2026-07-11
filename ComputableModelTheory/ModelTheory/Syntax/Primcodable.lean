@@ -17,9 +17,10 @@ shadowing `Term.listDecode` with a stack machine `decodeStack` acting on
 are already `Primcodable` (`decodeStack_eq_map_listEncode` is the bridge).
 
 Bounded formulas (packaged over all numbers of free variables), formulas, and sentences
-receive `Encodable` instances on top of the term instance. Upgrading these to
-`Primcodable` requires a second stack machine over the formula alphabet and a uniform
-sigma `Primcodable` instance; that is future work for this file.
+receive `Encodable` instances on top of the term instance. The uniform sigma instance
+`Primcodable (Σ k, L.Term (α ⊕ Fin k))` — the alphabet of the formula encoding — is
+provided in `ComputableModelTheory.ModelTheory.Syntax.TermSigma`; upgrading the formula
+instances to `Primcodable` now requires only a second stack machine over that alphabet.
 -/
 
 open Encodable
