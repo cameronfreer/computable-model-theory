@@ -1,7 +1,7 @@
 name = "computable-model-theory"
 version = "0.1.0"
 keywords = ["math"]
-defaultTargets = ["ComputableModelTheory"]
+defaultTargets = ["ComputableModelTheory", "ComputableModelTheoryUtil"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
@@ -16,3 +16,9 @@ rev = "v4.32.0-rc1"
 
 [[lean_lib]]
 name = "ComputableModelTheory"
+
+# Test tooling (the axiom-policy assertion command) is kept out of the library's import
+# spine; this target ensures its artifacts are still built for the audit modules.
+[[lean_lib]]
+name = "ComputableModelTheoryUtil"
+globs = ["ComputableModelTheory.Util.AssertAxioms"]

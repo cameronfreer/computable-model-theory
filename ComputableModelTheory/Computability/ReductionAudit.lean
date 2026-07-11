@@ -10,8 +10,8 @@ import ComputableModelTheory.Util.AssertAxioms
 # Audit module for reductions and oracle transport
 
 Named acceptance tests for `predOracle`, `PredTuringReducible`, and the transport lemmas,
-checked by `#assert_standard_axioms` (defined in the oracle-predicate audit). Outside the
-root import spine; CI checks it explicitly with
+checked by `#assert_standard_axioms` (defined in `ComputableModelTheory.Util.AssertAxioms`).
+Outside the root import spine; CI checks it explicitly with
 
 ```
 lake env lean ComputableModelTheory/Computability/ReductionAudit.lean
@@ -34,6 +34,12 @@ theorem test_predTuringReducible_refl (p : α → Prop) [DecidablePred p] :
     PredTuringReducible p p :=
   PredTuringReducible.refl p
 
+/-- Predicate Turing reducibility is transitive. -/
+theorem test_predTuringReducible_trans {γ : Type*} [Primcodable γ] {r : γ → Prop}
+    (h₁ : PredTuringReducible p q) (h₂ : PredTuringReducible q r) :
+    PredTuringReducible p r :=
+  h₁.trans h₂
+
 /-- Transport of predicate computability along relative computation of oracles. -/
 theorem test_transport (hO : ∀ g ∈ O₁, RecursiveIn O₂ g) (hp : ComputablePredIn O₁ p) :
     ComputablePredIn O₂ p :=
@@ -55,6 +61,7 @@ end
 
 #assert_standard_axioms test_predOracle_self
 #assert_standard_axioms test_predTuringReducible_refl
+#assert_standard_axioms test_predTuringReducible_trans
 #assert_standard_axioms test_transport
 #assert_standard_axioms test_re_transport
 #assert_standard_axioms test_reducible_and_not

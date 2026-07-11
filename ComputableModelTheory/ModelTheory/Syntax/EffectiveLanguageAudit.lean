@@ -32,11 +32,19 @@ theorem test_uniform_arity_predicate {O : Set (ℕ →. ℕ)} :
       (PrimrecPred.computablePred (Primrec.nat_le.comp .id (.const 2)))).comp
     computable_functionSymbol_arity.computableIn
 
-/-- The arity map on function symbols is computable. -/
+/-- The arity map on function symbols is primitive recursive (the class contract). -/
+theorem test_primrec_functionSymbol_arity : Primrec (FunctionSymbol.arity (L := L)) :=
+  primrec_functionSymbol_arity
+
+/-- The arity map on relation symbols is primitive recursive (the class contract). -/
+theorem test_primrec_relationSymbol_arity : Primrec (RelationSymbol.arity (L := L)) :=
+  primrec_relationSymbol_arity
+
+/-- The arity map on function symbols is computable (derived form). -/
 theorem test_functionSymbol_arity : Computable (FunctionSymbol.arity (L := L)) :=
   computable_functionSymbol_arity
 
-/-- The arity map on relation symbols is computable. -/
+/-- The arity map on relation symbols is computable (derived form). -/
 theorem test_relationSymbol_arity : Computable (RelationSymbol.arity (L := L)) :=
   computable_relationSymbol_arity
 
@@ -54,6 +62,8 @@ this is a `def`.) -/
 end
 
 #assert_standard_axioms test_uniform_arity_predicate
+#assert_standard_axioms test_primrec_functionSymbol_arity
+#assert_standard_axioms test_primrec_relationSymbol_arity
 #assert_standard_axioms test_functionSymbol_arity
 #assert_standard_axioms test_relationSymbol_arity
 #assert_standard_axioms test_applicationData_roundtrip

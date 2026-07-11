@@ -11,9 +11,16 @@ import Mathlib.ModelTheory.Basic
 
 Computability data on top of mathlib's `FirstOrder.Language`: a language is *effective*
 when its arity-packaged function and relation symbols are primitively codable and the
-arity maps are computable. This is the Lean form of the paper-style coding of symbols by
-computable subsets of `ω` with a computable arity function; mathlib's languages are
-arity-indexed, so the natural object to code is the sigma type of all symbols.
+arity maps are primitive recursive. Mathlib's languages are arity-indexed, so the natural
+object to code is the sigma type of all symbols.
+
+This is deliberately a *stronger* coding convention than the paper's, which asks only for
+computable symbol sets with a computable arity map: the `Primcodable` instances for
+first-order syntax discharge `Primcodable.prim` obligations, which live at the primitive
+recursive level. A single strong class is used rather than a computable class with a
+primitive recursive subclass; the eventual equivalence with the paper's presentation (up
+to computable recoding of symbols) is a recorded proof obligation for the paper-wrapper
+layer.
 
 The `FunctionApplicationData`/`RelationApplicationData` structures package a symbol with
 an arity-matched argument tuple, so that later files can quantify uniformly over all

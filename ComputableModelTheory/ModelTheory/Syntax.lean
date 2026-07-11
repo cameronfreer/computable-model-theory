@@ -13,6 +13,7 @@ import Mathlib.ModelTheory.Syntax
 # First-order syntax computability
 
 Umbrella module for the syntax layer: effective-language conventions on top of mathlib's
-`FirstOrder.Language`, with `Primcodable` instances for terms and formulas and
-computability of syntactic operations to come.
+`FirstOrder.Language`, `Primcodable` instances for terms, `Encodable` instances for
+formulas (their `Primcodable` upgrade is pending), and computability of syntactic
+operations to come.
 -/

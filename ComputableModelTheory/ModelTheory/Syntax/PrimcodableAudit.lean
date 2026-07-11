@@ -40,6 +40,12 @@ variable {L : Language} {α : Type*} [Primcodable α] [L.EffectiveLanguage]
 theorem test_term_encodek (t : L.Term α) : decode (encode t) = some t :=
   Encodable.encodek t
 
+/-- The `Primcodable` term instance encodes exactly as mathlib's `listEncode`-based
+`Encodable` instance: no encoding diamond. -/
+theorem test_term_encode_eq_listEncode (t : L.Term α) :
+    encode t = encode t.listEncode :=
+  rfl
+
 /-- Formulas round-trip through their codes. -/
 theorem test_formula_encodek (φ : L.Formula α) : decode (encode φ) = some φ :=
   Encodable.encodek φ
@@ -61,6 +67,7 @@ end
 #assert_standard_axioms test_sentence_encodable
 #assert_standard_axioms test_sigma_boundedFormula_encodable
 #assert_standard_axioms test_term_encodek
+#assert_standard_axioms test_term_encode_eq_listEncode
 #assert_standard_axioms test_formula_encodek
 #assert_standard_axioms test_decodeStack_semantics
 #assert_standard_axioms test_primrec_decodeStack

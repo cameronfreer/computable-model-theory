@@ -179,9 +179,6 @@ instance instEncodableFormula : Encodable (L.Formula α) :=
       | _ => none)
     fun _ ↦ rfl
 
-/-- Sentences of an effective language are encodable. -/
-example : Encodable L.Sentence := inferInstance
-
 end FormulaEncodable
 
 end FirstOrder.Language

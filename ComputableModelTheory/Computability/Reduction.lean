@@ -27,9 +27,11 @@ variable {α β σ : Type*} [Primcodable α] [Primcodable β] [Primcodable σ]
 variable {O O₁ O₂ : Set (ℕ →. ℕ)} {p q : α → Prop} {f : α → σ}
 
 /-- The characteristic oracle of a decidable predicate: on the code of `a` it returns the
-encoding of `decide (p a)`; on non-codes it returns `0`. It is total. -/
+encoding of `decide (p a)`, and it diverges on non-codes. Partiality keeps the oracle
+itself recursive in any oracle set that computes `p`, which drives transitivity of
+`PredTuringReducible`. -/
 def predOracle (p : α → Prop) [DecidablePred p] : ℕ →. ℕ :=
-  fun n ↦ Part.some (encode ((decode (α := α) n).elim false fun a ↦ decide (p a)))
+  fun n ↦ (decode (α := α) n : Part α).map fun a ↦ encode (decide (p a))
 
 /-- Turing reducibility of predicates, without Turing degrees: `p` is computable relative
 to the characteristic oracle of `q` (for some decidability witness for `q`). -/
@@ -81,11 +83,32 @@ theorem computablePredIn_predOracle_self (p : α → Prop) [DecidablePred p] :
     h1.of_eq fun a ↦ by simp [predOracle, encodek]
   exact ComputableIn.encode_iff.1 h2
 
+/-- Any oracle set that computes a decidable predicate computes its characteristic
+oracle. -/
+theorem recursiveIn_predOracle {p : α → Prop} [DecidablePred p]
+    (hp : ComputablePredIn O p) : RecursiveIn O (predOracle p) :=
+  RecursiveIn.map (ComputableIn.ofOption Computable.decode.computableIn)
+    (((ComputableIn.encode.comp hp.decide).comp ComputableIn.snd).to₂)
+
 set_option linter.unusedDecidableInType false in
 /-- Reflexivity of predicate Turing reducibility. The `Decidable` hypothesis supplies the
 existential witness in `PredTuringReducible` and keeps the assumption explicit. -/
 theorem PredTuringReducible.refl (p : α → Prop) [DecidablePred p] :
     PredTuringReducible p p :=
   ⟨inferInstance, computablePredIn_predOracle_self p⟩
+
+/-- Transitivity of predicate Turing reducibility: an oracle computation relative to `q`
+composes with an oracle computation of `q` relative to `r`, by transporting along the
+fact that the `r`-oracle computes the `q`-oracle. -/
+theorem PredTuringReducible.trans {γ : Type*} [Primcodable γ] {p : α → Prop}
+    {q : β → Prop} {r : γ → Prop} :
+    PredTuringReducible p q → PredTuringReducible q r → PredTuringReducible p r
+  | ⟨_, hpq⟩, ⟨Dr, hqr⟩ =>
+    ⟨Dr, computablePredIn_of_oracle_transport
+      (fun g hg ↦ by
+        rw [Set.mem_singleton_iff] at hg
+        subst hg
+        exact recursiveIn_predOracle hqr)
+      hpq⟩
 
 end
