@@ -132,4 +132,55 @@ protected theorem iff (hp : ComputablePredIn O p) (hq : ComputablePredIn O q) :
 
 end ComputablePredIn
 
+/-! ### Finite quantifiers
+
+Quantification is over a fixed finite index set (a `Fin n`, a fixed `List`, or a fixed
+`Finset`); input-dependent finite sets are deferred to a later stage. -/
+
+namespace ComputablePredIn
+
+/-- Bounded existential quantification over a fixed list preserves oracle computability. -/
+theorem exists_mem_list {p : α → β → Prop} (l : List β)
+    (hp : ComputablePredIn O fun x : α × β ↦ p x.1 x.2) :
+    ComputablePredIn O fun a ↦ ∃ b ∈ l, p a b := by
+  induction l with
+  | nil => exact (const False).of_eq fun a ↦ by simp
+  | cons c l ih =>
+    have hc : ComputablePredIn O fun a ↦ p a c :=
+      hp.comp (ComputableIn.id.pair (ComputableIn.const c))
+    exact (hc.or ih).of_eq fun a ↦ by simp
+
+/-- Bounded universal quantification over a fixed list preserves oracle computability. -/
+theorem forall_mem_list {p : α → β → Prop} (l : List β)
+    (hp : ComputablePredIn O fun x : α × β ↦ p x.1 x.2) :
+    ComputablePredIn O fun a ↦ ∀ b ∈ l, p a b := by
+  have hn : ComputablePredIn O fun x : α × β ↦ ¬p x.1 x.2 := hp.not
+  exact ((exists_mem_list (p := fun a b ↦ ¬p a b) l hn).not).of_eq fun a ↦ by simp
+
+/-- Existential quantification over `Fin n` preserves oracle computability. -/
+theorem exists_fin {n : ℕ} {p : α → Fin n → Prop}
+    (hp : ComputablePredIn O fun x : α × Fin n ↦ p x.1 x.2) :
+    ComputablePredIn O fun a ↦ ∃ i, p a i :=
+  (exists_mem_list (List.finRange n) hp).of_eq fun a ↦ by simp [List.mem_finRange]
+
+/-- Universal quantification over `Fin n` preserves oracle computability. -/
+theorem forall_fin {n : ℕ} {p : α → Fin n → Prop}
+    (hp : ComputablePredIn O fun x : α × Fin n ↦ p x.1 x.2) :
+    ComputablePredIn O fun a ↦ ∀ i, p a i :=
+  (forall_mem_list (List.finRange n) hp).of_eq fun a ↦ by simp [List.mem_finRange]
+
+/-- Bounded existential quantification over a fixed finset preserves oracle computability. -/
+theorem exists_finset {p : α → β → Prop} (s : Finset β)
+    (hp : ComputablePredIn O fun x : α × β ↦ p x.1 x.2) :
+    ComputablePredIn O fun a ↦ ∃ b ∈ s, p a b :=
+  (exists_mem_list s.toList hp).of_eq fun a ↦ by simp
+
+/-- Bounded universal quantification over a fixed finset preserves oracle computability. -/
+theorem forall_finset {p : α → β → Prop} (s : Finset β)
+    (hp : ComputablePredIn O fun x : α × β ↦ p x.1 x.2) :
+    ComputablePredIn O fun a ↦ ∀ b ∈ s, p a b :=
+  (forall_mem_list s.toList hp).of_eq fun a ↦ by simp
+
+end ComputablePredIn
+
 end
