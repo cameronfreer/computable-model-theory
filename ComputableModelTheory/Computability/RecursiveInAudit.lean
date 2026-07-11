@@ -22,6 +22,32 @@ lake env lean ComputableModelTheory/Computability/RecursiveInAudit.lean
 section
 
 variable {O : Set (ℕ →. ℕ)}
+variable {α σ : Type*} [Primcodable α] [Primcodable σ]
+
+/-- Primitive recursion with a computed recursion argument at the `ℕ` level. -/
+theorem test_recursiveIn_prec' {f g h : ℕ →. ℕ} (hf : Nat.RecursiveIn O f)
+    (hg : Nat.RecursiveIn O g) (hh : Nat.RecursiveIn O h) :
+    Nat.RecursiveIn O fun a ↦ (f a).bind fun n ↦ n.rec (g a)
+      fun y IH ↦ do {let i ← IH; h (Nat.pair a (Nat.pair y i))} :=
+  Nat.RecursiveIn.prec' hf hg hh
+
+/-- Primitive recursion with partial base and step, at the typed level. -/
+theorem test_recursiveIn_nat_rec {f : α → ℕ} {g : α →. σ} {h : α → ℕ × σ →. σ}
+    (hf : ComputableIn O f) (hg : RecursiveIn O g) (hh : RecursiveIn₂ O h) :
+    RecursiveIn O fun a ↦ (f a).rec (g a) fun y IH ↦ IH.bind fun i ↦ h a (y, i) :=
+  RecursiveIn.nat_rec hf hg hh
+
+/-- Case-analysis gate: the predecessor by cases is computable in any oracle set. -/
+theorem test_computableIn_nat_casesOn :
+    ComputableIn O fun p : ℕ × ℕ ↦
+      Nat.casesOn (motive := fun _ ↦ ℕ) p.1 p.2 fun y ↦ y :=
+  ComputableIn.nat_casesOn ComputableIn.fst ComputableIn.snd
+    Computable.snd.computableIn.to₂
+
+/-- Semantic equation: the case analysis returns the predecessor on successors. -/
+theorem test_nat_casesOn_value :
+    Nat.casesOn (motive := fun _ ↦ ℕ) 3 5 (fun y ↦ y) = 2 :=
+  rfl
 
 /-- Primitive recursion gate: the triangular-sum recursion is computable in any oracle
 set. -/
@@ -71,6 +97,10 @@ theorem test_list_foldr_value : ([1, 2, 3] : List ℕ).foldr (fun b s ↦ b + s)
 
 end
 
+#assert_standard_axioms test_recursiveIn_prec'
+#assert_standard_axioms test_recursiveIn_nat_rec
+#assert_standard_axioms test_computableIn_nat_casesOn
+#assert_standard_axioms test_nat_casesOn_value
 #assert_standard_axioms test_computableIn_nat_rec
 #assert_standard_axioms test_nat_rec_value
 #assert_standard_axioms test_computableIn_nat_iterate

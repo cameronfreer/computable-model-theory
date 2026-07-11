@@ -43,6 +43,11 @@ lemma sigmaEqual_apply {n} {t₁ t₂ : L.Term (α ⊕ Fin n)} :
     sigmaEqual ⟨n, t₁⟩ ⟨n, t₂⟩ = ⟨n, equal t₁ t₂⟩ := by
   simp only [sigmaEqual, ↓reduceDIte, eq_mp_eq_cast, cast_eq]
 
+/-- Mismatch semantics: `sigmaEqual` on unequal variable bounds is `default`. -/
+lemma sigmaEqual_of_ne {m n} (t₁ : L.Term (α ⊕ Fin m)) (t₂ : L.Term (α ⊕ Fin n))
+    (h : m ≠ n) : sigmaEqual ⟨m, t₁⟩ ⟨n, t₂⟩ = default := by
+  rw [sigmaEqual, dif_neg h]
+
 /-- Applies `rel` to a packaged relation symbol and a list of sigma-packaged argument
 terms at the stated variable bound, or returns `default` if the list length mismatches
 the arity or any term's variable bound mismatches the stated one. -/
@@ -71,6 +76,20 @@ lemma sigmaRel_apply {n k : ℕ} (R : L.Relations n) (ts : Fin n → L.Term (α 
   have hg := hget (Fin.cast hlen.symm i)
   rw [show (Fin.cast hlen (Fin.cast hlen.symm i)) = i from rfl] at hg
   rw [eq_mp_eq_cast, cast_eq_iff_heq, hg]
+
+/-- Mismatch semantics: `sigmaRel` on an argument list of the wrong length is
+`default`. -/
+lemma sigmaRel_of_length_ne (r : Σ m, L.Relations m) (k : ℕ)
+    (ts : List (Σ k', L.Term (α ⊕ Fin k'))) (h : ts.length ≠ r.1) :
+    sigmaRel r k ts = default := by
+  rw [sigmaRel, dif_neg fun hc ↦ h hc.1]
+
+/-- Mismatch semantics: `sigmaRel` on an argument list containing a term of the wrong
+variable bound is `default`. -/
+lemma sigmaRel_of_bound_ne (r : Σ m, L.Relations m) (k : ℕ)
+    (ts : List (Σ k', L.Term (α ⊕ Fin k'))) (i : Fin ts.length)
+    (h : (ts.get i).1 ≠ k) : sigmaRel r k ts = default := by
+  rw [sigmaRel, dif_neg fun hc ↦ h (hc.2 i)]
 
 /-- The sigma-level negation, `default`-preserving through `sigmaImp`. -/
 def sigmaNot (p : Σ n, L.BoundedFormula α n) : Σ n, L.BoundedFormula α n :=
