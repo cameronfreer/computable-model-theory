@@ -31,22 +31,22 @@ variable {L : Language} {M N P : Type*} [L.Structure M] [L.Structure N] [L.Struc
 variable {k : ℕ}
 
 /-- Two tuples agree on term equalities. -/
-def TermEqualitiesAgree (L : Language) [L.Structure M] [L.Structure N]
-    (a : Fin k → M) (b : Fin k → N) : Prop :=
+def TermEqualitiesAgree (L : Language) {M N : Type*} [L.Structure M] [L.Structure N]
+    {k : ℕ} (a : Fin k → M) (b : Fin k → N) : Prop :=
   ∀ t₁ t₂ : L.Term (Fin k),
     t₁.realize a = t₂.realize a ↔ t₁.realize b = t₂.realize b
 
 /-- Two tuples agree on relation atoms. -/
-def RelationsAgree (L : Language) [L.Structure M] [L.Structure N]
-    (a : Fin k → M) (b : Fin k → N) : Prop :=
+def RelationsAgree (L : Language) {M N : Type*} [L.Structure M] [L.Structure N]
+    {k : ℕ} (a : Fin k → M) (b : Fin k → N) : Prop :=
   ∀ {n : ℕ} (R : L.Relations n) (ts : Fin n → L.Term (Fin k)),
     Structure.RelMap R (fun i ↦ (ts i).realize a) ↔
       Structure.RelMap R fun i ↦ (ts i).realize b
 
 /-- Atomic equivalence of two tuples in possibly different structures: agreement on
 term equalities and on relation atoms. -/
-def AtomicEquivalent (L : Language) [L.Structure M] [L.Structure N]
-    (a : Fin k → M) (b : Fin k → N) : Prop :=
+def AtomicEquivalent (L : Language) {M N : Type*} [L.Structure M] [L.Structure N]
+    {k : ℕ} (a : Fin k → M) (b : Fin k → N) : Prop :=
   TermEqualitiesAgree L a b ∧ RelationsAgree L a b
 
 namespace AtomicEquivalent

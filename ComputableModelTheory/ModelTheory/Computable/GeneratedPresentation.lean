@@ -90,6 +90,23 @@ def completeQFDiagram (k : ℕ) : Bool × QFFormula L (Fin k) × (Fin k → ℕ)
   letI := P.toComputableStructure.inst
   FirstOrder.Language.completeQFDiagram L k
 
+/-- The positive sign of a presentation's complete atomic diagram is realization in
+the stored structure. -/
+theorem completeAtomicDiagram_true_iff {k : ℕ} (φ : AtomicFormula L (Fin k))
+    (v : Fin k → ℕ) :
+    P.completeAtomicDiagram k (true, φ, v) ↔ P.realize (φ : L.Formula (Fin k)) v := by
+  letI := P.toComputableStructure.inst
+  exact FirstOrder.Language.completeAtomicDiagram_true L k φ v
+
+/-- The negative sign of a presentation's complete atomic diagram is falsification in
+the stored structure. -/
+theorem completeAtomicDiagram_false_iff {k : ℕ} (φ : AtomicFormula L (Fin k))
+    (v : Fin k → ℕ) :
+    P.completeAtomicDiagram k (false, φ, v) ↔
+      ¬P.realize (φ : L.Formula (Fin k)) v := by
+  letI := P.toComputableStructure.inst
+  exact FirstOrder.Language.completeAtomicDiagram_false L k φ v
+
 /-- The presentation's positive atomic diagram is computable in the oracle. -/
 theorem posAtomicDiagram_computablePredIn (k : ℕ) :
     ComputablePredIn O (P.posAtomicDiagram k) := by

@@ -5,6 +5,7 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.Computability.OraclePred
 import ComputableModelTheory.ModelTheory.Computable.AtomicEquiv
+import ComputableModelTheory.ModelTheory.Computable.AtomicEquivComputability
 import ComputableModelTheory.ModelTheory.Computable.AtomicSatisfaction
 import ComputableModelTheory.ModelTheory.Computable.Diagram
 import ComputableModelTheory.ModelTheory.Computable.GeneratedPresentation
@@ -23,6 +24,7 @@ import Mathlib.ModelTheory.Semantics
 Umbrella module for the computable-structure layer: ω-presented computable structures,
 computable term evaluation, atomic and quantifier-free satisfaction, the signed
 atomic and quantifier-free diagram predicates at fixed width, generated computable
-presentations, and atomic equivalence of tuples with its generator-preserving
-closure-equivalence characterization.
+presentations, atomic equivalence of tuples with its generator-preserving
+closure-equivalence characterization, effective term enumeration over tuple closures,
+and the r.e. failure of atomic equivalence between presentations.
 -/
