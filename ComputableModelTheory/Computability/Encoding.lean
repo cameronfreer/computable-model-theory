@@ -50,4 +50,68 @@ canonicalization arguments. -/
 theorem decode_fin_eq_none_of_le {k j : ℕ} (h : k ≤ j) : decode (α := Fin k) j = none := by
   simp [decode, Encodable.decodeSubtype, Nat.not_lt.2 h]
 
+/-! ### Decode characterizations -/
+
+
+/-- Even codes decode in a sum through the left summand. -/
+theorem decode_sum_even {c : ℕ} (h : c % 2 = 0) :
+    decode (α := α ⊕ β) c = (decode (α := α) (c / 2)).map Sum.inl := by
+  have hb : Nat.bodd c = false := by
+    rcases hb : Nat.bodd c
+    · rfl
+    · have := Nat.mod_two_of_bodd c
+      rw [hb] at this
+      simp at this
+      omega
+  rw [decode_sum_val]
+  simp [decodeSum, hb, Nat.div2_val]
+
+/-- Odd codes decode in a sum through the right summand. -/
+theorem decode_sum_odd {c : ℕ} (h : c % 2 = 1) :
+    decode (α := α ⊕ β) c = (decode (α := β) (c / 2)).map Sum.inr := by
+  have hb : Nat.bodd c = true := by
+    rcases hb : Nat.bodd c
+    · have := Nat.mod_two_of_bodd c
+      rw [hb] at this
+      simp at this
+      omega
+    · rfl
+  rw [decode_sum_val]
+  simp [decodeSum, hb, Nat.div2_val]
+
+/-- Elementwise decoding of a list of codes. -/
+def decodeAll (α : Type*) [Encodable α] : List ℕ → Option (List α)
+  | [] => some []
+  | c :: cs => (decode (α := α) c).bind fun g ↦ (decodeAll α cs).map (g :: ·)
+
+@[simp]
+theorem decodeAll_nil : decodeAll α [] = some [] := rfl
+
+theorem decodeAll_cons (c : ℕ) (cs : List ℕ) :
+    decodeAll α (c :: cs) = (decode (α := α) c).bind fun g ↦ (decodeAll α cs).map (g :: ·) :=
+  rfl
+
+/-- Canonical codes decode elementwise to their values. -/
+theorem decodeAll_map_encode (l : List α) : decodeAll α (l.map encode) = some l := by
+  induction l with
+  | nil => rfl
+  | cons g l ih => simp [decodeAll_cons, encodek, ih]
+
+/-- List decoding is decoding of the code list followed by elementwise decoding: the
+bridge between `decode (α := List α)` and code-level computation. -/
+theorem decode_list_eq_decodeAll (m : ℕ) :
+    decode (α := List α) m = (decode (α := List ℕ) m).bind (decodeAll α) := by
+  induction m using Nat.strong_induction_on with
+  | _ m ih =>
+    match m with
+    | 0 => rw [decode_list_zero, decode_list_zero]; rfl
+    | Nat.succ v =>
+      rw [decode_list_succ, decode_list_succ, ih v.unpair.2 (Nat.lt_succ_of_le
+        (Nat.unpair_right_le v))]
+      rcases hd : decode (α := List ℕ) v.unpair.2 with - | cs
+      · rcases h1 : decode (α := α) v.unpair.1 with - | g <;> simp [Seq.seq]
+      · rcases h1 : decode (α := α) v.unpair.1 with - | g <;>
+          rcases hall : decodeAll α cs with - | l <;>
+            simp [Seq.seq, decodeAll_cons, h1, hall]
+
 end Encodable

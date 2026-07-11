@@ -57,9 +57,32 @@ theorem test_decode_fin_iff {k j : ℕ} :
   · simp [decode_fin_of_lt h, h]
   · simp [decode_fin_eq_none_of_le h, Nat.not_lt.2 h]
 
+/-- Even codes decode in sums through the left summand. -/
+theorem test_decode_sum_even {c : ℕ} (h : c % 2 = 0) :
+    decode (α := α ⊕ β) c = (decode (α := α) (c / 2)).map Sum.inl :=
+  decode_sum_even h
+
+/-- Odd codes decode in sums through the right summand. -/
+theorem test_decode_sum_odd {c : ℕ} (h : c % 2 = 1) :
+    decode (α := α ⊕ β) c = (decode (α := β) (c / 2)).map Sum.inr :=
+  decode_sum_odd h
+
+/-- List decoding factors through the code list and elementwise decoding. -/
+theorem test_decode_list_eq_decodeAll (m : ℕ) :
+    decode (α := List α) m = (decode (α := List ℕ) m).bind (decodeAll α) :=
+  decode_list_eq_decodeAll m
+
+/-- Canonical code lists decode elementwise to their values. -/
+theorem test_decodeAll_map_encode (l : List α) : decodeAll α (l.map encode) = some l :=
+  decodeAll_map_encode l
+
 end
 
 #assert_standard_axioms test_encode_list_map_encode
+#assert_standard_axioms test_decode_sum_even
+#assert_standard_axioms test_decode_sum_odd
+#assert_standard_axioms test_decode_list_eq_decodeAll
+#assert_standard_axioms test_decodeAll_map_encode
 #assert_standard_axioms test_encode_sum_inl
 #assert_standard_axioms test_encode_sum_inr
 #assert_standard_axioms test_encode_fin_val
