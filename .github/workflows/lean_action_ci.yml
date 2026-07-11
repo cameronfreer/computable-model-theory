@@ -29,3 +29,4 @@ jobs:
       - run: lake env lean ComputableModelTheory/ModelTheory/Computable/StructureAudit.lean
       - run: lake env lean ComputableModelTheory/ModelTheory/Computable/TermEvaluationAudit.lean
       - run: lake env lean ComputableModelTheory/ModelTheory/Computable/AtomicSatisfactionAudit.lean
+      - run: lake env lean ComputableModelTheory/ModelTheory/Computable/QFSatisfactionAudit.lean
