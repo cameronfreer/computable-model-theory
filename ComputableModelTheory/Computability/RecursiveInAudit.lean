@@ -119,6 +119,14 @@ theorem test_computableIn_sumCasesOn {f : α → ℕ ⊕ ℕ} (hf : ComputableIn
   ComputableIn.sumCasesOn hf ComputableIn.snd.to₂
     ((Primrec.succ.comp Primrec.snd).to_comp.computableIn.to₂)
 
+/-- Decidable conditionals gate: an if-then-else over a decided equality of
+oracle-computable functions is computable in any oracle set. -/
+theorem test_computableIn_ite {f : α → ℕ} (hf : ComputableIn O f) :
+    ComputableIn O fun a ↦ if f a = 0 then 1 else f a :=
+  ComputableIn.ite
+    (((Primrec.eq.comp Primrec.id (Primrec.const 0)).decide.to_comp.computableIn).comp hf)
+    (ComputableIn.const 1) hf
+
 /-- Strong recursion gate: the powers of two, defined by doubling the last entry of the
 course-of-values list, are computable in any oracle set. -/
 theorem test_computableIn_nat_strong_rec :
@@ -164,5 +172,6 @@ end
 #assert_standard_axioms test_list_foldr_value
 #assert_standard_axioms test_computableIn_list_map
 #assert_standard_axioms test_list_map_value
+#assert_standard_axioms test_computableIn_ite
 #assert_standard_axioms test_computableIn_nat_strong_rec
 #assert_standard_axioms test_nat_strong_rec_value

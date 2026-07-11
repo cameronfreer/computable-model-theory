@@ -400,6 +400,824 @@ theorem qfSatBool_iff [DecidablePred (RelationApplicationData.relMap (L := L) (M
   rw [flagOf]
   exact decide_eq_true_iff
 
+/-! ### The guarded suffix machine
+
+Course-of-values recursion on the suffix length, mirroring the `decodeStackAux`
+machinery: `satStackAux x m` evaluates the machine on the length-`m` suffix (and
+returns `[]` out of range), and `satStackStepAux` computes one step from the table of
+all shorter-suffix values. -/
+
+variable [DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))]
+
+/-- The length-guarded suffix evaluation of the satisfaction stack machine. -/
+def satStackAux (x : (Fin k → ℕ) × List (FormulaSymbol L (Fin k))) (m : ℕ) :
+    List (ℕ × Bool × Bool) :=
+  if m ≤ x.2.length then satStack x.1 (x.2.drop (x.2.length - m)) else []
+
+omit [L.EffectiveLanguage] in
+/-- At the full length, the guarded suffix evaluation is the machine itself. -/
+theorem satStackAux_length (x : (Fin k → ℕ) × List (FormulaSymbol L (Fin k))) :
+    satStackAux x x.2.length = satStack x.1 x.2 := by
+  rw [satStackAux, if_pos le_rfl]
+  simp
+
+omit [L.EffectiveLanguage] in
+/-- In range, the guarded suffix evaluation is the machine on the suffix. -/
+theorem satStackAux_of_le {x : (Fin k → ℕ) × List (FormulaSymbol L (Fin k))} {m : ℕ}
+    (hm : m ≤ x.2.length) :
+    satStackAux x m = satStack x.1 (x.2.drop (x.2.length - m)) := by
+  rw [satStackAux, if_pos hm]
+
+/-- The falsum branch of the step function. -/
+private def stepFalsumSat (prev : List (List (ℕ × Bool × Bool))) (n : ℕ) :
+    Option (List (ℕ × Bool × Bool)) :=
+  (prev[prev.length - 1]?).map fun rest ↦ (n, true, false) :: rest
+
+/-- The equality branch of the step function. -/
+private def stepEqualSat (v : Fin k → ℕ) (prev : List (List (ℕ × Bool × Bool)))
+    (s₁ s₂ : Σ m, L.Term (Fin k ⊕ Fin m)) : Option (List (ℕ × Bool × Bool)) :=
+  (prev[prev.length - 2]?).map fun rest ↦
+    (if s₁.1 = s₂.1 then (s₁.1, true, eqFlag v (Sum.inl s₁) (Sum.inl s₂))
+     else (0, true, false)) :: rest
+
+/-- The relation branch of the step function. -/
+private def stepRelSat (v : Fin k → ℕ) (prev : List (List (ℕ × Bool × Bool)))
+    (r : Σ n, L.Relations n) (b : ℕ) (s' : List (FormulaSymbol L (Fin k))) :
+    Option (List (ℕ × Bool × Bool)) :=
+  (prev[prev.length - 2 - r.1]?).map fun rest ↦
+    (if (s'.take r.1).length = r.1 ∧ (s'.take r.1).all (isTermLetterAt b) then
+      (b, true, relFlag v r b (s'.take r.1))
+     else (0, true, false)) :: rest
+
+/-- The implication branch of the step function. -/
+private def stepImpSat (prev : List (List (ℕ × Bool × Bool))) :
+    Option (List (ℕ × Bool × Bool)) :=
+  (prev[prev.length - 1]?).map fun D ↦
+    if 2 ≤ D.length then impFlag D[0]! D[1]! :: D.drop 2 else []
+
+/-- The quantifier branch of the step function. -/
+private def stepAllSat (prev : List (List (ℕ × Bool × Bool))) :
+    Option (List (ℕ × Bool × Bool)) :=
+  (prev[prev.length - 1]?).map fun D ↦
+    if 1 ≤ D.length then allFlag D[0]! :: D.drop 1 else []
+
+/-- One backward step of the guarded machine, reading previous values: the
+course-of-values candidate for `ComputableIn.nat_strong_rec`. `prev` holds
+`satStackAux x j` for `j < prev.length`. -/
+private def satStackStepAux (x : (Fin k → ℕ) × List (FormulaSymbol L (Fin k)))
+    (prev : List (List (ℕ × Bool × Bool))) : Option (List (ℕ × Bool × Bool)) :=
+  let m := prev.length
+  if m ≤ x.2.length then
+    match x.2.drop (x.2.length - m) with
+    | [] => some []
+    | Sum.inr (Sum.inr (n + 2)) :: _ =>
+      (prev[m - 1]?).map fun rest ↦ (n, true, false) :: rest
+    | Sum.inl s₁ :: Sum.inl s₂ :: _ =>
+      (prev[m - 2]?).map fun rest ↦
+        (if s₁.1 = s₂.1 then (s₁.1, true, eqFlag x.1 (Sum.inl s₁) (Sum.inl s₂))
+         else (0, true, false)) :: rest
+    | Sum.inr (Sum.inl r) :: Sum.inr (Sum.inr b) :: s' =>
+      (prev[m - 2 - r.1]?).map fun rest ↦
+        (if (s'.take r.1).length = r.1 ∧ (s'.take r.1).all (isTermLetterAt b) then
+          (b, true, relFlag x.1 r b (s'.take r.1))
+         else (0, true, false)) :: rest
+    | Sum.inr (Sum.inr 0) :: _ =>
+      (prev[m - 1]?).map fun D ↦
+        if 2 ≤ D.length then impFlag D[0]! D[1]! :: D.drop 2 else []
+    | Sum.inr (Sum.inr 1) :: _ =>
+      (prev[m - 1]?).map fun D ↦
+        if 1 ≤ D.length then allFlag D[0]! :: D.drop 1 else []
+    | _ :: _ => some []
+  else some []
+
+omit [L.EffectiveLanguage] in
+/-- The relation branch of `satStack` in Boolean-condition form. -/
+theorem satStack_rel_eq (v : Fin k → ℕ) {n : ℕ} (R : L.Relations n) (b : ℕ)
+    (s' : List (FormulaSymbol L (Fin k))) :
+    satStack v (Sum.inr (Sum.inl ⟨n, R⟩) :: Sum.inr (Sum.inr b) :: s') =
+      (if (s'.take n).length = n ∧ (s'.take n).all (isTermLetterAt b) then
+        (b, true, relFlag v ⟨n, R⟩ b (s'.take n))
+       else (0, true, false)) :: satStack v (s'.drop n) := by
+  rw [satStack]
+  congr 1
+  by_cases hb : (s'.take n).length = n ∧ (s'.take n).all (isTermLetterAt b)
+  · obtain ⟨h, h'⟩ := (rel_cond_iff s' n b).1 hb
+    rw [dif_pos h, if_pos h', if_pos hb]
+  · rw [if_neg hb]
+    by_cases h : ∀ i : Fin n, ((s'.map Sum.getLeft?)[i]?.join).isSome
+    · rw [dif_pos h]
+      by_cases h' : ∀ i, (Option.get _ (h i)).1 = b
+      · exact absurd ((rel_cond_iff s' n b).2 ⟨h, h'⟩) hb
+      · rw [if_neg h']
+    · rw [dif_neg h]
+
+omit [L.EffectiveLanguage] in
+/-- The `imp` case of `satStack` in `getElem!` form (no dependent proofs). -/
+theorem satStack_imp_eq (v : Fin k → ℕ) (s : List (FormulaSymbol L (Fin k))) :
+    satStack v (Sum.inr (Sum.inr 0) :: s) =
+      if 2 ≤ (satStack v s).length then
+        impFlag (satStack v s)[0]! (satStack v s)[1]! :: (satStack v s).drop 2
+      else [] := by
+  rw [satStack]
+  by_cases h : 2 ≤ (satStack v s).length
+  · rw [dif_pos h, if_pos h, getElem!_pos _ _ (by omega), getElem!_pos _ _ (by omega)]
+  · rw [dif_neg h, if_neg h]
+
+omit [L.EffectiveLanguage] in
+/-- The `all` case of `satStack` in `getElem!` form (no dependent proofs). -/
+theorem satStack_all_eq (v : Fin k → ℕ) (s : List (FormulaSymbol L (Fin k))) :
+    satStack v (Sum.inr (Sum.inr 1) :: s) =
+      if 1 ≤ (satStack v s).length then
+        allFlag (satStack v s)[0]! :: (satStack v s).drop 1
+      else [] := by
+  rw [satStack]
+  by_cases h : 1 ≤ (satStack v s).length
+  · rw [dif_pos h, if_pos h, getElem!_pos _ _ (by omega)]
+  · rw [dif_neg h, if_neg h]
+
+omit [L.EffectiveLanguage] in
+/-- The step function meets the course-of-values specification. -/
+private theorem satStackStepAux_spec (x : (Fin k → ℕ) × List (FormulaSymbol L (Fin k)))
+    (m : ℕ) :
+    satStackStepAux x ((List.range m).map (satStackAux x)) =
+      some (satStackAux x m) := by
+  have hprev : ∀ j, j < m →
+      ((List.range m).map (satStackAux x))[j]? = some (satStackAux x j) := by
+    intro j hj
+    simp [hj]
+  rw [satStackStepAux]
+  simp only [List.length_map, List.length_range]
+  by_cases hm : m ≤ x.2.length
+  · rw [if_pos hm]
+    rcases hs : x.2.drop (x.2.length - m) with - | ⟨c, s⟩
+    · have hm0 : m = 0 := by
+        have := congrArg List.length hs
+        simp at this
+        omega
+      subst hm0
+      rw [satStackAux, if_pos hm, hs]
+      simp [satStack]
+    · have hmlen : m = (x.2.drop (x.2.length - m)).length := by simp; omega
+      have hm1 : 1 ≤ m := by
+        rw [hs] at hmlen
+        simp at hmlen
+        omega
+      have hstail : s = x.2.drop (x.2.length - (m - 1)) := by
+        have h1 := congrArg List.tail hs
+        rw [List.tail_drop] at h1
+        have h2 : x.2.length - m + 1 = x.2.length - (m - 1) := by omega
+        rw [h2] at h1
+        exact h1.symm
+      have hds1 : satStack x.1 s = satStackAux x (m - 1) := by
+        rw [satStackAux_of_le (show m - 1 ≤ x.2.length by omega), ← hstail]
+      rw [satStackAux_of_le hm, hs]
+      match c, s with
+      | Sum.inr (Sum.inr (n + 2)), s =>
+        rw [hprev (m - 1) (by omega), satStack, hds1]
+        rfl
+      | Sum.inl ⟨n₁, t₁⟩, [] =>
+        simp [satStack]
+      | Sum.inl ⟨n₁, t₁⟩, Sum.inl ⟨n₂, t₂⟩ :: s'' =>
+        rw [hs] at hmlen
+        simp only [List.length_cons] at hmlen
+        have hstail2 : s'' = x.2.drop (x.2.length - (m - 2)) := by
+          have h1 := congrArg List.tail hstail
+          rw [List.tail_drop] at h1
+          have h2 : x.2.length - (m - 1) + 1 = x.2.length - (m - 2) := by omega
+          rw [h2] at h1
+          simpa using h1
+        have hds2 : satStack x.1 s'' = satStackAux x (m - 2) := by
+          rw [satStackAux_of_le (show m - 2 ≤ x.2.length by omega), ← hstail2]
+        rw [hprev (m - 2) (by omega), satStack, hds2]
+        rfl
+      | Sum.inl ⟨n₁, t₁⟩, Sum.inr g :: s'' =>
+        simp [satStack]
+      | Sum.inr (Sum.inl ⟨n, R⟩), [] =>
+        simp [satStack]
+      | Sum.inr (Sum.inl ⟨n, R⟩), Sum.inl y :: s'' =>
+        simp [satStack]
+      | Sum.inr (Sum.inl ⟨n, R⟩), Sum.inr (Sum.inl y) :: s'' =>
+        simp [satStack]
+      | Sum.inr (Sum.inl ⟨n, R⟩), Sum.inr (Sum.inr b) :: s' =>
+        rw [hs] at hmlen
+        simp only [List.length_cons] at hmlen
+        have hstail2 : s' = x.2.drop (x.2.length - (m - 2)) := by
+          have h1 := congrArg List.tail hstail
+          rw [List.tail_drop] at h1
+          have h2 : x.2.length - (m - 1) + 1 = x.2.length - (m - 2) := by omega
+          rw [h2] at h1
+          simpa using h1
+        have hdsr : satStack x.1 (s'.drop n) = satStackAux x (m - 2 - n) := by
+          by_cases hn : n ≤ m - 2
+          · rw [satStackAux_of_le (show m - 2 - n ≤ x.2.length by omega), hstail2,
+              List.drop_drop,
+              show x.2.length - (m - 2) + n = x.2.length - (m - 2 - n) by omega]
+          · rw [List.drop_eq_nil_of_le (by omega), show m - 2 - n = 0 by omega,
+              satStackAux, if_pos (Nat.zero_le _), Nat.sub_zero, List.drop_length]
+        show Option.map
+            (fun rest ↦
+              (if (s'.take n).length = n ∧ (s'.take n).all (isTermLetterAt b) then
+                (b, true, relFlag x.1 ⟨n, R⟩ b (s'.take n))
+               else (0, true, false)) :: rest)
+            (((List.range m).map (satStackAux x))[m - 2 - n]?) =
+          some (satStack x.1 (Sum.inr (Sum.inl ⟨n, R⟩) :: Sum.inr (Sum.inr b) :: s'))
+        rw [hprev (m - 2 - n) (by omega), satStack_rel_eq, hdsr]
+        rfl
+      | Sum.inr (Sum.inr 0), s =>
+        rw [hprev (m - 1) (by omega), satStack_imp_eq, hds1]
+        rfl
+      | Sum.inr (Sum.inr 1), s =>
+        rw [hprev (m - 1) (by omega), satStack_all_eq, hds1]
+        rfl
+  · rw [if_neg hm, satStackAux, if_neg hm]
+
+/-! ### Oracle computability of the step function -/
+
+omit [L.EffectiveLanguage] [L.Structure ℕ] in
+private theorem eqFlag_eq_casesOn (v : Fin k → ℕ) (c₁ c₂ : FormulaSymbol L (Fin k))
+    [L.Structure ℕ] :
+    eqFlag v c₁ c₂ = Option.casesOn (motive := fun _ ↦ Bool) (termOfSymbol? c₁) false
+      fun t₁ ↦ Option.casesOn (motive := fun _ ↦ Bool) (termOfSymbol? c₂) false
+        fun t₂ ↦ decide (t₁.realize v = t₂.realize v) := by
+  rcases h₁ : termOfSymbol? c₁ with - | t₁ <;>
+    rcases h₂ : termOfSymbol? c₂ with - | t₂ <;>
+    simp [eqFlag, h₁, h₂]
+
+private theorem primrec₂_impFlag : Primrec₂ impFlag := by
+  have h : Primrec fun p : (ℕ × Bool × Bool) × ℕ × Bool × Bool ↦
+      if p.1.1 = p.2.1 then
+        (p.1.1, p.1.2.1 && p.2.2.1,
+          if p.1.1 = 0 then (p.1.2.1 && p.2.2.1) && (!p.1.2.2 || p.2.2.2) else false)
+      else ((0 : ℕ), true, false) :=
+    Primrec.ite
+      (Primrec.eq.comp (Primrec.fst.comp Primrec.fst) (Primrec.fst.comp Primrec.snd))
+      (Primrec.pair (Primrec.fst.comp Primrec.fst)
+        (Primrec.pair
+          (Primrec.and.comp (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
+            (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)))
+          (Primrec.ite
+            (Primrec.eq.comp (Primrec.fst.comp Primrec.fst) (Primrec.const 0))
+            (Primrec.and.comp
+              (Primrec.and.comp (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
+                (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)))
+              (Primrec.or.comp
+                (Primrec.not.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))
+                (Primrec.snd.comp (Primrec.snd.comp Primrec.snd))))
+            (Primrec.const false))))
+      (Primrec.const _)
+  exact h.of_eq fun p ↦ by rw [impFlag]
+
+private theorem primrec_allFlag : Primrec allFlag := by
+  have h : Primrec fun p : ℕ × Bool × Bool ↦
+      Nat.casesOn (motive := fun _ ↦ ℕ × Bool × Bool) p.1 ((0 : ℕ), true, false)
+        fun n ↦ (n, false, false) :=
+    Primrec.nat_casesOn Primrec.fst (Primrec.const _)
+      ((Primrec.pair Primrec.snd (Primrec.const (false, false))).to₂)
+  exact h.of_eq fun p ↦ by rcases p with ⟨- | n, q⟩ <;> rfl
+
+private theorem primrec₂_stepFalsumSat : Primrec₂ stepFalsumSat := by
+  have hget : Primrec fun q : List (List (ℕ × Bool × Bool)) × ℕ ↦
+      q.1[q.1.length - 1]? :=
+    Primrec.list_getElem?.comp Primrec.fst
+      (Primrec.nat_sub.comp (Primrec.list_length.comp Primrec.fst) (Primrec.const 1))
+  exact (Primrec.option_map hget
+    ((Primrec.list_cons.comp
+      (Primrec.pair (Primrec.snd.comp Primrec.fst) (Primrec.const (true, false)))
+      Primrec.snd).to₂)).of_eq fun q ↦ rfl
+
+private theorem primrec_getElemBangP (i : ℕ) :
+    Primrec fun D : List (ℕ × Bool × Bool) ↦ D[i]! :=
+  (Primrec.option_getD.comp (Primrec.list_getElem?.comp Primrec.id (Primrec.const i))
+    (Primrec.const default)).of_eq fun _ ↦ List.getElem!_eq_getElem?_getD.symm
+
+private theorem primrec_stepImpSat : Primrec stepImpSat := by
+  have hget : Primrec fun prev : List (List (ℕ × Bool × Bool)) ↦
+      prev[prev.length - 1]? :=
+    Primrec.list_getElem?.comp Primrec.id
+      (Primrec.nat_sub.comp Primrec.list_length (Primrec.const 1))
+  have hbody : Primrec fun D : List (ℕ × Bool × Bool) ↦
+      if 2 ≤ D.length then impFlag D[0]! D[1]! :: D.drop 2 else [] :=
+    Primrec.ite (Primrec.nat_le.comp (Primrec.const 2) Primrec.list_length)
+      (Primrec.list_cons.comp
+        (primrec₂_impFlag.comp (primrec_getElemBangP 0) (primrec_getElemBangP 1))
+        (Primrec.list_drop.comp (Primrec.const 2) Primrec.id))
+      (Primrec.const [])
+  exact (Primrec.option_map hget ((hbody.comp Primrec.snd).to₂)).of_eq fun prev ↦ rfl
+
+private theorem primrec_stepAllSat : Primrec stepAllSat := by
+  have hget : Primrec fun prev : List (List (ℕ × Bool × Bool)) ↦
+      prev[prev.length - 1]? :=
+    Primrec.list_getElem?.comp Primrec.id
+      (Primrec.nat_sub.comp Primrec.list_length (Primrec.const 1))
+  have hbody : Primrec fun D : List (ℕ × Bool × Bool) ↦
+      if 1 ≤ D.length then allFlag D[0]! :: D.drop 1 else [] :=
+    Primrec.ite (Primrec.nat_le.comp (Primrec.const 1) Primrec.list_length)
+      (Primrec.list_cons.comp (primrec_allFlag.comp (primrec_getElemBangP 0))
+        (Primrec.list_drop.comp (Primrec.const 1) Primrec.id))
+      (Primrec.const [])
+  exact (Primrec.option_map hget ((hbody.comp Primrec.snd).to₂)).of_eq fun prev ↦ rfl
+
+section OracleStep
+
+variable (O : Set (ℕ →. ℕ)) [IsComputableStructureIn O L]
+
+omit [DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))] in
+set_option maxHeartbeats 1000000 in
+private theorem computableIn_eqFlag (k : ℕ) :
+    ComputableIn O fun y : (Fin k → ℕ) ×
+        (Σ m, L.Term (Fin k ⊕ Fin m)) × (Σ m, L.Term (Fin k ⊕ Fin m)) ↦
+      eqFlag y.1 (Sum.inl y.2.1) (Sum.inl y.2.2) := by
+  have hcmp : ComputableIn O fun y : (L.Term (Fin k) × (Fin k → ℕ)) ×
+      (L.Term (Fin k) × (Fin k → ℕ)) ↦
+      decide (y.1.1.realize y.1.2 = y.2.1.realize y.2.2) :=
+    (Primrec.eq (α := ℕ)).decide.to_comp.computableIn₂.comp
+      ((Term.realize_computableIn O (m := k)).comp ComputableIn.fst)
+      ((Term.realize_computableIn O (m := k)).comp ComputableIn.snd)
+  have h₁ : ComputableIn O fun y : (Fin k → ℕ) ×
+      (Σ m, L.Term (Fin k ⊕ Fin m)) × (Σ m, L.Term (Fin k ⊕ Fin m)) ↦
+      termOfSymbol? (Sum.inl y.2.1 : FormulaSymbol L (Fin k)) :=
+    (primrec_termOfSymbol?.comp
+      (Primrec.sumInl.comp (Primrec.fst.comp Primrec.snd))).to_comp.computableIn
+  have h₂ : ComputableIn O fun z : ((Fin k → ℕ) ×
+      (Σ m, L.Term (Fin k ⊕ Fin m)) × (Σ m, L.Term (Fin k ⊕ Fin m))) ×
+      L.Term (Fin k) ↦
+      termOfSymbol? (Sum.inl z.1.2.2 : FormulaSymbol L (Fin k)) :=
+    (primrec_termOfSymbol?.comp
+      (Primrec.sumInl.comp
+        (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))).to_comp.computableIn
+  have hproj : ComputableIn O fun w : (((Fin k → ℕ) ×
+      (Σ m, L.Term (Fin k ⊕ Fin m)) × (Σ m, L.Term (Fin k ⊕ Fin m))) ×
+      L.Term (Fin k)) × L.Term (Fin k) ↦
+      ((w.1.2, w.1.1.1), (w.2, w.1.1.1)) :=
+    ((ComputableIn.snd.comp ComputableIn.fst).pair
+      (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst))).pair
+      (ComputableIn.snd.pair
+        (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst)))
+  have hinner : ComputableIn O fun w : (((Fin k → ℕ) ×
+      (Σ m, L.Term (Fin k ⊕ Fin m)) × (Σ m, L.Term (Fin k ⊕ Fin m))) ×
+      L.Term (Fin k)) × L.Term (Fin k) ↦
+      decide (w.1.2.realize w.1.1.1 = w.2.realize w.1.1.1) :=
+    (hcmp.comp hproj).of_eq fun _ ↦ rfl
+  exact (ComputableIn.option_casesOn h₁ (ComputableIn.const false)
+    ((ComputableIn.option_casesOn h₂ (ComputableIn.const false)
+      hinner.to₂).to₂)).of_eq fun y ↦ by
+        rw [eqFlag_eq_casesOn]
+
+omit [DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))] in
+set_option maxHeartbeats 1000000 in
+private theorem computableIn_stepEqualSat (k : ℕ) :
+    ComputableIn O fun q : ((Fin k → ℕ) × List (List (ℕ × Bool × Bool))) ×
+        (Σ m, L.Term (Fin k ⊕ Fin m)) × (Σ m, L.Term (Fin k ⊕ Fin m)) ↦
+      stepEqualSat q.1.1 q.1.2 q.2.1 q.2.2 := by
+  have hget : ComputableIn O fun q : ((Fin k → ℕ) × List (List (ℕ × Bool × Bool))) ×
+      (Σ m, L.Term (Fin k ⊕ Fin m)) × (Σ m, L.Term (Fin k ⊕ Fin m)) ↦
+      q.1.2[q.1.2.length - 2]? :=
+    (Primrec.list_getElem?.comp (Primrec.snd.comp Primrec.fst)
+      (Primrec.nat_sub.comp
+        (Primrec.list_length.comp (Primrec.snd.comp Primrec.fst))
+        (Primrec.const 2))).to_comp.computableIn
+  have hflag : ComputableIn O fun q : ((Fin k → ℕ) × List (List (ℕ × Bool × Bool))) ×
+      (Σ m, L.Term (Fin k ⊕ Fin m)) × (Σ m, L.Term (Fin k ⊕ Fin m)) ↦
+      eqFlag q.1.1 (Sum.inl q.2.1) (Sum.inl q.2.2) :=
+    ((computableIn_eqFlag O k).comp
+      ((ComputableIn.fst.comp ComputableIn.fst).pair ComputableIn.snd)).of_eq
+      fun _ ↦ rfl
+  have hval : ComputableIn O fun q : ((Fin k → ℕ) × List (List (ℕ × Bool × Bool))) ×
+      (Σ m, L.Term (Fin k ⊕ Fin m)) × (Σ m, L.Term (Fin k ⊕ Fin m)) ↦
+      if q.2.1.1 = q.2.2.1 then
+        (q.2.1.1, true, eqFlag q.1.1 (Sum.inl q.2.1) (Sum.inl q.2.2))
+      else ((0 : ℕ), true, false) :=
+    ComputableIn.ite
+      ((Primrec.eq.comp
+        ((Term.primrec_sigmaTerm_fst L (Fin k)).comp (Primrec.fst.comp Primrec.snd))
+        ((Term.primrec_sigmaTerm_fst L (Fin k)).comp
+          (Primrec.snd.comp Primrec.snd))).decide.to_comp.computableIn)
+      ((((Term.primrec_sigmaTerm_fst L (Fin k)).comp
+        (Primrec.fst.comp Primrec.snd)).to_comp.computableIn).pair
+        ((ComputableIn.const true).pair hflag))
+      (ComputableIn.const _)
+  exact (ComputableIn.option_map hget
+    (((Computable.list_cons.computableIn₂ (O := O)).comp
+      (hval.comp ComputableIn.fst) ComputableIn.snd).to₂)).of_eq fun q ↦ rfl
+
+set_option maxHeartbeats 1000000 in
+private theorem computableIn_relFlag (k : ℕ)
+    (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ decide d.relMap) :
+    ComputableIn O fun z : (Fin k → ℕ) ×
+        (Σ n, L.Relations n) × ℕ × List (FormulaSymbol L (Fin k)) ↦
+      relFlag z.1 z.2.1 z.2.2.1 z.2.2.2 := by
+  have hfm : ComputableIn O fun z : (Fin k → ℕ) ×
+      (Σ n, L.Relations n) × ℕ × List (FormulaSymbol L (Fin k)) ↦
+      z.2.2.2.filterMap termOfSymbol? :=
+    (Primrec.listFilterMap (Primrec.snd.comp (Primrec.snd.comp Primrec.snd))
+      ((primrec_termOfSymbol?.comp Primrec.snd).to₂)).to_comp.computableIn
+  have hvalues : ComputableIn O fun z : (Fin k → ℕ) ×
+      (Σ n, L.Relations n) × ℕ × List (FormulaSymbol L (Fin k)) ↦
+      (z.2.2.2.filterMap termOfSymbol?).map fun t ↦ t.realize z.1 :=
+    ComputableIn.list_map hfm
+      (((Term.realize_computableIn O (m := k)).comp
+        (ComputableIn.snd.pair (ComputableIn.fst.comp ComputableIn.fst))).to₂)
+  have hofs : ComputableIn O fun z : (Fin k → ℕ) ×
+      (Σ n, L.Relations n) × ℕ × List (FormulaSymbol L (Fin k)) ↦
+      RelationApplicationData.ofSymbolArgs?
+        (z.2.1, (z.2.2.2.filterMap termOfSymbol?).map fun t ↦ t.realize z.1) :=
+    (RelationApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn).comp
+      (((Primrec.fst.comp Primrec.snd).to_comp.computableIn).pair hvalues)
+  exact ComputableIn.ite
+    ((Primrec.eq.comp (Primrec.fst.comp (Primrec.snd.comp Primrec.snd))
+      (Primrec.const 0)).decide.to_comp.computableIn)
+    (ComputableIn.option_casesOn hofs (ComputableIn.const false)
+      ((hcomp.comp ComputableIn.snd).to₂))
+    (ComputableIn.const false)
+
+set_option maxHeartbeats 1000000 in
+private theorem computableIn_stepRelSat (k : ℕ)
+    (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ decide d.relMap) :
+    ComputableIn O fun q : ((Fin k → ℕ) × List (List (ℕ × Bool × Bool))) ×
+        (Σ n, L.Relations n) × ℕ × List (FormulaSymbol L (Fin k)) ↦
+      stepRelSat q.1.1 q.1.2 q.2.1 q.2.2.1 q.2.2.2 := by
+  have hr1 : Primrec fun q : ((Fin k → ℕ) × List (List (ℕ × Bool × Bool))) ×
+      (Σ n, L.Relations n) × ℕ × List (FormulaSymbol L (Fin k)) ↦ q.2.1.1 :=
+    (primrec_relationSymbol_arity (L := L)).comp (Primrec.fst.comp Primrec.snd)
+  have htake : Primrec fun q : ((Fin k → ℕ) × List (List (ℕ × Bool × Bool))) ×
+      (Σ n, L.Relations n) × ℕ × List (FormulaSymbol L (Fin k)) ↦
+      q.2.2.2.take q.2.1.1 :=
+    Primrec.list_take.comp hr1 (Primrec.snd.comp (Primrec.snd.comp Primrec.snd))
+  have hget : ComputableIn O fun q : ((Fin k → ℕ) × List (List (ℕ × Bool × Bool))) ×
+      (Σ n, L.Relations n) × ℕ × List (FormulaSymbol L (Fin k)) ↦
+      q.1.2[q.1.2.length - 2 - q.2.1.1]? :=
+    (Primrec.list_getElem?.comp (Primrec.snd.comp Primrec.fst)
+      (Primrec.nat_sub.comp
+        (Primrec.nat_sub.comp
+          (Primrec.list_length.comp (Primrec.snd.comp Primrec.fst))
+          (Primrec.const 2))
+        hr1)).to_comp.computableIn
+  have hguard : ComputableIn O fun q : ((Fin k → ℕ) × List (List (ℕ × Bool × Bool))) ×
+      (Σ n, L.Relations n) × ℕ × List (FormulaSymbol L (Fin k)) ↦
+      decide ((q.2.2.2.take q.2.1.1).length = q.2.1.1 ∧
+        (q.2.2.2.take q.2.1.1).all (isTermLetterAt q.2.2.1)) := by
+    have hB : ComputableIn O fun q : ((Fin k → ℕ) ×
+        List (List (ℕ × Bool × Bool))) ×
+        (Σ n, L.Relations n) × ℕ × List (FormulaSymbol L (Fin k)) ↦
+        (decide ((q.2.2.2.take q.2.1.1).length = q.2.1.1) &&
+          (q.2.2.2.take q.2.1.1).all (isTermLetterAt q.2.2.1)) :=
+      (Primrec.and.comp
+        ((Primrec.eq.comp (Primrec.list_length.comp htake) hr1).decide)
+        (primrec₂_all_isTermLetterAt.comp
+          (Primrec.fst.comp (Primrec.snd.comp Primrec.snd))
+          htake)).to_comp.computableIn
+    refine hB.of_eq fun q ↦ ?_
+    rcases hall : (q.2.2.2.take q.2.1.1).all (isTermLetterAt q.2.2.1) <;>
+      by_cases hlen : (q.2.2.2.take q.2.1.1).length = q.2.1.1 <;>
+      simp_all
+  have hflag : ComputableIn O fun q : ((Fin k → ℕ) × List (List (ℕ × Bool × Bool))) ×
+      (Σ n, L.Relations n) × ℕ × List (FormulaSymbol L (Fin k)) ↦
+      relFlag q.1.1 q.2.1 q.2.2.1 (q.2.2.2.take q.2.1.1) :=
+    ((computableIn_relFlag O k hcomp).comp
+      ((ComputableIn.fst.comp ComputableIn.fst).pair
+        (((Primrec.fst.comp Primrec.snd).to_comp.computableIn).pair
+          (((Primrec.fst.comp (Primrec.snd.comp Primrec.snd)).to_comp.computableIn).pair
+            htake.to_comp.computableIn)))).of_eq fun _ ↦ rfl
+  have hval : ComputableIn O fun q : ((Fin k → ℕ) × List (List (ℕ × Bool × Bool))) ×
+      (Σ n, L.Relations n) × ℕ × List (FormulaSymbol L (Fin k)) ↦
+      if (q.2.2.2.take q.2.1.1).length = q.2.1.1 ∧
+          (q.2.2.2.take q.2.1.1).all (isTermLetterAt q.2.2.1) then
+        (q.2.2.1, true, relFlag q.1.1 q.2.1 q.2.2.1 (q.2.2.2.take q.2.1.1))
+      else ((0 : ℕ), true, false) :=
+    ComputableIn.ite hguard
+      (((Primrec.fst.comp (Primrec.snd.comp Primrec.snd)).to_comp.computableIn).pair
+        ((ComputableIn.const true).pair hflag))
+      (ComputableIn.const _)
+  exact (ComputableIn.option_map hget
+    (((Computable.list_cons.computableIn₂ (O := O)).comp
+      (hval.comp ComputableIn.fst) ComputableIn.snd).to₂)).of_eq fun q ↦ rfl
+
+end OracleStep
+
+omit [L.EffectiveLanguage] in
+/-- The step function as a tree of `casesOn` dispatches through `head?` and `tail`:
+the combinator-friendly form behind its oracle computability. -/
+private theorem satStackStepAux_eq_cases
+    (x : (Fin k → ℕ) × List (FormulaSymbol L (Fin k)))
+    (prev : List (List (ℕ × Bool × Bool))) :
+    satStackStepAux x prev =
+      if prev.length ≤ x.2.length then
+        Option.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool)))
+          (x.2.drop (x.2.length - prev.length)).head? (some [])
+          fun c ↦
+            Sum.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) c
+              (fun s₁ ↦
+                Option.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool)))
+                  (x.2.drop (x.2.length - prev.length)).tail.head? (some [])
+                  fun c₂ ↦
+                    Sum.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) c₂
+                      (fun s₂ ↦ stepEqualSat x.1 prev s₁ s₂) fun _ ↦ some [])
+              fun g ↦
+                Sum.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) g
+                  (fun r ↦
+                    Option.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool)))
+                      (x.2.drop (x.2.length - prev.length)).tail.head? (some [])
+                      fun c₂ ↦
+                        Sum.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool)))
+                          c₂ (fun _ ↦ some [])
+                          fun g₂ ↦
+                            Sum.casesOn
+                              (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) g₂
+                              (fun _ ↦ some [])
+                              fun b ↦ stepRelSat x.1 prev r b
+                                (x.2.drop (x.2.length - prev.length)).tail.tail)
+                  fun j ↦
+                    Nat.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) j
+                      (stepImpSat prev)
+                      fun j' ↦
+                        Nat.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool)))
+                          j' (stepAllSat prev) fun n ↦ stepFalsumSat prev n
+      else some [] := by
+  rw [satStackStepAux]
+  by_cases hg : prev.length ≤ x.2.length
+  · rw [if_pos hg, if_pos hg]
+    rcases x.2.drop (x.2.length - prev.length) with - | ⟨c, tail⟩
+    · rfl
+    · rcases c with s₁ | g
+      · rcases tail with - | ⟨c₂, tail₂⟩
+        · rfl
+        · rcases c₂ with s₂ | g₂ <;> rfl
+      · rcases g with r | j
+        · rcases tail with - | ⟨c₂, s'⟩
+          · rfl
+          · rcases c₂ with y | g₂
+            · rfl
+            · rcases g₂ with z | b <;> rfl
+        · rcases j with - | j'
+          · rfl
+          · rcases j' with - | n <;> rfl
+  · rw [if_neg hg, if_neg hg]
+
+section OracleAssembly
+
+variable (O : Set (ℕ →. ℕ)) [IsComputableStructureIn O L]
+
+omit [L.Structure ℕ] [DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))] in
+private theorem primrec_dropSuffix (k : ℕ) :
+    Primrec fun p : ((Fin k → ℕ) × List (FormulaSymbol L (Fin k))) ×
+      List (List (ℕ × Bool × Bool)) ↦
+      p.1.2.drop (p.1.2.length - p.2.length) :=
+  Primrec.list_drop.comp
+    (Primrec.nat_sub.comp (Primrec.list_length.comp (Primrec.snd.comp Primrec.fst))
+      (Primrec.list_length.comp Primrec.snd))
+    (Primrec.snd.comp Primrec.fst)
+
+omit [DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))] in
+set_option maxHeartbeats 1000000 in
+private theorem computableIn_eqArm (k : ℕ) :
+    ComputableIn O fun w : ((((Fin k → ℕ) ×
+    List (FormulaSymbol L (Fin k))) × List (List (ℕ × Bool × Bool))) ×
+    FormulaSymbol L (Fin k)) × (Σ m, L.Term (Fin k ⊕ Fin m)) ↦
+    Option.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool)))
+      (w.1.1.1.2.drop (w.1.1.1.2.length - w.1.1.2.length)).tail.head? (some [])
+      fun c₂ ↦ Sum.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) c₂
+        (fun s₂ ↦ stepEqualSat w.1.1.1.1 w.1.1.2 w.2 s₂) fun _ ↦ some [] := by
+  have hproj : ComputableIn O fun z : (((((((Fin k → ℕ) ×
+      List (FormulaSymbol L (Fin k))) × List (List (ℕ × Bool × Bool))) ×
+      FormulaSymbol L (Fin k)) × (Σ m, L.Term (Fin k ⊕ Fin m))) ×
+      FormulaSymbol L (Fin k)) × (Σ m, L.Term (Fin k ⊕ Fin m))) ↦
+      ((z.1.1.1.1.1.1, z.1.1.1.1.2), (z.1.1.2, z.2)) :=
+    ((ComputableIn.fst.comp (ComputableIn.fst.comp (ComputableIn.fst.comp
+      (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst))))).pair
+      (ComputableIn.snd.comp (ComputableIn.fst.comp (ComputableIn.fst.comp
+        (ComputableIn.fst.comp ComputableIn.fst))))).pair
+      ((ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst)).pair
+        ComputableIn.snd)
+  have harm : ComputableIn O fun z : (((((((Fin k → ℕ) ×
+      List (FormulaSymbol L (Fin k))) × List (List (ℕ × Bool × Bool))) ×
+      FormulaSymbol L (Fin k)) × (Σ m, L.Term (Fin k ⊕ Fin m))) ×
+      FormulaSymbol L (Fin k)) × (Σ m, L.Term (Fin k ⊕ Fin m))) ↦
+      stepEqualSat z.1.1.1.1.1.1 z.1.1.1.1.2 z.1.1.2 z.2 :=
+    ((computableIn_stepEqualSat O k).comp hproj).of_eq fun _ ↦ rfl
+  exact ComputableIn.option_casesOn
+    ((Primrec.list_head?.comp (Primrec.list_tail.comp
+      ((primrec_dropSuffix (L := L) k).comp
+        (Primrec.fst.comp Primrec.fst)))).to_comp.computableIn)
+    (ComputableIn.const _)
+    ((ComputableIn.sumCasesOn ComputableIn.snd harm.to₂
+      ((ComputableIn.const (some [])).to₂)).to₂)
+
+set_option maxHeartbeats 1000000 in
+private theorem computableIn_relArm (k : ℕ)
+    (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ decide d.relMap) :
+    ComputableIn O fun w : ((((Fin k → ℕ) ×
+    List (FormulaSymbol L (Fin k))) × List (List (ℕ × Bool × Bool))) ×
+    FormulaSymbol L (Fin k)) × (Σ n, L.Relations n) ↦
+    Option.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool)))
+      (w.1.1.1.2.drop (w.1.1.1.2.length - w.1.1.2.length)).tail.head? (some [])
+      fun c₂ ↦ Sum.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) c₂
+        (fun _ ↦ some [])
+        fun g₂ ↦ Sum.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) g₂
+          (fun _ ↦ some [])
+          fun b ↦ stepRelSat w.1.1.1.1 w.1.1.2 w.2 b
+            (w.1.1.1.2.drop (w.1.1.1.2.length - w.1.1.2.length)).tail.tail := by
+  have hproj : ComputableIn O fun z : (((((((Fin k → ℕ) ×
+      List (FormulaSymbol L (Fin k))) × List (List (ℕ × Bool × Bool))) ×
+      FormulaSymbol L (Fin k)) × (Σ n, L.Relations n)) × FormulaSymbol L (Fin k)) ×
+      ((Σ n, L.Relations n) ⊕ ℕ)) × ℕ ↦
+      ((z.1.1.1.1.1.1.1, z.1.1.1.1.1.2),
+        (z.1.1.1.2, (z.2,
+          (z.1.1.1.1.1.1.2.drop
+            (z.1.1.1.1.1.1.2.length - z.1.1.1.1.1.2.length)).tail.tail))) :=
+    ((ComputableIn.fst.comp (ComputableIn.fst.comp (ComputableIn.fst.comp
+      (ComputableIn.fst.comp (ComputableIn.fst.comp (ComputableIn.fst.comp
+        ComputableIn.fst)))))).pair
+      (ComputableIn.snd.comp (ComputableIn.fst.comp (ComputableIn.fst.comp
+        (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst)))))).pair
+      ((ComputableIn.snd.comp (ComputableIn.fst.comp
+        (ComputableIn.fst.comp ComputableIn.fst))).pair
+        (ComputableIn.snd.pair
+          (((Primrec.list_tail.comp (Primrec.list_tail.comp
+            ((primrec_dropSuffix (L := L) k).comp
+              Primrec.id))).to_comp.computableIn).comp
+            (ComputableIn.fst.comp (ComputableIn.fst.comp (ComputableIn.fst.comp
+              (ComputableIn.fst.comp ComputableIn.fst)))))))
+  have harm : ComputableIn O fun z : (((((((Fin k → ℕ) ×
+      List (FormulaSymbol L (Fin k))) × List (List (ℕ × Bool × Bool))) ×
+      FormulaSymbol L (Fin k)) × (Σ n, L.Relations n)) × FormulaSymbol L (Fin k)) ×
+      ((Σ n, L.Relations n) ⊕ ℕ)) × ℕ ↦
+      stepRelSat z.1.1.1.1.1.1.1 z.1.1.1.1.1.2 z.1.1.1.2 z.2
+        (z.1.1.1.1.1.1.2.drop
+          (z.1.1.1.1.1.1.2.length - z.1.1.1.1.1.2.length)).tail.tail :=
+    ((computableIn_stepRelSat O k hcomp).comp hproj).of_eq fun _ ↦ rfl
+  exact ComputableIn.option_casesOn
+    ((Primrec.list_head?.comp (Primrec.list_tail.comp
+      ((primrec_dropSuffix (L := L) k).comp
+        (Primrec.fst.comp Primrec.fst)))).to_comp.computableIn)
+    (ComputableIn.const _)
+    ((ComputableIn.sumCasesOn ComputableIn.snd
+      ((ComputableIn.const (some [])).to₂)
+      ((ComputableIn.sumCasesOn ComputableIn.snd
+        ((ComputableIn.const (some [])).to₂)
+        harm.to₂).to₂)).to₂)
+
+omit [L.Structure ℕ] [IsComputableStructureIn O L]
+  [DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))] in
+set_option maxHeartbeats 1000000 in
+private theorem computableIn_natArm (k : ℕ) :
+    ComputableIn O fun w : ((((Fin k → ℕ) ×
+    List (FormulaSymbol L (Fin k))) × List (List (ℕ × Bool × Bool))) ×
+    FormulaSymbol L (Fin k)) × ℕ ↦
+    Nat.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) w.2
+      (stepImpSat w.1.1.2)
+      fun j' ↦ Nat.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) j'
+        (stepAllSat w.1.1.2) fun n ↦ stepFalsumSat w.1.1.2 n :=
+  ComputableIn.nat_casesOn ComputableIn.snd
+    ((primrec_stepImpSat.to_comp.computableIn).comp
+      (ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst)))
+    ((ComputableIn.nat_casesOn ComputableIn.snd
+      ((primrec_stepAllSat.to_comp.computableIn).comp
+        (ComputableIn.snd.comp (ComputableIn.fst.comp
+          (ComputableIn.fst.comp ComputableIn.fst))))
+      ((primrec₂_stepFalsumSat.to_comp.computableIn₂.comp
+        (ComputableIn.snd.comp (ComputableIn.fst.comp
+          (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst))))
+        ComputableIn.snd).to₂)).to₂)
+
+set_option maxHeartbeats 1000000 in
+private theorem computableIn₂_satStackStepAux (k : ℕ)
+    (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ decide d.relMap) :
+    ComputableIn₂ O (satStackStepAux (L := L) (k := k)) := by
+  have hmain : ComputableIn O fun p : ((Fin k → ℕ) ×
+      List (FormulaSymbol L (Fin k))) × List (List (ℕ × Bool × Bool)) ↦
+      if p.2.length ≤ p.1.2.length then
+        Option.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool)))
+          (p.1.2.drop (p.1.2.length - p.2.length)).head? (some [])
+          fun c ↦
+            Sum.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) c
+              (fun s₁ ↦
+                Option.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool)))
+                  (p.1.2.drop (p.1.2.length - p.2.length)).tail.head? (some [])
+                  fun c₂ ↦
+                    Sum.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) c₂
+                      (fun s₂ ↦ stepEqualSat p.1.1 p.2 s₁ s₂) fun _ ↦ some [])
+              fun g ↦
+                Sum.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) g
+                  (fun r ↦
+                    Option.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool)))
+                      (p.1.2.drop (p.1.2.length - p.2.length)).tail.head? (some [])
+                      fun c₂ ↦
+                        Sum.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool)))
+                          c₂ (fun _ ↦ some [])
+                          fun g₂ ↦
+                            Sum.casesOn
+                              (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) g₂
+                              (fun _ ↦ some [])
+                              fun b ↦ stepRelSat p.1.1 p.2 r b
+                                (p.1.2.drop (p.1.2.length - p.2.length)).tail.tail)
+                  fun j ↦
+                    Nat.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool))) j
+                      (stepImpSat p.2)
+                      fun j' ↦
+                        Nat.casesOn (motive := fun _ ↦ Option (List (ℕ × Bool × Bool)))
+                          j' (stepAllSat p.2) fun n ↦ stepFalsumSat p.2 n
+      else some [] := by
+    refine ComputableIn.ite
+      ((Primrec.nat_le.comp (Primrec.list_length.comp Primrec.snd)
+        (Primrec.list_length.comp
+          (Primrec.snd.comp Primrec.fst))).decide.to_comp.computableIn)
+      (ComputableIn.option_casesOn
+        ((Primrec.list_head?.comp (primrec_dropSuffix (L := L) k)).to_comp.computableIn)
+        (ComputableIn.const _)
+        ((ComputableIn.sumCasesOn ComputableIn.snd
+          ((computableIn_eqArm O k).to₂)
+          ((ComputableIn.sumCasesOn ComputableIn.snd
+            (((computableIn_relArm O k hcomp).comp
+              ((ComputableIn.fst.comp ComputableIn.fst).pair ComputableIn.snd)).to₂)
+            (((computableIn_natArm O k).comp
+              ((ComputableIn.fst.comp ComputableIn.fst).pair
+                ComputableIn.snd)).to₂)).to₂)).to₂))
+      (ComputableIn.const _)
+  exact hmain.of_eq fun p ↦ (satStackStepAux_eq_cases p.1 p.2).symm
+
+/-- The guarded suffix evaluation of the satisfaction stack machine is oracle
+computable, by strong recursion on the suffix length. -/
+private theorem computableIn₂_satStackAux (k : ℕ)
+    (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ decide d.relMap) :
+    ComputableIn₂ O (satStackAux (L := L) (k := k)) :=
+  ComputableIn.nat_strong_rec _ (computableIn₂_satStackStepAux O k hcomp)
+    satStackStepAux_spec
+
+set_option maxHeartbeats 1000000 in
+/-- The quantifier-free satisfaction decider is oracle computable. -/
+private theorem computableIn_qfSatBool (k : ℕ)
+    (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ decide d.relMap) :
+    ComputableIn O (qfSatBool (L := L) (k := k)) := by
+  have hsat : ComputableIn O fun p : L.Formula (Fin k) × (Fin k → ℕ) ↦
+      satStack p.2 ((p.1 : L.BoundedFormula (Fin k) 0).listEncode) := by
+    have harg : ComputableIn O fun p : L.Formula (Fin k) × (Fin k → ℕ) ↦
+        (((p.2, (p.1 : L.BoundedFormula (Fin k) 0).listEncode) :
+          (Fin k → ℕ) × List (FormulaSymbol L (Fin k))),
+          ((p.1 : L.BoundedFormula (Fin k) 0).listEncode).length) :=
+      (Primrec.pair
+        (Primrec.pair Primrec.snd (primrec_formula_listEncode.comp Primrec.fst))
+        (Primrec.list_length.comp
+          (primrec_formula_listEncode.comp Primrec.fst))).to_comp.computableIn
+    exact (ComputableIn.comp (computableIn₂_satStackAux O k hcomp) harg).of_eq fun p ↦
+      satStackAux_length _
+  exact (ComputableIn.option_getD
+    (ComputableIn.option_map
+      ((Primrec.list_head?.to_comp.computableIn).comp hsat)
+      (((Primrec.snd.comp (Primrec.snd.comp
+        Primrec.snd)).to_comp.computableIn).to₂))
+    (ComputableIn.const false)).of_eq fun p ↦ rfl
+
+end OracleAssembly
+
 end QFSatisfaction
+
+section QFContracts
+
+/-- The roadmap PR 7 gate in diagram-ready total form: quantifier-freeness together
+with satisfaction is a computable predicate on formulas with tuples, deciding `false`
+off the quantifier-free fragment. -/
+theorem qf_realize_computablePredIn (O : Set (ℕ →. ℕ))
+    [IsComputableStructureIn O L] (k : ℕ) :
+    ComputablePredIn O fun p : L.Formula (Fin k) × (Fin k → ℕ) ↦
+      (p.1 : L.BoundedFormula (Fin k) 0).IsQF ∧ p.1.Realize p.2 := by
+  obtain ⟨hdec, hcomp⟩ :=
+    IsComputableStructureIn.relMap_computablePredIn (O := O) (L := L)
+  letI := hdec
+  have hwit : DecidablePred fun p : L.Formula (Fin k) × (Fin k → ℕ) ↦
+      (p.1 : L.BoundedFormula (Fin k) 0).IsQF ∧ p.1.Realize p.2 := fun p ↦
+    if hB : qfSatBool p = true
+    then Decidable.isTrue ((qfSatBool_iff p).1 hB)
+    else Decidable.isFalse fun h ↦ hB ((qfSatBool_iff p).2 h)
+  refine ⟨hwit, ?_⟩
+  refine (computableIn_qfSatBool O k hcomp).of_eq fun p ↦ ?_
+  by_cases hB : qfSatBool p = true
+  · rw [hB]
+    exact (@decide_eq_true _ (hwit p) ((qfSatBool_iff p).1 hB)).symm
+  · rw [Bool.not_eq_true] at hB
+    rw [hB]
+    refine (@decide_eq_false _ (hwit p) fun h ↦ ?_).symm
+    rw [(qfSatBool_iff p).2 h] at hB
+    simp at hB
+
+/-- The uniform subtype form: satisfaction of quantifier-free formulas is a computable
+predicate. -/
+theorem qfFormula_realize_computablePredIn (O : Set (ℕ →. ℕ))
+    [IsComputableStructureIn O L] (k : ℕ) :
+    ComputablePredIn O fun p : QFFormula L (Fin k) × (Fin k → ℕ) ↦
+      (p.1 : L.Formula (Fin k)).Realize p.2 :=
+  ((qf_realize_computablePredIn O k).comp
+    ((Primrec.subtype_val.to_comp.computableIn.comp ComputableIn.fst).pair
+      ComputableIn.snd)).of_eq fun p ↦ and_iff_right p.1.2
+
+/-- The pointwise corollary: satisfaction of a fixed quantifier-free formula is a
+computable predicate on tuples. -/
+theorem realize_computablePredIn_of_isQF (O : Set (ℕ →. ℕ))
+    [IsComputableStructureIn O L] {k : ℕ} (φ : L.Formula (Fin k))
+    (hφ : (φ : L.BoundedFormula (Fin k) 0).IsQF) :
+    ComputablePredIn O fun v : Fin k → ℕ ↦ φ.Realize v :=
+  (qfFormula_realize_computablePredIn O k).comp
+    ((ComputableIn.const (⟨φ, hφ⟩ : QFFormula L (Fin k))).pair ComputableIn.id)
+
+end QFContracts
 
 end FirstOrder.Language

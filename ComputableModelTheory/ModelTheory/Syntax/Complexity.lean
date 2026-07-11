@@ -268,6 +268,10 @@ variable {L : Language} {α : Type*}
 abbrev AtomicFormula (L : Language) (α : Type*) :=
   { φ : L.Formula α // (φ : L.BoundedFormula α 0).IsAtomic }
 
+/-- A quantifier-free formula: a formula bundled with its quantifier-freeness. -/
+abbrev QFFormula (L : Language) (α : Type*) :=
+  { φ : L.Formula α // (φ : L.BoundedFormula α 0).IsQF }
+
 /-- Nondependent atomic-formula data: two terms to be equated, or a packaged relation
 symbol with its argument-term list. -/
 abbrev AtomicData (L : Language) (α : Type*) :=
@@ -457,6 +461,23 @@ theorem primrecPred_formula_isAtomic :
 subtype of formulas. -/
 instance : Primcodable { φ : L.Formula α // (φ : L.BoundedFormula α 0).IsAtomic } :=
   Primcodable.subtype primrecPred_formula_isAtomic
+
+/-- The quantifier-freeness decider is primitive recursive on formulas. -/
+theorem primrec_formula_isQFBool :
+    Primrec fun φ : L.Formula α ↦ BoundedFormula.isQFBool (φ : L.BoundedFormula α 0) :=
+  (BoundedFormula.primrec_isQFBool.comp primrec_formula_toSigma).of_eq fun _ ↦ rfl
+
+/-- Quantifier-freeness of formulas is a primitive recursive predicate. -/
+theorem primrecPred_formula_isQF :
+    PrimrecPred fun φ : L.Formula α ↦ (φ : L.BoundedFormula α 0).IsQF := by
+  refine Primrec.primrecPred ((primrec_formula_isQFBool (L := L)).of_eq fun φ ↦ ?_)
+  exact Bool.eq_iff_iff.2
+    ((BoundedFormula.isQFBool_iff _).trans (decide_eq_true_iff).symm)
+
+/-- Quantifier-free formulas over a `Primcodable` variable type are primitively
+codable, as a subtype of formulas. -/
+instance : Primcodable { φ : L.Formula α // (φ : L.BoundedFormula α 0).IsQF } :=
+  Primcodable.subtype primrecPred_formula_isQF
 
 /-- The atomic-data extractor is computable. -/
 theorem computable_atomicData? : Computable (atomicData? (L := L) (α := α)) :=

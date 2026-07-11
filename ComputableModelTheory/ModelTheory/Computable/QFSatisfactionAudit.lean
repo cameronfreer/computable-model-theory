@@ -40,6 +40,35 @@ theorem test_qfSatBool_iff (p : L.Formula (Fin k) × (Fin k → ℕ)) :
 
 end
 
+section
+
+variable {O : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage] [L.Structure ℕ] {k : ℕ}
+
+/-- The roadmap PR 7 gate in diagram-ready total form: quantifier-freeness together
+with satisfaction is a computable predicate, deciding `false` off the quantifier-free
+fragment. -/
+theorem test_qf_realize [IsComputableStructureIn O L] :
+    ComputablePredIn O fun p : L.Formula (Fin k) × (Fin k → ℕ) ↦
+      (p.1 : L.BoundedFormula (Fin k) 0).IsQF ∧ p.1.Realize p.2 :=
+  qf_realize_computablePredIn O k
+
+/-- The uniform subtype form: satisfaction of quantifier-free formulas is a computable
+predicate. -/
+theorem test_qfFormula_realize [IsComputableStructureIn O L] :
+    ComputablePredIn O fun p : { φ : L.Formula (Fin k) //
+        (φ : L.BoundedFormula (Fin k) 0).IsQF } × (Fin k → ℕ) ↦
+      (p.1 : L.Formula (Fin k)).Realize p.2 :=
+  qfFormula_realize_computablePredIn O k
+
+/-- The pointwise corollary: satisfaction of a fixed quantifier-free formula is a
+computable predicate on tuples. -/
+theorem test_qf_realize_pointwise [IsComputableStructureIn O L]
+    (φ : L.Formula (Fin k)) (hφ : (φ : L.BoundedFormula (Fin k) 0).IsQF) :
+    ComputablePredIn O fun v : Fin k → ℕ ↦ φ.Realize v :=
+  realize_computablePredIn_of_isQF O φ hφ
+
+end
+
 section ConcreteQF
 
 /-- A two-variable equality over the empty language. -/
@@ -119,6 +148,9 @@ end
 
 end ConcreteQF
 
+#assert_standard_axioms test_qf_realize
+#assert_standard_axioms test_qfFormula_realize
+#assert_standard_axioms test_qf_realize_pointwise
 #assert_standard_axioms test_satStack_bridge
 #assert_standard_axioms test_qfSatBool_iff
 #assert_standard_axioms test_qfSatBool_equal_true

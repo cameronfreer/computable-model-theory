@@ -57,6 +57,11 @@ theorem test_computablePred_isQF :
     ComputablePred fun s : Σ n, L.BoundedFormula α n ↦ s.2.IsQF :=
   computablePred_isQF
 
+/-- Quantifier-freeness is a primitive recursive predicate on formulas. -/
+theorem test_primrecPred_formula_isQF :
+    PrimrecPred fun φ : L.Formula α ↦ (φ : L.BoundedFormula α 0).IsQF :=
+  primrecPred_formula_isQF
+
 end
 
 #assert_standard_axioms test_isAtomicBool_iff
@@ -65,3 +70,4 @@ end
 #assert_standard_axioms test_isQF_decidable
 #assert_standard_axioms test_computablePred_isAtomic
 #assert_standard_axioms test_computablePred_isQF
+#assert_standard_axioms test_primrecPred_formula_isQF

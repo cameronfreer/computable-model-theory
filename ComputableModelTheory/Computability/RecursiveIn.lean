@@ -150,6 +150,13 @@ theorem cond {c : α → Bool} {f g : α → σ} (hc : ComputableIn O c) (hf : C
         (ComputableIn.encode.comp hg))
   exact encode_iff.1 <| harith.of_eq fun a ↦ by cases c a <;> simp
 
+/-- Oracle-computable functions are closed under decidable conditionals: the oracle
+mirror of `Primrec.ite`. -/
+protected theorem ite {c : α → Prop} [DecidablePred c] {f g : α → σ}
+    (hc : ComputableIn O fun a ↦ decide (c a)) (hf : ComputableIn O f)
+    (hg : ComputableIn O g) : ComputableIn O fun a ↦ if c a then f a else g a :=
+  (ComputableIn.cond hc hf hg).of_eq fun a ↦ by by_cases h : c a <;> simp [h]
+
 end ComputableIn
 
 namespace RecursiveIn
