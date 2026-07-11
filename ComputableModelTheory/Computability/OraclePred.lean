@@ -68,6 +68,14 @@ theorem RecursiveIn.dom_rePredIn {f : α →. σ} (hf : RecursiveIn O f) :
   (RecursiveIn.map hf ((ComputableIn.const ()).to₂)).of_eq fun n ↦
     Part.ext fun _ ↦ by simp [Part.dom_iff_mem]
 
+/-- An absolutely computable predicate is computable in any oracle set. -/
+theorem ComputablePred.computablePredIn : ComputablePred p → ComputablePredIn O p
+  | ⟨D, h⟩ => ⟨D, h.computableIn⟩
+
+/-- An absolutely r.e. predicate is r.e. in any oracle set. -/
+theorem REPred.rePredIn (h : REPred p) : REPredIn O p :=
+  h.recursiveIn
+
 /-- Predicates extensionally equivalent to an oracle-computable predicate are
 oracle-computable. -/
 theorem ComputablePredIn.of_eq (hp : ComputablePredIn O p) (H : ∀ a, p a ↔ q a) :
