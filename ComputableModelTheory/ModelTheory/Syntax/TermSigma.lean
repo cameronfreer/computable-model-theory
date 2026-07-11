@@ -93,4 +93,11 @@ instance instPrimcodableSigmaTerm : Primcodable (Σ k, L.Term (α ⊕ Fin k)) wh
         rw [encode_list_map_encode]
         rfl
 
+/-- The first projection of a sigma-packaged term (its number of `Fin` variables) is
+primitive recursive: on mathlib's sigma encoding it is the first unpaired component of
+the code. -/
+theorem primrec_sigmaTerm_fst : Primrec fun s : Σ k, L.Term (α ⊕ Fin k) ↦ s.1 :=
+  (Primrec.fst.comp (Primrec.unpair.comp Primrec.encode)).of_eq fun ⟨k, t⟩ ↦ by
+    simp [Encodable.encode_sigma_val]
+
 end FirstOrder.Language.Term
