@@ -19,9 +19,12 @@ codes — with computable term operations, and bounded formulas (packaged over a
 numbers of free variables), formulas, and sentences are `Primcodable`, via a second
 stack machine over the formula alphabet whose primitive recursiveness is proven by
 course-of-values recursion on suffix length. ω-presented computable structures are
-defined, with the empty language
-and a graph language on `ℕ` as computable examples. The remaining model-theoretic layers
-are import skeletons awaiting content.
+defined — uniformly over application
+data, so a single algorithm interprets every symbol — with the empty language, a graph
+language, and a unary-function language on `ℕ` as computable examples. Term evaluation
+and atomic satisfaction in computable structures are computable in the oracle, and the
+partial and total characteristic oracles are proven interchangeable. The remaining
+model-theoretic layers are import skeletons awaiting content.
 
 ## Staging
 
