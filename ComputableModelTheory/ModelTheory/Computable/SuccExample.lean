@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Computable.TermEvaluation
+import ComputableModelTheory.ModelTheory.TupleClosure
 
 /-!
 # A computable structure with a function symbol
@@ -82,6 +83,20 @@ instance succ_isComputable {O : Set (ℕ →. ℕ)} : IsComputableStructureIn O 
     | ⟨n + 2, f, _⟩ => exact isEmptyElim f
   relMap_computablePredIn :=
     ⟨fun d ↦ isEmptyElim d, (Computable.of_isEmpty _).computableIn⟩
+
+/-- The list tuple `[0]` generates the successor structure on `ℕ`: every natural
+number is an iterated-successor term value. -/
+theorem succ_tuple_generates : Tuple.Generates succLang ([0] : Tuple ℕ) := by
+  rw [Tuple.generates_iff]
+  intro x
+  induction x with
+  | zero => exact ⟨Term.var ⟨0, by simp⟩, rfl⟩
+  | succ n ih =>
+    obtain ⟨t, ht⟩ := ih
+    refine ⟨Term.func SuccFunctions.succ ![t], ?_⟩
+    rw [Term.realize_func]
+    show (![t] 0).realize (Tuple.view ([0] : Tuple ℕ)) + 1 = n + 1
+    rw [Matrix.cons_val_zero, ht]
 
 end
 

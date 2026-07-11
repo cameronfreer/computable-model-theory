@@ -89,17 +89,8 @@ theorem test_succ_generates : Generates succLang (M := ℕ) ![0] := by
     rw [Matrix.cons_val_zero, ht]
 
 /-- The list tuple `[0]` generates the successor structure on `ℕ`. -/
-theorem test_succ_tuple_generates : Tuple.Generates succLang ([0] : Tuple ℕ) := by
-  rw [Tuple.generates_iff]
-  intro x
-  induction x with
-  | zero => exact ⟨Term.var ⟨0, by simp⟩, rfl⟩
-  | succ n ih =>
-    obtain ⟨t, ht⟩ := ih
-    refine ⟨Term.func SuccFunctions.succ ![t], ?_⟩
-    rw [Term.realize_func]
-    show (![t] 0).realize (Tuple.view ([0] : Tuple ℕ)) + 1 = n + 1
-    rw [Matrix.cons_val_zero, ht]
+theorem test_succ_tuple_generates : Tuple.Generates succLang ([0] : Tuple ℕ) :=
+  succ_tuple_generates
 
 /-- A concrete closure membership through the gate: `2` lies in the closure of the
 tuple `0` in the successor structure. -/

@@ -6,6 +6,7 @@ Authors: Cameron Freer
 import ComputableModelTheory.Computability.OraclePred
 import ComputableModelTheory.ModelTheory.Computable.AtomicSatisfaction
 import ComputableModelTheory.ModelTheory.Computable.Diagram
+import ComputableModelTheory.ModelTheory.Computable.GeneratedPresentation
 import ComputableModelTheory.ModelTheory.Computable.GraphExample
 import ComputableModelTheory.ModelTheory.Computable.QFSatisfaction
 import ComputableModelTheory.ModelTheory.Computable.Structure
@@ -18,6 +19,7 @@ import Mathlib.ModelTheory.Semantics
 # Computable structures
 
 Umbrella module for the computable-structure layer: ω-presented computable structures,
-computable term evaluation, atomic and quantifier-free satisfaction, and the signed
-atomic and quantifier-free diagram predicates at fixed width.
+computable term evaluation, atomic and quantifier-free satisfaction, the signed
+atomic and quantifier-free diagram predicates at fixed width, and generated
+computable presentations.
 -/
