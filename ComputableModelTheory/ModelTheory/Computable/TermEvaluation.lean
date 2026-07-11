@@ -32,30 +32,6 @@ namespace FirstOrder.Language
 
 variable {L : Language} [L.EffectiveLanguage]
 
-/-- Decoding the code of a symbol/argument-list pair as function application data
-succeeds exactly on matching lengths, yielding the packaged data. -/
-theorem FunctionApplicationData.decode_encode (p : L.FunctionSymbol × List ℕ) :
-    decode (α := FunctionApplicationData L ℕ) (encode p) =
-      if h : p.2.length = p.1.arity then
-        some (FunctionApplicationData.equivSubtype.symm ⟨p, h⟩)
-      else none := by
-  rw [decode_ofEquiv FunctionApplicationData.equivSubtype (encode p),
-    show decode (α := { q : L.FunctionSymbol × List ℕ // q.2.length = q.1.arity })
-        (encode p) = Encodable.decodeSubtype (encode p) from rfl,
-    Encodable.decodeSubtype, encodek]
-  by_cases h : p.2.length = p.1.arity
-  · simp [h]
-  · simp [h]
-
-omit [L.EffectiveLanguage] in
-/-- Evaluating the data packaged from a symbol/argument-list pair. -/
-theorem FunctionApplicationData.funMap_equivSubtype_symm [L.Structure ℕ]
-    (p : L.FunctionSymbol × List ℕ) (h : p.2.length = p.1.arity) :
-    (FunctionApplicationData.equivSubtype.symm ⟨p, h⟩ :
-        FunctionApplicationData L ℕ).funMap =
-      Structure.funMap p.1.2 fun i ↦ p.2.get (Fin.cast h.symm i) :=
-  rfl
-
 namespace Term
 
 variable {m : ℕ}
@@ -72,8 +48,8 @@ def valueStep (env : Fin m → ℕ) (g : Fin m ⊕ (Σ i, L.Functions i))
   match g with
   | Sum.inl i => env i :: acc
   | Sum.inr s =>
-    ((decode (α := FunctionApplicationData L ℕ)
-        (encode ((s, acc.take s.1) : L.FunctionSymbol × List ℕ))).map
+    ((FunctionApplicationData.ofSymbolArgs? ((s, acc.take s.1) :
+        L.FunctionSymbol × List ℕ)).map
       fun d ↦ d.funMap :: acc.drop s.1).getD []
 
 /-- The value-stack machine: `listDecode` with each decoded term replaced by its value
@@ -81,6 +57,7 @@ under the environment. -/
 def valueStack (env : Fin m → ℕ) (l : List (Fin m ⊕ (Σ i, L.Functions i))) : List ℕ :=
   l.foldr (valueStep env) []
 
+omit [L.EffectiveLanguage] in
 /-- The value-stack machine computes term values: each entry of the decoded-term list,
 realized under the environment. -/
 theorem valueStack_eq_map_realize (env : Fin m → ℕ)
@@ -96,7 +73,7 @@ theorem valueStack_eq_map_realize (env : Fin m → ℕ)
       rfl
     | inr s =>
       obtain ⟨n, f⟩ := s
-      rw [hstep, ih, listDecode, valueStep, FunctionApplicationData.decode_encode]
+      rw [hstep, ih, listDecode, valueStep, FunctionApplicationData.ofSymbolArgs?]
       dsimp only
       by_cases h : n ≤ (listDecode l).length
       · rw [dif_pos (show (((listDecode l).map fun t ↦ t.realize env).take n).length =
@@ -141,8 +118,8 @@ theorem realize_computableIn :
           ((Computable.snd.computableIn).comp ComputableIn.fst))).to₂
     have hinr : ComputableIn₂ O fun (x : (L.Term (Fin m) × (Fin m → ℕ)) ×
         (Fin m ⊕ (Σ i, L.Functions i)) × List ℕ) (s : Σ i, L.Functions i) ↦
-        ((decode (α := FunctionApplicationData L ℕ)
-            (encode ((s, x.2.2.take s.1) : L.FunctionSymbol × List ℕ))).map
+        ((FunctionApplicationData.ofSymbolArgs? ((s, x.2.2.take s.1) :
+            L.FunctionSymbol × List ℕ)).map
           fun d ↦ d.funMap :: x.2.2.drop s.1).getD [] := by
       have hacc : Computable fun y : ((L.Term (Fin m) × (Fin m → ℕ)) ×
           (Fin m ⊕ (Σ i, L.Functions i)) × List ℕ) × (Σ i, L.Functions i) ↦
@@ -154,10 +131,10 @@ theorem realize_computableIn :
         (primrec_functionSymbol_arity (L := L)).to_comp.comp Computable.snd
       have hdec : Computable fun y : ((L.Term (Fin m) × (Fin m → ℕ)) ×
           (Fin m ⊕ (Σ i, L.Functions i)) × List ℕ) × (Σ i, L.Functions i) ↦
-          decode (α := FunctionApplicationData L ℕ)
-            (encode ((y.2, y.1.2.2.take y.2.1) : L.FunctionSymbol × List ℕ)) :=
-        Computable.decode.comp (Computable.encode.comp
-          (Computable.snd.pair (Primrec.list_take.to_comp.comp harity hacc)))
+          FunctionApplicationData.ofSymbolArgs? ((y.2, y.1.2.2.take y.2.1) :
+            L.FunctionSymbol × List ℕ) :=
+        FunctionApplicationData.primrec_ofSymbolArgs?.to_comp.comp
+          (Computable.snd.pair (Primrec.list_take.to_comp.comp harity hacc))
       have hfun : ComputableIn₂ O fun (y : ((L.Term (Fin m) × (Fin m → ℕ)) ×
           (Fin m ⊕ (Σ i, L.Functions i)) × List ℕ) × (Σ i, L.Functions i))
           (d : FunctionApplicationData L ℕ) ↦ d.funMap :: y.1.2.2.drop y.2.1 :=

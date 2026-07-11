@@ -180,6 +180,28 @@ def funMap [L.Structure M] (d : FunctionApplicationData L M) : M :=
 def ofFixed {n : ℕ} (f : L.Functions n) (v : Fin n → M) : FunctionApplicationData L M :=
   ⟨n, f, v⟩
 
+/-- Assemble function application data from a packaged symbol and an argument list,
+succeeding exactly when the list length matches the symbol's arity. -/
+def ofSymbolArgs? (p : L.FunctionSymbol × List M) :
+    Option (FunctionApplicationData L M) :=
+  if h : p.2.length = p.1.arity then some (equivSubtype.symm ⟨p, h⟩) else none
+
+theorem ofSymbolArgs?_of_length_eq (p : L.FunctionSymbol × List M)
+    (h : p.2.length = p.1.arity) :
+    ofSymbolArgs? p = some (equivSubtype.symm ⟨p, h⟩) :=
+  dif_pos h
+
+theorem ofSymbolArgs?_of_length_ne (p : L.FunctionSymbol × List M)
+    (h : ¬p.2.length = p.1.arity) : ofSymbolArgs? p = none :=
+  dif_neg h
+
+/-- Evaluating the data assembled from a symbol and its argument list. -/
+theorem funMap_equivSubtype_symm [L.Structure M] (p : L.FunctionSymbol × List M)
+    (h : p.2.length = p.1.arity) :
+    (equivSubtype.symm ⟨p, h⟩ : FunctionApplicationData L M).funMap =
+      Structure.funMap p.1.2 fun i ↦ p.2.get (Fin.cast h.symm i) :=
+  rfl
+
 section Primcodable
 
 variable [Primcodable M] [L.EffectiveLanguage]
@@ -200,6 +222,21 @@ theorem primrec_toSymbol : Primrec (toSymbol (L := L) (M := M)) :=
 theorem primrec_argsList : Primrec (argsList (L := L) (M := M)) :=
   ((Primrec.snd.comp Primrec.subtype_val).comp Primrec.of_equiv).of_eq fun _ ↦ rfl
 
+/-- Decoding the code of a symbol/argument-list pair is exactly the guarded assembly
+`ofSymbolArgs?`. -/
+theorem decode_encode (p : L.FunctionSymbol × List M) :
+    decode (α := FunctionApplicationData L M) (encode p) = ofSymbolArgs? p := by
+  rw [decode_ofEquiv equivSubtype (encode p),
+    show decode (α := { q : L.FunctionSymbol × List M // q.2.length = q.1.arity })
+        (encode p) = Encodable.decodeSubtype (encode p) from rfl,
+    Encodable.decodeSubtype, encodek, ofSymbolArgs?]
+  by_cases h : p.2.length = p.1.arity
+  · simp [h]
+  · simp [h]
+
+/-- The guarded assembly of function application data is primitive recursive. -/
+theorem primrec_ofSymbolArgs? : Primrec (ofSymbolArgs? (L := L) (M := M)) :=
+  (Primrec.decode.comp Primrec.encode).of_eq decode_encode
 
 end Primcodable
 
@@ -239,6 +276,28 @@ def relMap [L.Structure M] (d : RelationApplicationData L M) : Prop :=
 def ofFixed {n : ℕ} (r : L.Relations n) (v : Fin n → M) : RelationApplicationData L M :=
   ⟨n, r, v⟩
 
+/-- Assemble relation application data from a packaged symbol and an argument list,
+succeeding exactly when the list length matches the symbol's arity. -/
+def ofSymbolArgs? (p : L.RelationSymbol × List M) :
+    Option (RelationApplicationData L M) :=
+  if h : p.2.length = p.1.arity then some (equivSubtype.symm ⟨p, h⟩) else none
+
+theorem ofSymbolArgs?_of_length_eq (p : L.RelationSymbol × List M)
+    (h : p.2.length = p.1.arity) :
+    ofSymbolArgs? p = some (equivSubtype.symm ⟨p, h⟩) :=
+  dif_pos h
+
+theorem ofSymbolArgs?_of_length_ne (p : L.RelationSymbol × List M)
+    (h : ¬p.2.length = p.1.arity) : ofSymbolArgs? p = none :=
+  dif_neg h
+
+/-- Evaluating the data assembled from a symbol and its argument list. -/
+theorem relMap_equivSubtype_symm [L.Structure M] (p : L.RelationSymbol × List M)
+    (h : p.2.length = p.1.arity) :
+    (equivSubtype.symm ⟨p, h⟩ : RelationApplicationData L M).relMap ↔
+      Structure.RelMap p.1.2 fun i ↦ p.2.get (Fin.cast h.symm i) :=
+  Iff.rfl
+
 section Primcodable
 
 variable [Primcodable M] [L.EffectiveLanguage]
@@ -258,6 +317,22 @@ theorem primrec_toSymbol : Primrec (toSymbol (L := L) (M := M)) :=
 /-- The argument-list projection of relation application data is primitive recursive. -/
 theorem primrec_argsList : Primrec (argsList (L := L) (M := M)) :=
   ((Primrec.snd.comp Primrec.subtype_val).comp Primrec.of_equiv).of_eq fun _ ↦ rfl
+
+/-- Decoding the code of a symbol/argument-list pair is exactly the guarded assembly
+`ofSymbolArgs?`. -/
+theorem decode_encode (p : L.RelationSymbol × List M) :
+    decode (α := RelationApplicationData L M) (encode p) = ofSymbolArgs? p := by
+  rw [decode_ofEquiv equivSubtype (encode p),
+    show decode (α := { q : L.RelationSymbol × List M // q.2.length = q.1.arity })
+        (encode p) = Encodable.decodeSubtype (encode p) from rfl,
+    Encodable.decodeSubtype, encodek, ofSymbolArgs?]
+  by_cases h : p.2.length = p.1.arity
+  · simp [h]
+  · simp [h]
+
+/-- The guarded assembly of relation application data is primitive recursive. -/
+theorem primrec_ofSymbolArgs? : Primrec (ofSymbolArgs? (L := L) (M := M)) :=
+  (Primrec.decode.comp Primrec.encode).of_eq decode_encode
 
 
 end Primcodable
