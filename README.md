@@ -25,8 +25,9 @@ language, and a unary-function language on `ℕ` as computable examples. Term ev
 and atomic and quantifier-free satisfaction in computable structures are computable in
 the oracle — quantifier-free satisfaction by a satisfaction stack machine run in
 parallel with mathlib's formula decoder — and the partial and total characteristic
-oracles are proven interchangeable. The remaining model-theoretic layers are import
-skeletons awaiting content.
+oracles are proven interchangeable. The signed atomic and quantifier-free diagram
+predicates at fixed width are computable in the oracle. The remaining model-theoretic
+layers are import skeletons awaiting content.
 
 ## Staging
 
