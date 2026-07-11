@@ -7,6 +7,7 @@ import ComputableModelTheory.ModelTheory.Syntax.ComputableOps
 import ComputableModelTheory.ModelTheory.Syntax.EffectiveLanguage
 import ComputableModelTheory.ModelTheory.Syntax.NatStack
 import ComputableModelTheory.ModelTheory.Syntax.Primcodable
+import ComputableModelTheory.ModelTheory.Syntax.TermSigma
 import Mathlib.ModelTheory.Complexity
 import Mathlib.ModelTheory.Encoding
 import Mathlib.ModelTheory.Syntax
