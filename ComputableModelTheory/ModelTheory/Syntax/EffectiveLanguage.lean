@@ -24,7 +24,11 @@ layer.
 
 The `FunctionApplicationData`/`RelationApplicationData` structures package a symbol with
 an arity-matched argument tuple, so that later files can quantify uniformly over all
-symbols without destructing arities by hand.
+symbols without destructing arities by hand. For an effective language over a
+`Primcodable` carrier they are themselves `Primcodable` — coded through the equivalent
+subtype of symbol/argument-list pairs of matching length — with primitive recursive
+symbol and argument-list projections, and they carry the uniform structure evaluations
+`FunctionApplicationData.funMap` and `RelationApplicationData.relMap`.
 -/
 
 open Encodable
@@ -139,6 +143,127 @@ def RelationApplicationData.equivSigma {M : Type*} :
     RelationApplicationData L M ≃ Σ s : L.RelationSymbol, Fin s.arity → M where
   toFun d := ⟨⟨d.arity, d.symbol⟩, d.args⟩
   invFun s := ⟨s.1.1, s.1.2, s.2⟩
+
+variable {M : Type*}
+
+namespace FunctionApplicationData
+
+/-- The packaged symbol of function application data. -/
+def toSymbol (d : FunctionApplicationData L M) : L.FunctionSymbol := ⟨d.arity, d.symbol⟩
+
+/-- The argument list of function application data. -/
+def argsList (d : FunctionApplicationData L M) : List M := List.ofFn d.args
+
+/-- Function application data is a packaged symbol paired with an argument list of the
+matching length. -/
+def equivSubtype : FunctionApplicationData L M ≃
+    { p : L.FunctionSymbol × List M // p.2.length = p.1.arity } where
+  toFun d := ⟨(⟨d.arity, d.symbol⟩, List.ofFn d.args), by simp [FunctionSymbol.arity]⟩
+  invFun p := ⟨p.1.1.1, p.1.1.2, fun i ↦ p.1.2.get (Fin.cast p.2.symm i)⟩
+  left_inv d := by
+    rcases d with ⟨n, f, v⟩
+    dsimp only
+    congr 1
+    funext i
+    simp
+  right_inv p := by
+    rcases p with ⟨⟨⟨n, f⟩, l⟩, h⟩
+    refine Subtype.ext (Prod.ext rfl ?_)
+    exact List.ext_getElem (by simpa [FunctionSymbol.arity] using h.symm) fun i h₁ h₂ ↦ by
+      simp
+
+/-- The uniform evaluation of function application data in a structure. -/
+def funMap [L.Structure M] (d : FunctionApplicationData L M) : M :=
+  Structure.funMap d.symbol d.args
+
+/-- Fixed-arity function application data. -/
+def ofFixed {n : ℕ} (f : L.Functions n) (v : Fin n → M) : FunctionApplicationData L M :=
+  ⟨n, f, v⟩
+
+section Primcodable
+
+variable [Primcodable M] [L.EffectiveLanguage]
+
+instance : Primcodable { p : L.FunctionSymbol × List M // p.2.length = p.1.arity } :=
+  Primcodable.subtype
+    (Primrec.eq.comp (Primrec.list_length.comp Primrec.snd)
+      (primrec_functionSymbol_arity.comp Primrec.fst))
+
+instance : Primcodable (FunctionApplicationData L M) :=
+  Primcodable.ofEquiv _ equivSubtype
+
+/-- The symbol projection of function application data is primitive recursive. -/
+theorem primrec_toSymbol : Primrec (toSymbol (L := L) (M := M)) :=
+  ((Primrec.fst.comp Primrec.subtype_val).comp Primrec.of_equiv).of_eq fun _ ↦ rfl
+
+/-- The argument-list projection of function application data is primitive recursive. -/
+theorem primrec_argsList : Primrec (argsList (L := L) (M := M)) :=
+  ((Primrec.snd.comp Primrec.subtype_val).comp Primrec.of_equiv).of_eq fun _ ↦ rfl
+
+
+end Primcodable
+
+end FunctionApplicationData
+
+namespace RelationApplicationData
+
+/-- The packaged symbol of relation application data. -/
+def toSymbol (d : RelationApplicationData L M) : L.RelationSymbol := ⟨d.arity, d.symbol⟩
+
+/-- The argument list of relation application data. -/
+def argsList (d : RelationApplicationData L M) : List M := List.ofFn d.args
+
+/-- Relation application data is a packaged symbol paired with an argument list of the
+matching length. -/
+def equivSubtype : RelationApplicationData L M ≃
+    { p : L.RelationSymbol × List M // p.2.length = p.1.arity } where
+  toFun d := ⟨(⟨d.arity, d.symbol⟩, List.ofFn d.args), by simp [RelationSymbol.arity]⟩
+  invFun p := ⟨p.1.1.1, p.1.1.2, fun i ↦ p.1.2.get (Fin.cast p.2.symm i)⟩
+  left_inv d := by
+    rcases d with ⟨n, r, v⟩
+    dsimp only
+    congr 1
+    funext i
+    simp
+  right_inv p := by
+    rcases p with ⟨⟨⟨n, r⟩, l⟩, h⟩
+    refine Subtype.ext (Prod.ext rfl ?_)
+    exact List.ext_getElem (by simpa [RelationSymbol.arity] using h.symm) fun i h₁ h₂ ↦ by
+      simp
+
+/-- The uniform evaluation of relation application data in a structure. -/
+def relMap [L.Structure M] (d : RelationApplicationData L M) : Prop :=
+  Structure.RelMap d.symbol d.args
+
+/-- Fixed-arity relation application data. -/
+def ofFixed {n : ℕ} (r : L.Relations n) (v : Fin n → M) : RelationApplicationData L M :=
+  ⟨n, r, v⟩
+
+section Primcodable
+
+variable [Primcodable M] [L.EffectiveLanguage]
+
+instance : Primcodable { p : L.RelationSymbol × List M // p.2.length = p.1.arity } :=
+  Primcodable.subtype
+    (Primrec.eq.comp (Primrec.list_length.comp Primrec.snd)
+      (primrec_relationSymbol_arity.comp Primrec.fst))
+
+instance : Primcodable (RelationApplicationData L M) :=
+  Primcodable.ofEquiv _ equivSubtype
+
+/-- The symbol projection of relation application data is primitive recursive. -/
+theorem primrec_toSymbol : Primrec (toSymbol (L := L) (M := M)) :=
+  ((Primrec.fst.comp Primrec.subtype_val).comp Primrec.of_equiv).of_eq fun _ ↦ rfl
+
+/-- The argument-list projection of relation application data is primitive recursive. -/
+theorem primrec_argsList : Primrec (argsList (L := L) (M := M)) :=
+  ((Primrec.snd.comp Primrec.subtype_val).comp Primrec.of_equiv).of_eq fun _ ↦ rfl
+
+
+end Primcodable
+
+end RelationApplicationData
+
 
 instance : IsEmpty Language.empty.FunctionSymbol :=
   ⟨fun s ↦ s.2.elim⟩

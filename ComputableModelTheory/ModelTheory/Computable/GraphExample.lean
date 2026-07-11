@@ -55,30 +55,47 @@ section
 
 attribute [local instance] pathGraphStructure
 
+instance : IsEmpty (FunctionApplicationData Language.graph ℕ) :=
+  ⟨fun d ↦ isEmptyElim d.symbol⟩
+
+private theorem pathGraph_relMap_iff (d : RelationApplicationData Language.graph ℕ) :
+    (d.argsList[0]! + 1 = d.argsList[1]! ∨ d.argsList[1]! + 1 = d.argsList[0]!) ↔
+      d.relMap :=
+  match d with
+  | ⟨0, r, _⟩ => isEmptyElim r
+  | ⟨1, r, _⟩ => isEmptyElim r
+  | ⟨2, .adj, _⟩ => Iff.rfl
+  | ⟨_ + 3, r, _⟩ => isEmptyElim r
+
+instance : DecidablePred fun d : RelationApplicationData Language.graph ℕ ↦ d.relMap :=
+  fun d ↦ match d with
+  | ⟨0, r, _⟩ => isEmptyElim r
+  | ⟨1, r, _⟩ => isEmptyElim r
+  | ⟨2, .adj, v⟩ => inferInstanceAs (Decidable (v 0 + 1 = v 1 ∨ v 1 + 1 = v 0))
+  | ⟨_ + 3, r, _⟩ => isEmptyElim r
+
 /-- The path graph on `ℕ` is a computable structure in any oracle set: the roadmap's
-finite-graph-language acceptance example. -/
+finite-graph-language acceptance example. The uniform relation decider reads the two
+arguments off the application data's argument list. -/
 instance pathGraph_isComputable {O : Set (ℕ →. ℕ)} :
     IsComputableStructureIn O Language.graph where
-  funMap_computableIn _ := (Computable.of_isEmpty _).computableIn
-  relMap_computablePredIn n :=
-    match n with
-    | 0 => ⟨fun p ↦ isEmptyElim p.1, (Computable.of_isEmpty _).computableIn⟩
-    | 1 => ⟨fun p ↦ isEmptyElim p.1, (Computable.of_isEmpty _).computableIn⟩
-    | 2 => by
-      have happ : ∀ i : Fin 2, ComputableIn O
-          fun p : Language.graph.Relations 2 × (Fin 2 → ℕ) ↦ p.2 i := fun i ↦
-        (Computable.fin_app.comp Computable.id (Computable.const i)).computableIn.comp
-          ComputableIn.snd
-      have heq : ComputablePredIn O fun q : ℕ × ℕ ↦ q.1 = q.2 :=
-        ComputablePred.computablePredIn (PrimrecPred.computablePred (Primrec.eq (α := ℕ)))
-      have h₁ : ComputablePredIn O
-          fun p : Language.graph.Relations 2 × (Fin 2 → ℕ) ↦ p.2 0 + 1 = p.2 1 :=
-        heq.comp (((Primrec.succ.to_comp.computableIn).comp (happ 0)).pair (happ 1))
-      have h₂ : ComputablePredIn O
-          fun p : Language.graph.Relations 2 × (Fin 2 → ℕ) ↦ p.2 1 + 1 = p.2 0 :=
-        heq.comp (((Primrec.succ.to_comp.computableIn).comp (happ 1)).pair (happ 0))
-      exact (h₁.or h₂).of_eq fun p ↦ by rcases p with ⟨r, x⟩; cases r; rfl
-    | (n + 3) => ⟨fun p ↦ isEmptyElim p.1, (Computable.of_isEmpty _).computableIn⟩
+  funMap_computableIn := (Computable.of_isEmpty _).computableIn
+  relMap_computablePredIn := by
+    have hget : ∀ i : ℕ, Primrec fun l : List ℕ ↦ l[i]! := fun i ↦
+      (Primrec.option_getD.comp
+        (Primrec.list_getElem?.comp Primrec.id (Primrec.const i))
+        (Primrec.const default)).of_eq fun _ ↦ List.getElem!_eq_getElem?_getD.symm
+    have h0 : Primrec fun d : RelationApplicationData Language.graph ℕ ↦
+        d.argsList[0]! := (hget 0).comp RelationApplicationData.primrec_argsList
+    have h1 : Primrec fun d : RelationApplicationData Language.graph ℕ ↦
+        d.argsList[1]! := (hget 1).comp RelationApplicationData.primrec_argsList
+    have hp : PrimrecPred fun d : RelationApplicationData Language.graph ℕ ↦
+        d.argsList[0]! + 1 = d.argsList[1]! ∨ d.argsList[1]! + 1 = d.argsList[0]! :=
+      PrimrecPred.or (Primrec.eq.comp (Primrec.succ.comp h0) h1)
+        (Primrec.eq.comp (Primrec.succ.comp h1) h0)
+    refine ⟨inferInstance, hp.decide.to_comp.computableIn.of_eq fun d ↦ ?_⟩
+    exact Bool.eq_iff_iff.2 (decide_eq_true_iff.trans
+      ((pathGraph_relMap_iff d).trans decide_eq_true_iff.symm))
 
 end
 
