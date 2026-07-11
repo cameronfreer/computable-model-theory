@@ -122,6 +122,15 @@ theorem test_qfSatBool_rejects_all :
   have h2 := (isQFBool_iff _).2 h
   simp [isQFBool] at h2
 
+/-- Regression on malformed symbol streams: an index mismatch between two term letters
+produces the default payload `(0, true, false)`. -/
+theorem test_satStack_index_mismatch :
+    satStack (L := Language.empty) ![5]
+      [Sum.inl ⟨0, Term.var (Sum.inl 0)⟩, Sum.inl ⟨1, Term.var (Sum.inl 0)⟩] =
+      [((0 : ℕ), true, false)] := by
+  rw [satStack, if_neg (by omega)]
+  simp [satStack]
+
 /-- The adjacency formula of the graph language on two variables. -/
 private def adjForm : Language.graph.Formula (Fin 2) :=
   BoundedFormula.rel .adj ![Term.var (Sum.inl 0), Term.var (Sum.inl 1)]
@@ -158,5 +167,6 @@ end ConcreteQF
 #assert_standard_axioms test_qfSatBool_imp_true
 #assert_standard_axioms test_qfSatBool_falsum
 #assert_standard_axioms test_qfSatBool_rejects_all
+#assert_standard_axioms test_satStack_index_mismatch
 #assert_standard_axioms test_qfSatBool_rel_true
 #assert_standard_axioms test_qfSatBool_rel_false
