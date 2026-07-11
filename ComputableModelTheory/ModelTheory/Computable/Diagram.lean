@@ -65,6 +65,34 @@ def negQFDiagram (p : L.Formula (Fin k) × (Fin k → ℕ)) : Prop :=
 def completeQFDiagram (q : Bool × QFFormula L (Fin k) × (Fin k → ℕ)) : Prop :=
   q.1 = true ↔ (q.2.1 : L.Formula (Fin k)).Realize q.2.2
 
+/-- The positive sign of the complete atomic diagram is realization. -/
+@[simp]
+theorem completeAtomicDiagram_true (φ : AtomicFormula L (Fin k)) (v : Fin k → ℕ) :
+    completeAtomicDiagram L k (true, φ, v) ↔ (φ : L.Formula (Fin k)).Realize v := by
+  rw [completeAtomicDiagram]
+  simp
+
+/-- The negative sign of the complete atomic diagram is falsification. -/
+@[simp]
+theorem completeAtomicDiagram_false (φ : AtomicFormula L (Fin k)) (v : Fin k → ℕ) :
+    completeAtomicDiagram L k (false, φ, v) ↔ ¬(φ : L.Formula (Fin k)).Realize v := by
+  rw [completeAtomicDiagram]
+  simp
+
+/-- The positive sign of the complete quantifier-free diagram is realization. -/
+@[simp]
+theorem completeQFDiagram_true (φ : QFFormula L (Fin k)) (v : Fin k → ℕ) :
+    completeQFDiagram L k (true, φ, v) ↔ (φ : L.Formula (Fin k)).Realize v := by
+  rw [completeQFDiagram]
+  simp
+
+/-- The negative sign of the complete quantifier-free diagram is falsification. -/
+@[simp]
+theorem completeQFDiagram_false (φ : QFFormula L (Fin k)) (v : Fin k → ℕ) :
+    completeQFDiagram L k (false, φ, v) ↔ ¬(φ : L.Formula (Fin k)).Realize v := by
+  rw [completeQFDiagram]
+  simp
+
 end Diagrams
 
 section Computability
