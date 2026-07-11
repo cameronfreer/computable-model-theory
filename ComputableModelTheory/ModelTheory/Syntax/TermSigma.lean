@@ -100,4 +100,30 @@ theorem primrec_sigmaTerm_fst : Primrec fun s : Σ k, L.Term (α ⊕ Fin k) ↦ 
   (Primrec.fst.comp (Primrec.unpair.comp Primrec.encode)).of_eq fun ⟨k, t⟩ ↦ by
     simp [Encodable.encode_sigma_val]
 
+/-- The bound-`0` fiber of a sigma-packaged term. -/
+def sigmaFiberZero? (s : Σ k, L.Term (α ⊕ Fin k)) : Option (L.Term (α ⊕ Fin 0)) :=
+  if h : s.1 = 0 then some (h ▸ s.2) else none
+
+omit [L.EffectiveLanguage] [Primcodable α] in
+@[simp]
+theorem sigmaFiberZero?_zero (t : L.Term (α ⊕ Fin 0)) :
+    sigmaFiberZero? L α (⟨0, t⟩ : Σ k, L.Term (α ⊕ Fin k)) = some t :=
+  rfl
+
+/-- The bound-`0` fiber projection is primitive recursive: on codes it is a guarded
+unpairing. -/
+theorem primrec_sigmaFiberZero? : Primrec (sigmaFiberZero? L α) := by
+  refine Primrec.encode_iff.1 ((Primrec.ite
+    (Primrec.eq.comp (Primrec.fst.comp (Primrec.unpair.comp Primrec.encode))
+      (Primrec.const 0))
+    (Primrec.succ.comp (Primrec.snd.comp (Primrec.unpair.comp Primrec.encode)))
+    (Primrec.const 0)).of_eq fun s ↦ ?_)
+  rcases s with ⟨k, t⟩
+  by_cases h : k = 0
+  · subst h
+    simp [Encodable.encode_sigma_val, sigmaFiberZero?]
+  · rw [if_neg (by simpa [Encodable.encode_sigma_val] using h),
+      show sigmaFiberZero? L α (⟨k, t⟩ : Σ k, L.Term (α ⊕ Fin k)) = none from dif_neg h]
+    rfl
+
 end FirstOrder.Language.Term
