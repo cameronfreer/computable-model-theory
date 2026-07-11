@@ -16,3 +16,4 @@ jobs:
       - uses: actions/checkout@v5
       - uses: leanprover/lean-action@v1
       - run: lake env lean ComputableModelTheory/Computability/OraclePredAudit.lean
+      - run: lake env lean ComputableModelTheory/Computability/ReductionAudit.lean

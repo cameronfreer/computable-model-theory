@@ -6,6 +6,7 @@ Authors: Cameron Freer
 import ComputableModelTheory.Computability
 import ComputableModelTheory.ModelTheory
 import ComputableModelTheory.Paper
+import ComputableModelTheory.Util.AssertAxioms
 
 /-!
 # Computable Model Theory
