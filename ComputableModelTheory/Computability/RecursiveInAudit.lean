@@ -119,6 +119,33 @@ theorem test_computableIn_sumCasesOn {f : α → ℕ ⊕ ℕ} (hf : ComputableIn
   ComputableIn.sumCasesOn hf ComputableIn.snd.to₂
     ((Primrec.succ.comp Primrec.snd).to_comp.computableIn.to₂)
 
+/-- Strong recursion gate: the powers of two, defined by doubling the last entry of the
+course-of-values list, are computable in any oracle set. -/
+theorem test_computableIn_nat_strong_rec :
+    ComputableIn₂ O fun (_ : Unit) (n : ℕ) ↦ 2 ^ n := by
+  have hlen : ComputableIn O fun p : Unit × List ℕ ↦ p.2.length :=
+    (Primrec.list_length.to_comp.computableIn).comp ComputableIn.snd
+  have hg : ComputableIn₂ O fun (_ : Unit) (l : List ℕ) ↦
+      Option.some ((l[l.length - 1]?.map (2 * ·)).getD 1) :=
+    (ComputableIn.option_some.comp
+      (ComputableIn.option_getD
+        (ComputableIn.option_map
+          ((Computable.list_getElem?.computableIn₂ (O := O)).comp ComputableIn.snd
+            ((Primrec.pred.to_comp.computableIn).comp hlen))
+          (((Primrec.nat_mul.to_comp.computableIn₂ (O := O)).comp
+            (ComputableIn.const 2) ComputableIn.snd).to₂))
+        (ComputableIn.const 1))).to₂
+  refine ComputableIn.nat_strong_rec _ hg fun _ n ↦ ?_
+  cases n with
+  | zero => simp
+  | succ m => simp [pow_succ, Nat.mul_comm]
+
+/-- Semantic equation: the strong-recursion guess function recovers the next power of
+two from the course-of-values list. -/
+theorem test_nat_strong_rec_value :
+    ((([1, 2, 4] : List ℕ)[2]?.map (2 * ·)).getD 1 : ℕ) = 2 ^ 3 :=
+  rfl
+
 end
 
 #assert_standard_axioms test_computableIn_option_casesOn
@@ -137,3 +164,5 @@ end
 #assert_standard_axioms test_list_foldr_value
 #assert_standard_axioms test_computableIn_list_map
 #assert_standard_axioms test_list_map_value
+#assert_standard_axioms test_computableIn_nat_strong_rec
+#assert_standard_axioms test_nat_strong_rec_value

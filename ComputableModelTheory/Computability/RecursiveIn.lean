@@ -13,9 +13,11 @@ This file supplements `Mathlib.Computability.RecursiveIn` with typed combinators
 μ-search, primitive recursion (`Nat.RecursiveIn.prec'` through `ComputableIn.nat_rec`,
 `nat_casesOn`, and `nat_iterate`), list folds and maps (`ComputableIn.list_foldl`,
 `list_foldr`, and `list_map`, by running the fold as a partial recursion over positions
-and discharging totality), and option and sum case analysis (through
+and discharging totality), option and sum case analysis (through
 `RecursiveIn.nat_casesOn_right` and the `decode` bridges, mirroring the absolute
-proofs), together with thin domain and specification wrappers for `Nat.rfind` over
+proofs), and strong recursion on natural numbers (`ComputableIn.nat_strong_rec`, by
+computing the full course-of-values list), together with thin domain and specification
+wrappers for `Nat.rfind` over
 total `Bool`-valued predicates. Each combinator is proved by descending to the
 `Nat.RecursiveIn` constructors through `Primcodable` encodings, following the proofs of
 the corresponding absolute facts in `Mathlib.Computability.Partrec`.
@@ -417,6 +419,33 @@ theorem sumCasesOn {f : α → β ⊕ γ} {g : α → β → σ} {h : α → γ 
       (option_map ((Computable.decode.computableIn).comp
         ((Primrec.nat_div2.to_comp.computableIn).comp (encode_iff.2 hf))) hg)).of_eq
       fun a ↦ by rcases f a with b | c <;> simp [Nat.div2_val]
+
+/-- Strong recursion on natural numbers: a binary function whose value at `n` is
+uniformly recoverable from its list of earlier values is oracle-computable. The oracle
+mirror of `Computable.nat_strong_rec`, by computing the full course-of-values list. -/
+theorem nat_strong_rec (f : α → ℕ → σ) {g : α → List σ → Option σ}
+    (hg : ComputableIn₂ O g)
+    (H : ∀ a n, g a ((List.range n).map (f a)) = Option.some (f a n)) :
+    ComputableIn₂ O f :=
+  suffices ComputableIn₂ O fun a n ↦ (List.range n).map (f a) from
+    ComputableIn.option_some_iff.1 <|
+      ((Computable.list_getElem?.computableIn₂ (O := O)).comp
+        (this.comp ComputableIn.fst
+          ((Primrec.succ.to_comp.computableIn).comp ComputableIn.snd))
+        ComputableIn.snd).to₂.of_eq fun a ↦ by simp
+  ComputableIn.option_some_iff.1 <|
+    (ComputableIn.nat_rec ComputableIn.snd (ComputableIn.const (Option.some []))
+      ((ComputableIn.option_bind (ComputableIn.snd.comp ComputableIn.snd)
+        ((ComputableIn.option_map
+          (hg.comp (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst))
+            ComputableIn.snd)
+          (((Computable.list_concat.computableIn₂ (O := O)).comp
+            (ComputableIn.snd.comp ComputableIn.fst)
+            ComputableIn.snd).to₂)).to₂)).to₂)).of_eq
+      fun a ↦ by
+        induction a.2 with
+        | zero => rfl
+        | succ n IH => simp [IH, H, List.range_succ]
 
 end ComputableIn
 
