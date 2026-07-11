@@ -10,12 +10,13 @@ import Mathlib.Computability.RecursiveIn
 
 This file supplements `Mathlib.Computability.RecursiveIn` with typed combinators for
 `RecursiveIn` and `ComputableIn`: composition, pairing, bind, map, Boolean conditionals,
-and μ-search, together with the domain and specification lemmas for μ-search over total
-`Bool`-valued predicates. Each is proved by descending to the `Nat.RecursiveIn`
-constructors through `Primcodable` encodings, following the proofs of the corresponding
-absolute facts in `Mathlib.Computability.Partrec`.
+and μ-search, together with thin domain and specification wrappers for `Nat.rfind` over
+total `Bool`-valued predicates. Each combinator is proved by descending to the
+`Nat.RecursiveIn` constructors through `Primcodable` encodings, following the proofs of
+the corresponding absolute facts in `Mathlib.Computability.Partrec`.
 
-All declarations in this file are upstream candidates for mathlib.
+The typed combinators are upstream candidates for mathlib; the `Nat.rfind` wrappers are
+local conveniences.
 -/
 
 open Encodable Part Primrec
@@ -54,8 +55,8 @@ protected theorem encode : ComputableIn O (@encode α _) :=
   Computable.encode.computableIn
 
 /-- Pairing of oracle-computable functions is oracle-computable. -/
-protected theorem pair {f : α → β} {g : α → γ} (hf : ComputableIn O f) (hg : ComputableIn O g) :
-    ComputableIn O fun a ↦ (f a, g a) :=
+protected theorem pair {f : α → β} {g : α → γ} (hf : ComputableIn O f)
+    (hg : ComputableIn O g) : ComputableIn O fun a ↦ (f a, g a) :=
   (Nat.RecursiveIn.pair hf hg).of_eq fun n ↦ by cases decode (α := α) n <;> simp [Seq.seq]
 
 end ComputableIn
@@ -63,8 +64,8 @@ end ComputableIn
 namespace RecursiveIn
 
 /-- Composition of an oracle-partial-recursive function with an oracle-computable function. -/
-protected theorem comp {f : β →. σ} {g : α → β} (hf : RecursiveIn O f) (hg : ComputableIn O g) :
-    RecursiveIn O fun a ↦ f (g a) :=
+protected theorem comp {f : β →. σ} {g : α → β} (hf : RecursiveIn O f)
+    (hg : ComputableIn O g) : RecursiveIn O fun a ↦ f (g a) :=
   (Nat.RecursiveIn.comp hf hg).of_eq fun n ↦ by
     simp only [map_some, bind_eq_bind]
     rcases e : decode (α := α) n with - | a <;> simp [encodek]
@@ -76,8 +77,8 @@ protected theorem bind {f : α →. β} {g : α → β →. σ} (hf : RecursiveI
     rcases e : decode (α := α) n <;> simp [Seq.seq, e, encodek]
 
 /-- `Part.map` by an oracle-computable function preserves oracle-partial-recursiveness. -/
-theorem map {f : α →. β} {g : α → β → σ} (hf : RecursiveIn O f) (hg : ComputableIn₂ O g) :
-    RecursiveIn O fun a ↦ (f a).map (g a) := by
+theorem map {f : α →. β} {g : α → β → σ} (hf : RecursiveIn O f)
+    (hg : ComputableIn₂ O g) : RecursiveIn O fun a ↦ (f a).map (g a) := by
   simpa [bind_some_eq_map] using RecursiveIn.bind (g := fun a b ↦ Part.some (g a b)) hf hg
 
 end RecursiveIn
@@ -85,21 +86,31 @@ end RecursiveIn
 namespace ComputableIn
 
 /-- Composition of oracle-computable functions is oracle-computable. -/
-protected theorem comp {f : β → σ} {g : α → β} (hf : ComputableIn O f) (hg : ComputableIn O g) :
-    ComputableIn O fun a ↦ f (g a) :=
+protected theorem comp {f : β → σ} {g : α → β} (hf : ComputableIn O f)
+    (hg : ComputableIn O g) : ComputableIn O fun a ↦ f (g a) :=
   RecursiveIn.comp (f := fun b ↦ Part.some (f b)) hf hg
 
 /-- Curry an oracle-computable function on a product type. -/
-theorem to₂ {f : α × β → σ} (hf : ComputableIn O f) : ComputableIn₂ O fun a b ↦ f (a, b) :=
+theorem to₂ {f : α × β → σ} (hf : ComputableIn O f) :
+    ComputableIn₂ O fun a b ↦ f (a, b) :=
   hf.of_eq fun ⟨_, _⟩ ↦ rfl
+
+/-- An oracle-computable `Option`-valued function, viewed as a partial function, is
+oracle-partial-recursive. -/
+theorem ofOption {f : α → Option β} (hf : ComputableIn O f) :
+    RecursiveIn O fun a ↦ (f a : Part β) :=
+  (Nat.RecursiveIn.comp Nat.Partrec.ppred.recursiveIn hf).of_eq fun n ↦ by
+    rcases decode (α := α) n with - | a <;> simp
+    cases f a <;> simp
 
 end ComputableIn
 
 namespace ComputableIn₂
 
 /-- Composition of a binary oracle-computable function with two oracle-computable functions. -/
-protected theorem comp {f : β → γ → σ} {g : α → β} {h : α → γ} (hf : ComputableIn₂ O f)
-    (hg : ComputableIn O g) (hh : ComputableIn O h) : ComputableIn O fun a ↦ f (g a) (h a) :=
+protected theorem comp {f : β → γ → σ} {g : α → β} {h : α → γ}
+    (hf : ComputableIn₂ O f) (hg : ComputableIn O g) (hh : ComputableIn O h) :
+    ComputableIn O fun a ↦ f (g a) (h a) :=
   ComputableIn.comp (f := fun p : β × γ ↦ f p.1 p.2) hf (hg.pair hh)
 
 end ComputableIn₂
@@ -108,8 +119,9 @@ namespace RecursiveIn₂
 
 /-- Composition of a binary oracle-partial-recursive function with two oracle-computable
 functions. -/
-protected theorem comp {f : β → γ →. σ} {g : α → β} {h : α → γ} (hf : RecursiveIn₂ O f)
-    (hg : ComputableIn O g) (hh : ComputableIn O h) : RecursiveIn O fun a ↦ f (g a) (h a) :=
+protected theorem comp {f : β → γ →. σ} {g : α → β} {h : α → γ}
+    (hf : RecursiveIn₂ O f) (hg : ComputableIn O g) (hh : ComputableIn O h) :
+    RecursiveIn O fun a ↦ f (g a) (h a) :=
   RecursiveIn.comp (f := fun p : β × γ ↦ f p.1 p.2) hf (hg.pair hh)
 
 end RecursiveIn₂
@@ -155,17 +167,19 @@ end RecursiveIn
 
 end
 
-namespace RecursiveIn
+namespace Nat
 
-/-- μ-search over a total `Bool`-valued predicate halts exactly when a witness exists.
-Note that `Nat.rfind` searches for the value `true`, not for `0`. -/
-theorem rfind_dom_iff {α : Type*} {f : α → ℕ → Bool} {a : α} :
+/-- `Nat.rfind` over a total `Bool`-valued predicate halts exactly when a witness exists.
+Note that `Nat.rfind` searches for the value `true`, not for `0`. This is a thin wrapper
+around `Nat.rfind_dom` for the total case. -/
+theorem rfind_some_dom_iff {α : Type*} {f : α → ℕ → Bool} {a : α} :
     (Nat.rfind fun n ↦ Part.some (f a n)).Dom ↔ ∃ n, f a n = true := by
   simp [Nat.rfind_dom]
 
-/-- The result of μ-search over a total `Bool`-valued predicate satisfies the predicate. -/
-theorem rfind_spec {α : Type*} {f : α → ℕ → Bool} {a : α} {n : ℕ}
+/-- The result of `Nat.rfind` over a total `Bool`-valued predicate satisfies the predicate.
+This is a thin wrapper around `Nat.rfind_spec` for the total case. -/
+theorem rfind_some_spec {α : Type*} {f : α → ℕ → Bool} {a : α} {n : ℕ}
     (h : n ∈ Nat.rfind fun k ↦ Part.some (f a k)) : f a n = true := by
   simpa using Nat.rfind_spec h
 
-end RecursiveIn
+end Nat

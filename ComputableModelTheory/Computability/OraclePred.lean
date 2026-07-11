@@ -20,7 +20,8 @@ open Encodable Part
 
 /-- A predicate is computable in `O` if it is decidable and its indicator function is
 computable in `O`. -/
-def ComputablePredIn (O : Set (ℕ →. ℕ)) {α : Type*} [Primcodable α] (p : α → Prop) : Prop :=
+def ComputablePredIn (O : Set (ℕ →. ℕ)) {α : Type*} [Primcodable α]
+    (p : α → Prop) : Prop :=
   ∃ _ : DecidablePred p, ComputableIn O fun a ↦ decide (p a)
 
 /-- A predicate is recursively enumerable in `O` if it is the domain of a partial function
@@ -73,13 +74,15 @@ theorem ComputablePredIn.of_eq (hp : ComputablePredIn O p) (H : ∀ a, p a ↔ q
     ComputablePredIn O q :=
   (funext fun a ↦ propext (H a) : p = q) ▸ hp
 
-/-- Oracle-set monotonicity: a predicate computable in `O₁` is computable in any `O₂ ⊇ O₁`. -/
-theorem ComputablePredIn.mono (hO : O₁ ⊆ O₂) : ComputablePredIn O₁ p → ComputablePredIn O₂ p
+/-- Oracle-set monotonicity: computability in `O₁` implies computability in `O₂ ⊇ O₁`. -/
+theorem ComputablePredIn.mono (hO : O₁ ⊆ O₂) :
+    ComputablePredIn O₁ p → ComputablePredIn O₂ p
   | ⟨D, h⟩ => ⟨D, RecursiveIn.mono hO h⟩
 
 /-- Precomposition of an oracle-computable predicate with an oracle-computable function. -/
-protected theorem ComputablePredIn.comp {p : β → Prop} {f : α → β} (hp : ComputablePredIn O p)
-    (hf : ComputableIn O f) : ComputablePredIn O fun a ↦ p (f a) :=
+protected theorem ComputablePredIn.comp {p : β → Prop} {f : α → β}
+    (hp : ComputablePredIn O p) (hf : ComputableIn O f) :
+    ComputablePredIn O fun a ↦ p (f a) :=
   let ⟨D, h⟩ := hp
   ⟨fun a ↦ D (f a), h.comp hf⟩
 
@@ -97,8 +100,8 @@ namespace ComputablePredIn
 
 set_option linter.unusedDecidableInType false in
 /-- Constant predicates are computable in any oracle set. The `Decidable` hypothesis keeps
-the proof constructive; it could be discharged with `Classical.dec` at the cost of a
-`Classical.choice` dependency. -/
+the decidability assumption explicit at the call site and avoids using `Classical.dec`
+locally. -/
 theorem const (b : Prop) [Decidable b] : ComputablePredIn O fun _ : α ↦ b :=
   ⟨fun _ ↦ ‹Decidable b›, ComputableIn.const (decide b)⟩
 
@@ -192,6 +195,20 @@ absent: it requires a dovetailing/parallel-merge primitive for partial recognize
 mathlib's `RecursiveIn` layer does not yet support. -/
 -- TODO(dovetail): add `REPredIn.exists_fin` once a relative dovetailing primitive exists.
 
+/-- Every oracle-computable predicate is oracle-r.e.: the partial recognizer returns
+`Part.some ()` when the indicator is `true` and diverges when it is `false`. This is
+proved directly from the Boolean indicator, without μ-search. -/
+theorem ComputablePredIn.to_rePredIn : ComputablePredIn O p → REPredIn O p
+  | ⟨D, hd⟩ => by
+    have hopt : ComputableIn O
+        fun a ↦ bif @decide (p a) (D a) then Option.some () else (Option.none : Option Unit) :=
+      ComputableIn.cond hd (ComputableIn.const (Option.some ()))
+        (ComputableIn.const Option.none)
+    refine (ComputableIn.ofOption hopt).of_eq fun a ↦ Part.ext fun u ↦ ?_
+    cases hb : @decide (p a) (D a)
+    · simp [Part.mem_assert_iff, of_decide_eq_false hb]
+    · simp [Part.mem_assert_iff, of_decide_eq_true hb]
+
 namespace REPredIn
 
 /-- Unbounded existential quantification over `ℕ` turns an oracle-computable predicate into
@@ -209,21 +226,11 @@ theorem exists_nat_of_computablePredIn {p : α → ℕ → Prop}
   simp only [Part.mem_map_iff, Part.mem_assert_iff, Part.mem_some_iff]
   constructor
   · rintro ⟨n, hn, -⟩
-    exact ⟨⟨n, (hpf a n).1 (RecursiveIn.rfind_spec hn)⟩, by trivial⟩
+    exact ⟨⟨n, (hpf a n).1 (Nat.rfind_some_spec hn)⟩, by trivial⟩
   · rintro ⟨⟨n, hn⟩, -⟩
     obtain ⟨m, hm⟩ := Part.dom_iff_mem.1 <|
-      (RecursiveIn.rfind_dom_iff (f := f)).2 ⟨n, (hpf a n).2 hn⟩
+      (Nat.rfind_some_dom_iff (f := f)).2 ⟨n, (hpf a n).2 hn⟩
     exact ⟨m, hm, by trivial⟩
-
-end REPredIn
-
-/-- Every oracle-computable predicate is oracle-r.e. -/
-theorem ComputablePredIn.to_rePredIn (hp : ComputablePredIn O p) : REPredIn O p :=
-  (REPredIn.exists_nat_of_computablePredIn (p := fun a (_ : ℕ) ↦ p a)
-      (hp.comp ComputableIn.fst)).of_eq
-    fun _ ↦ ⟨fun ⟨_, h⟩ ↦ h, fun h ↦ ⟨0, h⟩⟩
-
-namespace REPredIn
 
 /-- Conjunction of an oracle-computable predicate (left) with an oracle-r.e. predicate
 (right) is oracle-r.e. -/
