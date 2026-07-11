@@ -8,25 +8,53 @@ import ComputableModelTheory.Computability.OraclePred
 /-!
 # Audit module for oracle predicates
 
-Named acceptance tests for `ComputablePredIn`/`REPredIn` and the μ-search combinators,
-each followed by an explicit `#print axioms` command. This module is deliberately not
-imported by the library's root spine; it is checked explicitly with
+Named acceptance tests for `ComputablePredIn`/`REPredIn` and the typed combinators, each
+checked by `#assert_standard_axioms`, which fails elaboration — and therefore CI — if a
+declaration depends on any axiom other than `propext`, `Classical.choice`, `Quot.sound`.
+This module is deliberately not imported by the library's root spine; CI checks it
+explicitly with
 
 ```
 lake env lean ComputableModelTheory/Computability/OraclePredAudit.lean
 ```
-
-Expected axioms for every test: at most `propext`, `Classical.choice`, `Quot.sound`.
 -/
+
+open Lean Elab Command in
+/-- `#assert_standard_axioms decl` fails elaboration (exiting nonzero in batch mode) if
+`decl` depends on any axiom other than `propext`, `Classical.choice`, or `Quot.sound`. -/
+elab "#assert_standard_axioms " id:ident : command => do
+  let c ← liftCoreM <| realizeGlobalConstNoOverload id
+  let axioms ← liftCoreM <| collectAxioms c
+  let allowed : List Name := [``propext, ``Classical.choice, ``Quot.sound]
+  let bad := axioms.filter fun a ↦ !allowed.contains a
+  unless bad.isEmpty do
+    throwError "'{c}' depends on non-standard axioms: {bad.toList}"
+  logInfo m!"'{c}' depends only on standard axioms: {axioms.toList}"
 
 section
 
-variable {α : Type*} [Primcodable α] {O O₁ O₂ : Set (ℕ →. ℕ)} {p q : α → Prop}
+variable {α β : Type*} [Primcodable α] [Primcodable β] {O O₁ O₂ : Set (ℕ →. ℕ)}
+  {p q : α → Prop} {r : α → β → Prop}
 
 /-- Boolean closure: the roadmap acceptance gate `hp.and hq.not`. -/
 theorem test_and_not (hp : ComputablePredIn O p) (hq : ComputablePredIn O q) :
     ComputablePredIn O fun a ↦ p a ∧ ¬q a :=
   hp.and hq.not
+
+/-- Boolean closure: disjunction. -/
+theorem test_or (hp : ComputablePredIn O p) (hq : ComputablePredIn O q) :
+    ComputablePredIn O fun a ↦ p a ∨ q a :=
+  hp.or hq
+
+/-- Boolean closure: implication. -/
+theorem test_imp (hp : ComputablePredIn O p) (hq : ComputablePredIn O q) :
+    ComputablePredIn O fun a ↦ p a → q a :=
+  hp.imp hq
+
+/-- Boolean closure: bi-implication. -/
+theorem test_iff (hp : ComputablePredIn O p) (hq : ComputablePredIn O q) :
+    ComputablePredIn O fun a ↦ (p a ↔ q a) :=
+  hp.iff hq
 
 /-- Oracle-set monotonicity. -/
 theorem test_mono (hsub : O₁ ⊆ O₂) (hp : ComputablePredIn O₁ p) : ComputablePredIn O₂ p :=
@@ -43,6 +71,28 @@ theorem test_forall_fin {n : ℕ} {p : α → Fin n → Prop}
     (hp : ComputablePredIn O fun x : α × Fin n ↦ p x.1 x.2) :
     ComputablePredIn O fun a ↦ ∀ i, p a i :=
   hp.forall_fin
+
+/-- Bounded existential quantification over a fixed finset. -/
+theorem test_exists_finset (s : Finset β)
+    (hp : ComputablePredIn O fun x : α × β ↦ r x.1 x.2) :
+    ComputablePredIn O fun a ↦ ∃ b ∈ s, r a b :=
+  ComputablePredIn.exists_finset s hp
+
+/-- Bounded universal quantification over a fixed finset. -/
+theorem test_forall_finset (s : Finset β)
+    (hp : ComputablePredIn O fun x : α × β ↦ r x.1 x.2) :
+    ComputablePredIn O fun a ↦ ∀ b ∈ s, r a b :=
+  ComputablePredIn.forall_finset s hp
+
+/-- The binary relation wrappers are definitional repackagings of the pair predicates. -/
+theorem test_computableRelIn_iff :
+    ComputableRelIn O r ↔ ComputablePredIn O fun x : α × β ↦ r x.1 x.2 :=
+  Iff.rfl
+
+/-- The binary r.e. relation wrapper is a definitional repackaging of the pair predicate. -/
+theorem test_reRelIn_iff :
+    RERelIn O r ↔ REPredIn O fun x : α × β ↦ r x.1 x.2 :=
+  Iff.rfl
 
 /-- Computable-to-r.e. conversion. -/
 theorem test_to_rePredIn (hp : ComputablePredIn O p) : REPredIn O p :=
@@ -64,25 +114,52 @@ theorem test_and_computable_right (hp : REPredIn O p) (hq : ComputablePredIn O q
     REPredIn O fun a ↦ p a ∧ q a :=
   REPredIn.and_computable_right hp hq
 
+/-- Boolean conditionals of oracle-computable functions. -/
+theorem test_cond {c : α → Bool} {f g : α → β} (hc : ComputableIn O c)
+    (hf : ComputableIn O f) (hg : ComputableIn O g) :
+    ComputableIn O fun a ↦ bif c a then f a else g a :=
+  ComputableIn.cond hc hf hg
+
+/-- μ-search over a total predicate, exactly the plan-contract statement. -/
+theorem test_rfind_total {f : α → ℕ → Bool} (hf : ComputableIn₂ O f) :
+    RecursiveIn O fun a ↦ Nat.rfind fun n ↦ Part.some (f a n) :=
+  RecursiveIn.rfind_total hf
+
+/-- μ-search over a general partial `Bool`-valued predicate. -/
+theorem test_rfind {p : α → ℕ →. Bool} (hp : RecursiveIn₂ O p) :
+    RecursiveIn O fun a ↦ Nat.rfind (p a) :=
+  RecursiveIn.rfind hp
+
 end
 
-/-- Semantic gate for μ-search: the search halts exactly on a witness. -/
-theorem test_rfind_dom {α : Type*} {f : α → ℕ → Bool} {a : α} (h : ∃ n, f a n = true) :
-    (Nat.rfind fun n ↦ Part.some (f a n)).Dom :=
-  RecursiveIn.rfind_dom_iff.2 h
+/-- Semantic gate for μ-search: the search halts **exactly** when a witness exists,
+in both directions. -/
+theorem test_rfind_dom_iff {α : Type*} {f : α → ℕ → Bool} {a : α} :
+    (Nat.rfind fun n ↦ Part.some (f a n)).Dom ↔ ∃ n, f a n = true :=
+  Nat.rfind_some_dom_iff
 
 /-- Semantic gate for μ-search: the found index satisfies the predicate. -/
 theorem test_rfind_spec {α : Type*} {f : α → ℕ → Bool} {a : α} {n : ℕ}
     (h : n ∈ Nat.rfind fun k ↦ Part.some (f a k)) : f a n = true :=
-  RecursiveIn.rfind_spec h
+  Nat.rfind_some_spec h
 
-#print axioms test_and_not
-#print axioms test_mono
-#print axioms test_exists_fin
-#print axioms test_forall_fin
-#print axioms test_to_rePredIn
-#print axioms test_exists_nat
-#print axioms test_and_computable_left
-#print axioms test_and_computable_right
-#print axioms test_rfind_dom
-#print axioms test_rfind_spec
+#assert_standard_axioms test_and_not
+#assert_standard_axioms test_or
+#assert_standard_axioms test_imp
+#assert_standard_axioms test_iff
+#assert_standard_axioms test_mono
+#assert_standard_axioms test_exists_fin
+#assert_standard_axioms test_forall_fin
+#assert_standard_axioms test_exists_finset
+#assert_standard_axioms test_forall_finset
+#assert_standard_axioms test_computableRelIn_iff
+#assert_standard_axioms test_reRelIn_iff
+#assert_standard_axioms test_to_rePredIn
+#assert_standard_axioms test_exists_nat
+#assert_standard_axioms test_and_computable_left
+#assert_standard_axioms test_and_computable_right
+#assert_standard_axioms test_cond
+#assert_standard_axioms test_rfind_total
+#assert_standard_axioms test_rfind
+#assert_standard_axioms test_rfind_dom_iff
+#assert_standard_axioms test_rfind_spec
