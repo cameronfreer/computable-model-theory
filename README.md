@@ -28,8 +28,13 @@ parallel with mathlib's formula decoder — and the partial and total characteri
 oracles are proven interchangeable. The signed atomic and quantifier-free diagram
 predicates at fixed width are computable in the oracle. Finite tuples are list-backed
 with a fixed-width view, and the central semantic gate identifies membership in a
-tuple's closure with term realization over the tuple. The remaining model-theoretic
-layers are import skeletons awaiting content.
+tuple's closure with term realization over the tuple. Generated computable
+presentations bundle a computable structure with a generating tuple behind an
+instance-free interface; atomic equivalence of tuples is characterized by
+generator-preserving equivalences of tuple closures; closure membership is r.e. by
+effective term enumeration; and the failure of atomic equivalence between two fixed
+presentations is r.e. The remaining model-theoretic layers are import skeletons
+awaiting content.
 
 ## Staging
 
