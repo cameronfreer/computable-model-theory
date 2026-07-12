@@ -1,0 +1,138 @@
+/-
+Copyright (c) 2026 Cameron Freer. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Cameron Freer
+-/
+import ComputableModelTheory.ModelTheory.Computable.GeneratedPresentation
+import Mathlib.ModelTheory.FinitelyGenerated
+
+/-!
+# Uniform computable ages
+
+A computable age is a family of ω-presented structures on `ℕ`, indexed by naturals,
+whose generator tuples and symbol interpretations are computed by single programs
+**uniform in the index** — not merely a function assigning each index a separately
+computable presentation. Fixing an index recovers a generated computable presentation
+(`presentationAt`); the derivation fixes the index in each uniform computation
+theorem, and no computability of `presentationAt` itself is claimed — the observable
+code-level fields are the computable data.
+
+The represented classical age `classSet` is the isomorphism closure of the enumerated
+objects inside bundled structures, so membership is representation-independent; every
+member is finitely generated. The hereditary property is deliberately not required
+here: the source treats it as an additional property of an age.
+-/
+
+open Encodable FirstOrder Language Language.BoundedFormula
+
+namespace FirstOrder.Language
+
+variable {O : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
+
+/-- A uniform computable age: an indexed family of structures on `ℕ` with generator
+tuples, whose generators and symbol interpretations are computable uniformly in the
+index, and whose generators generate. -/
+structure ComputableAgeIn (O : Set (ℕ →. ℕ)) (L : Language) [L.EffectiveLanguage] where
+  /-- The structure at each index. -/
+  structureAt : ℕ → L.Structure ℕ
+  /-- The generator tuple at each index. -/
+  gens : ℕ → Tuple ℕ
+  /-- The generator tuples are computable uniformly in the index. -/
+  gens_computableIn : ComputableIn O gens
+  /-- Function interpretation is computable uniformly in the index. -/
+  funMap_computableIn :
+    ComputableIn O fun p : ℕ × FunctionApplicationData L ℕ ↦
+      @FunctionApplicationData.funMap L ℕ (structureAt p.1) p.2
+  /-- Relation interpretation is computable uniformly in the index. -/
+  relMap_computablePredIn :
+    ComputablePredIn O fun p : ℕ × RelationApplicationData L ℕ ↦
+      @RelationApplicationData.relMap L ℕ (structureAt p.1) p.2
+  /-- Each generator tuple generates its structure. -/
+  generates : ∀ i, @Tuple.Generates ℕ L (structureAt i) (gens i)
+
+namespace ComputableAgeIn
+
+variable (K : ComputableAgeIn O L)
+
+/-- The generated presentation at a fixed index, by fixing the index in each uniform
+computation theorem. -/
+def presentationAt (i : ℕ) : GeneratedPresentationIn O L :=
+  letI := K.structureAt i
+  { toComputableStructure :=
+      { inst := K.structureAt i
+        isComputable :=
+          { funMap_computableIn :=
+              (K.funMap_computableIn.comp
+                ((ComputableIn.const i).pair ComputableIn.id)).of_eq fun _ ↦ rfl
+            relMap_computablePredIn :=
+              (K.relMap_computablePredIn.comp
+                ((ComputableIn.const i).pair ComputableIn.id)).of_eq
+                fun _ ↦ Iff.rfl } }
+    gens := K.gens i
+    generates := K.generates i }
+
+@[simp]
+theorem presentationAt_gens (i : ℕ) : (K.presentationAt i).gens = K.gens i :=
+  rfl
+
+@[simp]
+theorem presentationAt_inst (i : ℕ) :
+    (K.presentationAt i).toComputableStructure.inst = K.structureAt i :=
+  rfl
+
+/-- The represented classical age: the isomorphism closure of the enumerated objects
+among bundled structures. -/
+def classSet : Set (CategoryTheory.Bundled L.Structure) :=
+  { A | ∃ i, Nonempty ((K.presentationAt i).toBundled ≃[L] A) }
+
+/-- Every enumerated object lies in the represented class. -/
+theorem obj_mem_classSet (i : ℕ) : (K.presentationAt i).toBundled ∈ K.classSet :=
+  ⟨i, ⟨Equiv.refl L _⟩⟩
+
+/-- The represented class is closed under isomorphism. -/
+theorem classSet_equiv_invariant {A B : CategoryTheory.Bundled L.Structure}
+    (hA : A ∈ K.classSet) (e : A ≃[L] B) : B ∈ K.classSet := by
+  obtain ⟨i, ⟨f⟩⟩ := hA
+  exact ⟨i, ⟨e.comp f⟩⟩
+
+/-- Every member of the represented class is finitely generated. -/
+theorem classSet_finitelyGenerated {A : CategoryTheory.Bundled L.Structure}
+    (hA : A ∈ K.classSet) : Structure.FG L A := by
+  obtain ⟨i, ⟨f⟩⟩ := hA
+  refine (Equiv.fg_iff f).1 ?_
+  letI := K.structureAt i
+  rw [Structure.fg_iff]
+  refine ⟨{x | x ∈ K.gens i}, (K.gens i).finite_toSet, K.generates i⟩
+
+/-- Membership of a bundled structure in the represented class. -/
+def Contains (A : CategoryTheory.Bundled L.Structure) : Prop :=
+  A ∈ K.classSet
+
+theorem contains_iff (A : CategoryTheory.Bundled L.Structure) :
+    K.Contains A ↔ ∃ i, Nonempty ((K.presentationAt i).toBundled ≃[L] A) :=
+  Iff.rfl
+
+end ComputableAgeIn
+
+section SuccAge
+
+attribute [local instance] succStructure
+
+/-- The constant successor family: every index presents the successor structure
+generated by `[0]`. A repeated object is allowed — completeness of the enumeration
+does not require uniqueness of isomorphism types. -/
+def succAge (O : Set (ℕ →. ℕ)) : ComputableAgeIn O succLang where
+  structureAt _ := succStructure
+  gens _ := [0]
+  gens_computableIn := ComputableIn.const [0]
+  funMap_computableIn :=
+    ((succ_isComputable (O := O)).funMap_computableIn.comp ComputableIn.snd).of_eq
+      fun _ ↦ rfl
+  relMap_computablePredIn :=
+    ((succ_isComputable (O := O)).relMap_computablePredIn.comp ComputableIn.snd).of_eq
+      fun _ ↦ Iff.rfl
+  generates _ := succ_tuple_generates
+
+end SuccAge
+
+end FirstOrder.Language

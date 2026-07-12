@@ -44,6 +44,12 @@ variable (P : GeneratedPresentationIn O L)
 def toBundled : CategoryTheory.Bundled L.Structure :=
   ⟨ℕ, P.toComputableStructure.inst⟩
 
+/-- The structure on the bundled carrier, keyed on `toBundled` so that it is found
+without an ambient structure on the raw carrier. -/
+instance instStructureToBundled (P : GeneratedPresentationIn O L) :
+    L.Structure ↥P.toBundled :=
+  P.toComputableStructure.inst
+
 /-- The fixed-width view of the generator tuple. -/
 def generatorView : Fin P.gens.length → ℕ :=
   P.gens.view
