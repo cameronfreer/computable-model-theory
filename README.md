@@ -33,8 +33,12 @@ presentations bundle a computable structure with a generating tuple behind an
 instance-free interface; atomic equivalence of tuples is characterized by
 generator-preserving equivalences of tuple closures; closure membership is r.e. by
 effective term enumeration; and the failure of atomic equivalence between two fixed
-presentations is r.e. The remaining model-theoretic layers are import skeletons
-awaiting content.
+presentations is r.e. Uniform computable ages enumerate structures with single
+index-uniform programs, represent isomorphism-closed classes of finitely generated
+structures, and carry potential embeddings — pure code data whose actualness is atomic
+equivalence of generators with the range tuple, realized as bundled embeddings
+extending the tuple assignment. The remaining layers (embedding information, effective
+HP/JEP/AP witnesses, limits) are to come.
 
 ## Staging
 
