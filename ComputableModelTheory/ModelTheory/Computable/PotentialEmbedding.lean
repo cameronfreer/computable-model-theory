@@ -52,6 +52,20 @@ private def peEquiv : PotentialEmbeddingData ≃ ℕ × ℕ × List ℕ where
 instance : Primcodable PotentialEmbeddingData :=
   Primcodable.ofEquiv _ peEquiv
 
+theorem PotentialEmbeddingData.primrec_domIdx :
+    Primrec PotentialEmbeddingData.domIdx :=
+  (Primrec.fst.comp (Primrec.of_equiv (e := peEquiv))).of_eq fun _ ↦ rfl
+
+theorem PotentialEmbeddingData.primrec_codIdx :
+    Primrec PotentialEmbeddingData.codIdx :=
+  ((Primrec.fst.comp Primrec.snd).comp
+    (Primrec.of_equiv (e := peEquiv))).of_eq fun _ ↦ rfl
+
+theorem PotentialEmbeddingData.primrec_rangeTuple :
+    Primrec PotentialEmbeddingData.rangeTuple :=
+  ((Primrec.snd.comp Primrec.snd).comp
+    (Primrec.of_equiv (e := peEquiv))).of_eq fun _ ↦ rfl
+
 namespace PotentialEmbeddingData
 
 /-- Well-formedness relative to an age: the range tuple has the width of the domain
