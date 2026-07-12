@@ -37,8 +37,12 @@ presentations is r.e. Uniform computable ages enumerate structures with single
 index-uniform programs, represent isomorphism-closed classes of finitely generated
 structures, and carry potential embeddings — pure code data whose actualness is atomic
 equivalence of generators with the range tuple, realized as bundled embeddings
-extending the tuple assignment. The remaining layers (embedding information, effective
-HP/JEP/AP witnesses, limits) are to come.
+extending the tuple assignment. Terms and atomic data over natural-number variables
+are evaluated by single programs uniform in the age index and a list environment;
+atomic equivalence is exactly agreement on width-valid atomic data; the failure of
+actualness of arbitrary potential embedding data is uniformly r.e.; and embedding
+information is defined semantically with an r.e. complement. Effective HP/JEP/AP
+witnesses and limits are to come.
 
 ## Staging
 
