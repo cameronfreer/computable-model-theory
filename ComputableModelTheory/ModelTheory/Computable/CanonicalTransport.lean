@@ -130,9 +130,11 @@ noncomputable def transportValue (G : PotentialEmbeddingData) (x : ℕ) : ℕ :=
   (@decode (L.Term ℕ) Primcodable.toEncodable (K.termCodeFor G.domIdx x)).elim 0
     fun t ↦ K.termRealize ((G.codIdx, G.rangeTuple), t)
 
--- The computability layer is factored per review finding 3
--- (`isTermCodeFor` → `termCodeFor` → `representingTerm` → `transportValue`). Typed
--- intermediates keep the dependent term encoding from overwhelming elaboration.
+-- The computability layer is factored per review finding 3. `isTermCodeFor` and
+-- `termCodeFor` feed `representingTerm` (the term-valued API); `transportValue`'s own
+-- computability is deliberately code-level and bypasses `representingTerm_computableIn`,
+-- keeping the composition ℕ-valued (see `transportValue_computableIn`). Typed intermediates
+-- keep the dependent term encoding from overwhelming elaboration.
 
 -- The closing `option_casesOn.of_eq fun _ ↦ rfl` bridges `Option.casesOn ↔ Option.elim`
 -- through `isTermCodeFor`, whose `decode` sits on the `L.Term ℕ` stack-machine
@@ -246,6 +248,15 @@ theorem transportValue_eq_toEmbedding {G : PotentialEmbeddingData}
       (rt.restrictVar fun v ↦ (⟨v.1, hvb v.1 v.2⟩ : Fin (K.gens G.domIdx).length)))
   rw [hcomp]
   exact HomClass.realize_term (G.toEmbedding h hAE)
+
+/-- Transport along the identity potential embedding is the identity on values. Public and
+`simp`-normal: composition's identity laws consume this, so it must not live only in the
+audit module. -/
+@[simp]
+theorem transportValue_id (i x : ℕ) :
+    K.transportValue (PotentialEmbeddingData.id K i) x = x := by
+  rw [transportValue, K.decode_termCodeFor, Option.elim]
+  exact K.representingTerm_realize i x
 
 end ComputableAgeIn
 

@@ -74,9 +74,8 @@ theorem test_transportValue_eq_toEmbedding (K : ComputableAgeIn O L)
 /-- Semantic gate: transport along the identity potential embedding is the identity on
 values. -/
 theorem test_transportValue_id (K : ComputableAgeIn O L) (i x : ℕ) :
-    K.transportValue (PotentialEmbeddingData.id K i) x = x := by
-  rw [ComputableAgeIn.transportValue, K.decode_termCodeFor, Option.elim]
-  exact K.representingTerm_realize i x
+    K.transportValue (PotentialEmbeddingData.id K i) x = x :=
+  K.transportValue_id i x
 
 /-- Off-spec totality: on malformed data with a range tuple shorter than the domain
 generators (here empty), transport still evaluates, realizing the representing term under
