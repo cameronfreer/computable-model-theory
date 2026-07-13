@@ -66,6 +66,18 @@ theorem PotentialEmbeddingData.primrec_rangeTuple :
   ((Primrec.snd.comp Primrec.snd).comp
     (Primrec.of_equiv (e := peEquiv))).of_eq fun _ ↦ rfl
 
+theorem PotentialEmbeddingData.domIdx_computable :
+    ComputableIn O PotentialEmbeddingData.domIdx :=
+  PotentialEmbeddingData.primrec_domIdx.to_comp.computableIn
+
+theorem PotentialEmbeddingData.codIdx_computable :
+    ComputableIn O PotentialEmbeddingData.codIdx :=
+  PotentialEmbeddingData.primrec_codIdx.to_comp.computableIn
+
+theorem PotentialEmbeddingData.rangeTuple_computable :
+    ComputableIn O PotentialEmbeddingData.rangeTuple :=
+  PotentialEmbeddingData.primrec_rangeTuple.to_comp.computableIn
+
 namespace PotentialEmbeddingData
 
 /-- Well-formedness relative to an age: the range tuple has the width of the domain
