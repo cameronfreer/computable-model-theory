@@ -78,10 +78,11 @@ theorem PotentialEmbeddingData.rangeTuple_computable :
     ComputableIn O PotentialEmbeddingData.rangeTuple :=
   PotentialEmbeddingData.primrec_rangeTuple.to_comp.computableIn
 
-/-- The named triple → data factory (`peEquiv.symm`). Kept named so it appears identically in
-`compData`'s definition and its computability proof: composition then compares by the
-`ofTriple` head, never unfolding to two anonymous constructor lambdas under the
-`PotentialEmbeddingData` encoding. -/
+/-- The named triple → data factory (`peEquiv.symm`), used definitionally in `compData` so the
+composed code triple reads literally as `(F.domIdx, G.codIdx, …)`. Note: naming the head does
+*not* on its own tame a `PotentialEmbeddingData`-valued composition — `ofTriple_computableIn.comp`
+still whnf-diverges on the `ofEquiv peEquiv` encoding. `compData_computableIn` therefore crosses
+`ofTriple` via `ComputableIn.encode_iff` (ℕ-valued output), not by this head. -/
 def PotentialEmbeddingData.ofTriple (p : ℕ × ℕ × Tuple ℕ) : PotentialEmbeddingData :=
   peEquiv.symm p
 

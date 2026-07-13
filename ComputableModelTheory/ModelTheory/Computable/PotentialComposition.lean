@@ -14,11 +14,15 @@ import ComputableModelTheory.ModelTheory.Computable.CanonicalTransport
 defined on all inputs — with the semantic laws (actualness, realized-embedding composition,
 identity, associativity) supplied separately with their hypotheses.
 
-Computability is packaged over `PotentialEmbeddingData × PotentialEmbeddingData` and stays
-`ℕ`/`List ℕ`-valued: the transported tuple is built with `ComputableIn.list_map` over
-`transportValue_computableIn`, and the result is assembled by `mk_computableIn`.
-`transportValue` is consumed only through its computability contract, so `termCodeFor`
-stays opaque.
+Computability (`compData_computableIn`) is packaged over
+`PotentialEmbeddingData × PotentialEmbeddingData` and stays `ℕ`/`Tuple ℕ`-valued throughout.
+The components and the transported tuple are built with `ComputableIn.comp`/`pair`/`list_map`,
+each with its implicit *type* params (`α`/`β`/`σ`) **and** *function* params (`f`/`g`) pinned:
+result-type ascription alone does not steer elaboration past the `PotentialEmbeddingData`
+encoding. The closing `ofTriple` step crosses through `ComputableIn.encode_iff`, keeping the
+output ℕ-valued so no `PotentialEmbeddingData`-valued composition — whose `isDefEq` whnf-diverges
+on the `ofEquiv peEquiv` encoding — is ever formed. `transportValue` is consumed only through
+its computability contract (and kept locally irreducible), so `termCodeFor` stays opaque.
 -/
 
 open Encodable FirstOrder Language
@@ -59,32 +63,92 @@ theorem compData_rangeTuple (G F : PotentialEmbeddingData) :
     (K.compData G F).rangeTuple = F.rangeTuple.map (K.transportValue G) :=
   rfl
 
-/-- Composition is computable in the oracle, uniformly in both potential embeddings. -/
+/-- Composition is computable in the oracle, uniformly in both potential embeddings.
+Elaborates within the default heartbeat budget; see the module docstring for why every
+combinator's type and function parameters are pinned and why the final step uses `encode_iff`. -/
 theorem compData_computableIn :
     ComputableIn O fun p : PotentialEmbeddingData × PotentialEmbeddingData ↦
       K.compData p.1 p.2 := by
-  -- BLOCKED (WIP) — left as `sorry` to keep the branch building: even the individual `have`s
-  -- below whnf-time-out (>2M, deterministic), not only the closing bridge, so none of the real
-  -- structure elaborates.
-  --
-  -- Intended structure:
-  --   have hdom := PotentialEmbeddingData.domIdx_computable.comp ComputableIn.snd
-  --   have hcod := PotentialEmbeddingData.codIdx_computable.comp ComputableIn.fst
-  --   have hmap := ComputableIn.list_map
-  --     (PotentialEmbeddingData.rangeTuple_computable.comp ComputableIn.snd)
-  --     (K.transportValue_computableIn.comp
-  --       ((ComputableIn.fst.comp ComputableIn.fst).pair ComputableIn.snd))
-  --   have htriple := hdom.pair (hcod.pair hmap)          -- ℕ × ℕ × List ℕ, encoding-free
-  --   exact PotentialEmbeddingData.ofTriple_computableIn.comp htriple |>.of_eq fun _ ↦ rfl
-  --
-  -- The blow-up is `isDefEq` whnf-ing the `PotentialEmbeddingData` (`ofEquiv peEquiv`) encoding
-  -- inside `ComputableIn`'s `RecursiveIn` content when a `PotentialEmbeddingData`-valued
-  -- `ComputableIn` is matched. Attempts that all time out: `.of_eq fun _ ↦ rfl`; `simpa only
-  -- [compData] using …` (inline and via an explicit `hmk`); the generic `mk_computableIn₃`;
-  -- the named `ofTriple` head. `local irreducible transportValue` and budgets to 2M do not
-  -- help. Needs a bridge (or a `Primcodable`-level lemma) that avoids `isDefEq` on the encoded
-  -- `ComputableIn` head. See feature request cameronfreer/lean4-skills#150.
-  sorry
+  -- Gate 1: the three ℕ / `Tuple ℕ` components. Every combinator's implicit type params
+  -- (`α`/`β`/`σ`) *and* function params (`f`/`g`) are pinned; result-type ascription alone
+  -- does not steer elaboration past the `PotentialEmbeddingData` encoding.
+  have hdom : ComputableIn O fun p : PotentialEmbeddingData × PotentialEmbeddingData ↦
+      p.2.domIdx :=
+    ComputableIn.comp
+      (α := PotentialEmbeddingData × PotentialEmbeddingData)
+      (β := PotentialEmbeddingData) (σ := ℕ)
+      (f := PotentialEmbeddingData.domIdx) (g := Prod.snd)
+      PotentialEmbeddingData.domIdx_computable ComputableIn.snd
+  have hcod : ComputableIn O fun p : PotentialEmbeddingData × PotentialEmbeddingData ↦
+      p.1.codIdx :=
+    ComputableIn.comp
+      (α := PotentialEmbeddingData × PotentialEmbeddingData)
+      (β := PotentialEmbeddingData) (σ := ℕ)
+      (f := PotentialEmbeddingData.codIdx) (g := Prod.fst)
+      PotentialEmbeddingData.codIdx_computable ComputableIn.fst
+  have hrange : ComputableIn O fun p : PotentialEmbeddingData × PotentialEmbeddingData ↦
+      p.2.rangeTuple :=
+    ComputableIn.comp
+      (α := PotentialEmbeddingData × PotentialEmbeddingData)
+      (β := PotentialEmbeddingData) (σ := Tuple ℕ)
+      (f := PotentialEmbeddingData.rangeTuple) (g := Prod.snd)
+      PotentialEmbeddingData.rangeTuple_computable ComputableIn.snd
+  -- Gate 2: the transported range tuple. `hval` reindexes `transportValue_computableIn`
+  -- (opaque via `transportValue`'s local irreducibility) to the mapped binary function;
+  -- `list_map` then maps it, again with every type/function param pinned.
+  have hval : ComputableIn O
+      fun q : (PotentialEmbeddingData × PotentialEmbeddingData) × ℕ ↦
+        K.transportValue q.1.1 q.2 :=
+    ComputableIn.comp
+      (α := (PotentialEmbeddingData × PotentialEmbeddingData) × ℕ)
+      (β := PotentialEmbeddingData × ℕ) (σ := ℕ)
+      (f := fun r : PotentialEmbeddingData × ℕ ↦ K.transportValue r.1 r.2)
+      (g := fun q : (PotentialEmbeddingData × PotentialEmbeddingData) × ℕ ↦ (q.1.1, q.2))
+      K.transportValue_computableIn
+      (ComputableIn.pair
+        (α := (PotentialEmbeddingData × PotentialEmbeddingData) × ℕ)
+        (β := PotentialEmbeddingData) (γ := ℕ)
+        (f := fun q ↦ q.1.1) (g := fun q ↦ q.2)
+        (ComputableIn.comp
+          (α := (PotentialEmbeddingData × PotentialEmbeddingData) × ℕ)
+          (β := PotentialEmbeddingData × PotentialEmbeddingData)
+          (σ := PotentialEmbeddingData)
+          (f := Prod.fst) (g := Prod.fst) ComputableIn.fst ComputableIn.fst)
+        ComputableIn.snd)
+  have hmap : ComputableIn O fun p : PotentialEmbeddingData × PotentialEmbeddingData ↦
+      p.2.rangeTuple.map (K.transportValue p.1) :=
+    ComputableIn.list_map
+      (α := PotentialEmbeddingData × PotentialEmbeddingData) (β := ℕ) (σ := ℕ)
+      (f := fun p ↦ p.2.rangeTuple)
+      (g := fun p x ↦ K.transportValue p.1 x)
+      hrange hval
+  -- Gate 3: assemble the triple, then cross `ofTriple` through `encode_iff`. The output stays
+  -- ℕ-valued, so no `PotentialEmbeddingData`-valued composition is ever formed — `encode
+  -- (ofTriple t) = encode t` definitionally (`peEquiv`'s `right_inv` is `rfl`), so the closing
+  -- `of_eq` is a plain `rfl` over the code triple, never touching the encoded data head.
+  have htriple : ComputableIn O fun p : PotentialEmbeddingData × PotentialEmbeddingData ↦
+      (p.2.domIdx, p.1.codIdx, p.2.rangeTuple.map (K.transportValue p.1)) :=
+    ComputableIn.pair
+      (α := PotentialEmbeddingData × PotentialEmbeddingData)
+      (β := ℕ) (γ := ℕ × Tuple ℕ)
+      (f := fun p ↦ p.2.domIdx)
+      (g := fun p ↦ (p.1.codIdx, p.2.rangeTuple.map (K.transportValue p.1)))
+      hdom
+      (ComputableIn.pair
+        (α := PotentialEmbeddingData × PotentialEmbeddingData)
+        (β := ℕ) (γ := Tuple ℕ)
+        (f := fun p ↦ p.1.codIdx)
+        (g := fun p ↦ p.2.rangeTuple.map (K.transportValue p.1))
+        hcod hmap)
+  have henc : ComputableIn O fun p : PotentialEmbeddingData × PotentialEmbeddingData ↦
+      encode (K.compData p.1 p.2) :=
+    (ComputableIn.comp
+      (α := PotentialEmbeddingData × PotentialEmbeddingData)
+      (β := ℕ × ℕ × Tuple ℕ) (σ := ℕ)
+      (f := fun t ↦ encode t)
+      (g := fun p ↦ (p.2.domIdx, p.1.codIdx, p.2.rangeTuple.map (K.transportValue p.1)))
+      ComputableIn.encode htriple).of_eq fun p ↦ rfl
+  exact ComputableIn.encode_iff.mp henc
 
 end ComputableAgeIn
 
