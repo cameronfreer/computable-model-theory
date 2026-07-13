@@ -78,6 +78,37 @@ theorem PotentialEmbeddingData.rangeTuple_computable :
     ComputableIn O PotentialEmbeddingData.rangeTuple :=
   PotentialEmbeddingData.primrec_rangeTuple.to_comp.computableIn
 
+/-- The named triple → data factory (`peEquiv.symm`), used definitionally in `compData` so the
+composed code triple reads literally as `(F.domIdx, G.codIdx, …)`. Naming the head does not on
+its own make a `PotentialEmbeddingData`-valued composition go through: the insufficiently pinned
+construction diverged at `whnf` on the `ofEquiv peEquiv` encoding. `compData_computableIn` instead
+crosses `ofTriple` through `ComputableIn.encode_iff` (ℕ-valued output), the reliable route. -/
+def PotentialEmbeddingData.ofTriple (p : ℕ × ℕ × Tuple ℕ) : PotentialEmbeddingData :=
+  peEquiv.symm p
+
+@[simp]
+theorem PotentialEmbeddingData.ofTriple_domIdx (p : ℕ × ℕ × Tuple ℕ) :
+    (PotentialEmbeddingData.ofTriple p).domIdx = p.1 :=
+  rfl
+
+@[simp]
+theorem PotentialEmbeddingData.ofTriple_codIdx (p : ℕ × ℕ × Tuple ℕ) :
+    (PotentialEmbeddingData.ofTriple p).codIdx = p.2.1 :=
+  rfl
+
+@[simp]
+theorem PotentialEmbeddingData.ofTriple_rangeTuple (p : ℕ × ℕ × Tuple ℕ) :
+    (PotentialEmbeddingData.ofTriple p).rangeTuple = p.2.2 :=
+  rfl
+
+theorem PotentialEmbeddingData.primrec_ofTriple :
+    Primrec PotentialEmbeddingData.ofTriple :=
+  Primrec.of_equiv_symm
+
+theorem PotentialEmbeddingData.ofTriple_computableIn :
+    ComputableIn O PotentialEmbeddingData.ofTriple :=
+  PotentialEmbeddingData.primrec_ofTriple.to_comp.computableIn
+
 namespace PotentialEmbeddingData
 
 /-- Well-formedness relative to an age: the range tuple has the width of the domain

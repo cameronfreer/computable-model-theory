@@ -6,6 +6,7 @@ Authors: Cameron Freer
 import ComputableModelTheory.ModelTheory.Computable.CanonicalTransport
 import ComputableModelTheory.ModelTheory.Computable.ComputableAge
 import ComputableModelTheory.ModelTheory.Computable.EmbeddingInformation
+import ComputableModelTheory.ModelTheory.Computable.PotentialComposition
 import ComputableModelTheory.ModelTheory.Computable.PotentialEmbedding
 import ComputableModelTheory.ModelTheory.Computable.UniformAtomic
 import ComputableModelTheory.ModelTheory.Computable.UniformTermEvaluation
