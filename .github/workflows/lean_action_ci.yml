@@ -51,3 +51,10 @@ jobs:
       - run: >-
           lake env lean
           ComputableModelTheory/ModelTheory/Computable/EmbeddingInformationAudit.lean
+      - run: >-
+          lake env lean
+          ComputableModelTheory/ModelTheory/Computable/CanonicalTransportAudit.lean
+      - run: >-
+          lake env lean
+          ComputableModelTheory/ModelTheory/Computable/PotentialCompositionAudit.lean
+      - run: lake env lean ComputableModelTheory/ModelTheory/Computable/PotentialSpanAudit.lean

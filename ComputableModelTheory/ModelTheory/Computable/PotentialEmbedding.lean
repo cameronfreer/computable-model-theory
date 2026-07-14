@@ -42,6 +42,17 @@ structure PotentialEmbeddingData where
   /-- The intended images of the domain generators. -/
   rangeTuple : Tuple ℕ
 
+@[ext]
+theorem PotentialEmbeddingData.ext {F G : PotentialEmbeddingData}
+    (hdom : F.domIdx = G.domIdx) (hcod : F.codIdx = G.codIdx)
+    (hrange : F.rangeTuple = G.rangeTuple) : F = G := by
+  cases F
+  cases G
+  cases hdom
+  cases hcod
+  cases hrange
+  rfl
+
 /-- The code-level packaging of potential embedding data. -/
 private def peEquiv : PotentialEmbeddingData ≃ ℕ × ℕ × List ℕ where
   toFun F := (F.domIdx, F.codIdx, F.rangeTuple)
