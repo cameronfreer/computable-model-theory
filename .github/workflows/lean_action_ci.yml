@@ -15,46 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: leanprover/lean-action@v1
-      - run: lake env lean ComputableModelTheory/Computability/OraclePredAudit.lean
-      - run: lake env lean ComputableModelTheory/Computability/ReductionAudit.lean
-      - run: lake env lean ComputableModelTheory/Computability/RecursiveInAudit.lean
-      - run: lake env lean ComputableModelTheory/Computability/EncodingAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Syntax/EffectiveLanguageAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Syntax/PrimcodableAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Syntax/ComputableOpsAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Syntax/TermSigmaAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Syntax/FormulaSigmaAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Syntax/FormulaOpsAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Syntax/ComplexityAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Computable/StructureAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Computable/TermEvaluationAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Computable/AtomicSatisfactionAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Computable/QFSatisfactionAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Computable/DiagramAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/TupleClosureAudit.lean
-      - run: >-
-          lake env lean
-          ComputableModelTheory/ModelTheory/Computable/GeneratedPresentationAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Computable/AtomicEquivAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Computable/TermClosureAudit.lean
-      - run: >-
-          lake env lean
-          ComputableModelTheory/ModelTheory/Computable/AtomicEquivComputabilityAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Computable/ComputableAgeAudit.lean
-      - run: >-
-          lake env lean
-          ComputableModelTheory/ModelTheory/Computable/PotentialEmbeddingAudit.lean
-      - run: >-
-          lake env lean
-          ComputableModelTheory/ModelTheory/Computable/UniformTermEvaluationAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Computable/UniformAtomicAudit.lean
-      - run: >-
-          lake env lean
-          ComputableModelTheory/ModelTheory/Computable/EmbeddingInformationAudit.lean
-      - run: >-
-          lake env lean
-          ComputableModelTheory/ModelTheory/Computable/CanonicalTransportAudit.lean
-      - run: >-
-          lake env lean
-          ComputableModelTheory/ModelTheory/Computable/PotentialCompositionAudit.lean
-      - run: lake env lean ComputableModelTheory/ModelTheory/Computable/PotentialSpanAudit.lean
+      # Audit modules live outside the root import spine; the runner discovers them
+      # via git ls-files so a new *Audit.lean can never be silently skipped.
+      - run: scripts/run-audit-modules.sh
