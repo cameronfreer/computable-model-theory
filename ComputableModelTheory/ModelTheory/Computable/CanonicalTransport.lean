@@ -138,8 +138,7 @@ noncomputable def transportValue (G : PotentialEmbeddingData) (x : ℕ) : ℕ :=
 
 -- The closing `option_casesOn.of_eq fun _ ↦ rfl` bridges `Option.casesOn ↔ Option.elim`
 -- through `isTermCodeFor`, whose `decode` sits on the `L.Term ℕ` stack-machine
--- `Primcodable`; that reduction runs slightly over the default budget.
-set_option maxHeartbeats 400000 in
+-- `Primcodable`; the typed intermediates keep that reduction within the default budget.
 /-- The code test is computable in the oracle, uniformly in the index, the value, and the
 candidate code. -/
 theorem isTermCodeFor_computableIn :
@@ -199,7 +198,6 @@ theorem representingTerm_computableIn :
 -- `decode_termCodeFor`, and the `representingTerm` lemmas, never the raw definition.
 attribute [irreducible] ComputableAgeIn.termCodeFor
 
-set_option maxHeartbeats 400000 in
 /-- Transport is computable in the oracle, uniformly in the potential embedding data and
 the value. Proved by fusing code → decode → evaluate so the composition stays `ℕ`-valued:
 the decoded term `t` is consumed as an input in the `some` branch (`option_casesOn`), never
@@ -209,8 +207,13 @@ theorem transportValue_computableIn :
     ComputableIn O fun q : PotentialEmbeddingData × ℕ ↦ K.transportValue q.1 q.2 := by
   have hcode : ComputableIn O fun q : PotentialEmbeddingData × ℕ ↦
       K.termCodeFor q.1.domIdx q.2 :=
-    K.termCodeFor_computableIn.comp
-      ((PotentialEmbeddingData.domIdx_computable.comp ComputableIn.fst).pair ComputableIn.snd)
+    ComputableIn.comp
+      (α := PotentialEmbeddingData × ℕ) (β := ℕ × ℕ) (σ := ℕ)
+      (f := fun p : ℕ × ℕ ↦ K.termCodeFor p.1 p.2)
+      (g := fun q : PotentialEmbeddingData × ℕ ↦ (q.1.domIdx, q.2))
+      K.termCodeFor_computableIn
+      ((PotentialEmbeddingData.domIdx_computable.comp ComputableIn.fst).pair
+        ComputableIn.snd)
   have hdecode : ComputableIn O fun q : PotentialEmbeddingData × ℕ ↦
       @decode (L.Term ℕ) Primcodable.toEncodable (K.termCodeFor q.1.domIdx q.2) :=
     (Computable.decode.computableIn).comp hcode
