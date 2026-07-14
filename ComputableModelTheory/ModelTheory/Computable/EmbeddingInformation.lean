@@ -3,6 +3,7 @@ Copyright (c) 2026 Cameron Freer. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
+import ComputableModelTheory.Computability.Jump
 import ComputableModelTheory.ModelTheory.Computable.UniformAtomic
 import ComputableModelTheory.ModelTheory.Computable.PotentialEmbedding
 
@@ -234,5 +235,14 @@ theorem embeddingInformationComputableIn_iff (E : Set (ℕ →. ℕ))
     EmbeddingInformationComputableIn E K ↔
       ComputablePredIn E fun F : PotentialEmbeddingData ↦ F ∈ EmbeddingInformation K :=
   Iff.rfl
+
+/-- Any oracle set computing the jump of the age's oracles decides embedding
+information: the r.e. complement of actualness crosses the pivotal C0 bridge. This is
+the `EI(K) ≤ O′` upper bound in interface form, discharged for every concrete jump
+implementation at once. -/
+theorem embeddingInformationComputableIn_of_computesJumpOf {J : Set (ℕ →. ℕ)}
+    (hJ : ComputesJumpOf J O) (K : ComputableAgeIn O L) :
+    EmbeddingInformationComputableIn J K :=
+  hJ.compl_rePredIn_computablePredIn K.not_isEmbedding_rePredIn
 
 end FirstOrder.Language
