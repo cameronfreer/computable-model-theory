@@ -57,6 +57,13 @@ theorem test_embeddingInformation_compl_rePredIn :
     REPredIn O fun F : PotentialEmbeddingData ↦ F ∈ (EmbeddingInformation K)ᶜ :=
   embeddingInformation_compl_rePredIn K
 
+/-- The abstract EI-decision interface elaborates at its stated type and decides
+membership in the semantic embedding-information set. -/
+theorem test_embeddingInformationComputableIn_iff (E : Set (ℕ →. ℕ)) :
+    EmbeddingInformationComputableIn E K ↔
+      ComputablePredIn E fun F : PotentialEmbeddingData ↦ F ∈ EmbeddingInformation K :=
+  embeddingInformationComputableIn_iff E K
+
 end
 
 section ConcreteWitness
@@ -82,5 +89,6 @@ end ConcreteWitness
 #assert_standard_axioms test_candidate_of_disagreement
 #assert_standard_axioms test_not_isEmbedding_rePredIn
 #assert_standard_axioms test_embeddingInformation_compl_rePredIn
+#assert_standard_axioms test_embeddingInformationComputableIn_iff
 #assert_standard_axioms test_succ_id_mem_embeddingInformation
 #assert_standard_axioms test_succ_malformed_candidate

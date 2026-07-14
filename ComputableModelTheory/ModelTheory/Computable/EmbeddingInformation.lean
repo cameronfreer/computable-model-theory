@@ -21,7 +21,9 @@ characterizes non-actualness exactly through the central semantic bridge.
 `EmbeddingInformation` is defined purely semantically as the set of actual data; its
 complement is r.e. in the oracle. No characteristic oracle is defined here — actualness
 is not decidable at this stage; the jump layer will later turn the r.e. complement
-into a decision procedure.
+into a decision procedure. The abstract interface `EmbeddingInformationComputableIn E K`
+names that future capability: actualness decidable in an oracle set `E`, the assumption
+under which witness extraction will search.
 -/
 
 open Encodable FirstOrder Language
@@ -217,5 +219,20 @@ def EmbeddingInformation (K : ComputableAgeIn O L) : Set PotentialEmbeddingData 
 theorem embeddingInformation_compl_rePredIn (K : ComputableAgeIn O L) :
     REPredIn O fun F : PotentialEmbeddingData ↦ F ∈ (EmbeddingInformation K)ᶜ :=
   (K.not_isEmbedding_rePredIn).of_eq fun _ ↦ Iff.rfl
+
+/-- The abstract EI-decision interface: actualness of potential embedding data is
+decidable in the oracle set `E`. Later witness extraction assumes `O ⊆ E` together with
+this interface, so search can use both the age's base computations and EI decisions; the
+concrete jump theorem will eventually produce such an `E` from the r.e. complement. -/
+def EmbeddingInformationComputableIn (E : Set (ℕ →. ℕ)) (K : ComputableAgeIn O L) :
+    Prop :=
+  ComputablePredIn E fun F : PotentialEmbeddingData ↦ F.IsEmbedding K
+
+/-- The interface decides membership in the semantic embedding-information set. -/
+theorem embeddingInformationComputableIn_iff (E : Set (ℕ →. ℕ))
+    (K : ComputableAgeIn O L) :
+    EmbeddingInformationComputableIn E K ↔
+      ComputablePredIn E fun F : PotentialEmbeddingData ↦ F ∈ EmbeddingInformation K :=
+  Iff.rfl
 
 end FirstOrder.Language
