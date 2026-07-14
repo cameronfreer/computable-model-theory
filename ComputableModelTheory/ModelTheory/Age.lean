@@ -8,6 +8,7 @@ import ComputableModelTheory.ModelTheory.Computable.ComputableAge
 import ComputableModelTheory.ModelTheory.Computable.EmbeddingInformation
 import ComputableModelTheory.ModelTheory.Computable.PotentialComposition
 import ComputableModelTheory.ModelTheory.Computable.PotentialEmbedding
+import ComputableModelTheory.ModelTheory.Computable.PotentialSpan
 import ComputableModelTheory.ModelTheory.Computable.UniformAtomic
 import ComputableModelTheory.ModelTheory.Computable.UniformTermEvaluation
 import Mathlib.ModelTheory.FinitelyGenerated
@@ -18,7 +19,8 @@ import Mathlib.ModelTheory.Fraisse
 
 Umbrella module for the age layer: uniform computable ages with their represented
 classical classes, potential embeddings with their realization theory, uniform term
-and atomic-data evaluation, semantic embedding information with its r.e. complement, and
-canonical least-term transport of values along potential embedding data. Effective
+and atomic-data evaluation, semantic embedding information with its r.e. complement,
+canonical least-term transport of values along potential embedding data, composition of
+potential embedding data, and potential spans with amalgamation diagrams. Effective
 HP/JEP/AP witnesses are to come.
 -/
