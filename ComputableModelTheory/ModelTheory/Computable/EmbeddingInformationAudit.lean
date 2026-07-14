@@ -64,6 +64,12 @@ theorem test_embeddingInformationComputableIn_iff (E : Set (ℕ →. ℕ)) :
       ComputablePredIn E fun F : PotentialEmbeddingData ↦ F ∈ EmbeddingInformation K :=
   embeddingInformationComputableIn_iff E K
 
+/-- The C0 specialization: any oracle set computing the jump of the age's oracles
+decides embedding information — `EI(K) ≤ O′` in interface form. -/
+theorem test_embeddingInformationComputableIn_of_computesJumpOf {J : Set (ℕ →. ℕ)}
+    (hJ : ComputesJumpOf J O) : EmbeddingInformationComputableIn J K :=
+  embeddingInformationComputableIn_of_computesJumpOf hJ K
+
 end
 
 section ConcreteWitness
@@ -90,5 +96,6 @@ end ConcreteWitness
 #assert_standard_axioms test_not_isEmbedding_rePredIn
 #assert_standard_axioms test_embeddingInformation_compl_rePredIn
 #assert_standard_axioms test_embeddingInformationComputableIn_iff
+#assert_standard_axioms test_embeddingInformationComputableIn_of_computesJumpOf
 #assert_standard_axioms test_succ_id_mem_embeddingInformation
 #assert_standard_axioms test_succ_malformed_candidate
