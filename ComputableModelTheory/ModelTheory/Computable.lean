@@ -7,6 +7,7 @@ import ComputableModelTheory.Computability.OraclePred
 import ComputableModelTheory.ModelTheory.Computable.AtomicEquiv
 import ComputableModelTheory.ModelTheory.Computable.AtomicEquivComputability
 import ComputableModelTheory.ModelTheory.Computable.AtomicSatisfaction
+import ComputableModelTheory.ModelTheory.Computable.CePresentation
 import ComputableModelTheory.ModelTheory.Computable.Diagram
 import ComputableModelTheory.ModelTheory.Computable.GeneratedPresentation
 import ComputableModelTheory.ModelTheory.Computable.GraphExample
