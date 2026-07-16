@@ -5,7 +5,6 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.Computability
 import ComputableModelTheory.ModelTheory
-import ComputableModelTheory.Paper
 
 /-!
 # Computable Model Theory

@@ -20,7 +20,7 @@ age entries later.
 The file also provides `Primcodable` instances for the symbols of each fixed arity, as
 fibers of the arity map, and the computable empty-language structure on `ℕ`.
 
-Following the roadmap, normalization results (the paper's Lemma 4.3) are deferred.
+Presentation-normalization results are deferred.
 -/
 
 

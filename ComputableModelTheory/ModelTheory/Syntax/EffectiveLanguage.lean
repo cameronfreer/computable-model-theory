@@ -14,13 +14,12 @@ when its arity-packaged function and relation symbols are primitively codable an
 arity maps are primitive recursive. Mathlib's languages are arity-indexed, so the natural
 object to code is the sigma type of all symbols.
 
-This is deliberately a *stronger* coding convention than the paper's, which asks only for
-computable symbol sets with a computable arity map: the `Primcodable` instances for
-first-order syntax discharge `Primcodable.prim` obligations, which live at the primitive
-recursive level. A single strong class is used rather than a computable class with a
-primitive recursive subclass; the eventual equivalence with the paper's presentation (up
-to computable recoding of symbols) is a recorded proof obligation for the paper-wrapper
-layer.
+This is deliberately a *stronger* coding convention than the classical one, which asks
+only for computable symbol sets with a computable arity map: the `Primcodable` instances
+for first-order syntax discharge `Primcodable.prim` obligations, which live at the
+primitive recursive level. A single strong class is used rather than a computable class
+with a primitive recursive subclass; the eventual equivalence with the weaker
+presentation (up to computable recoding of symbols) is a recorded proof obligation.
 
 The `FunctionApplicationData`/`RelationApplicationData` structures package a symbol with
 an arity-matched argument tuple, so that later files can quantify uniformly over all

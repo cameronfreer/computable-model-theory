@@ -9,7 +9,7 @@ import ComputableModelTheory.Util.AssertAxioms
 /-!
 # Audit module for composition of potential embedding data
 
-Named acceptance tests for `compData`, its transport helpers, and `paperComp`, checked by
+Named acceptance tests for `compData`, its transport helpers, and `checkedComp`, checked by
 `#assert_standard_axioms`. Outside the root import spine; CI checks it explicitly with
 
 ```
@@ -19,7 +19,7 @@ lake env lean ComputableModelTheory/ModelTheory/Computable/PotentialCompositionA
 Coverage: composition's oracle-computability; the projection identities; minimal
 well-formedness; actualness of a composite; the functoriality of transport and the
 realized-embedding composition; the identity and associativity laws; and both branches of the
-paper totalization.
+checked totalization.
 -/
 
 open Encodable FirstOrder Language
@@ -84,16 +84,16 @@ theorem test_compData_assoc (K : ComputableAgeIn O L) {F G H : PotentialEmbeddin
     K.compData H (K.compData G F) = K.compData (K.compData H G) F :=
   K.compData_assoc hGH hG hH
 
-/-- The paper totalization uses the composite on actual `G`. -/
-theorem test_paperComp_actual (K : ComputableAgeIn O L) (G F : PotentialEmbeddingData)
-    (hG : G.IsEmbedding K) : K.paperComp G F = K.compData G F := by
-  unfold ComputableAgeIn.paperComp
+/-- The checked totalization uses the composite on actual `G`. -/
+theorem test_checkedComp_actual (K : ComputableAgeIn O L) (G F : PotentialEmbeddingData)
+    (hG : G.IsEmbedding K) : K.checkedComp G F = K.compData G F := by
+  unfold ComputableAgeIn.checkedComp
   exact if_pos hG
 
-/-- The paper totalization falls back off actual `G`. -/
-theorem test_paperComp_fallback (K : ComputableAgeIn O L) (G F : PotentialEmbeddingData)
-    (hG : ¬ G.IsEmbedding K) : K.paperComp G F = ⟨F.domIdx, G.codIdx, G.rangeTuple⟩ := by
-  unfold ComputableAgeIn.paperComp
+/-- The checked totalization falls back off actual `G`. -/
+theorem test_checkedComp_fallback (K : ComputableAgeIn O L) (G F : PotentialEmbeddingData)
+    (hG : ¬ G.IsEmbedding K) : K.checkedComp G F = ⟨F.domIdx, G.codIdx, G.rangeTuple⟩ := by
+  unfold ComputableAgeIn.checkedComp
   exact if_neg hG
 
 end
@@ -106,5 +106,5 @@ end
 #assert_standard_axioms test_toEmbedding_compData
 #assert_standard_axioms test_compData_id
 #assert_standard_axioms test_compData_assoc
-#assert_standard_axioms test_paperComp_actual
-#assert_standard_axioms test_paperComp_fallback
+#assert_standard_axioms test_checkedComp_actual
+#assert_standard_axioms test_checkedComp_fallback

@@ -3,8 +3,10 @@
 A Lean 4 / [mathlib](https://github.com/leanprover-community/mathlib4) library that aims
 to formalize computable model theory: effective presentations of first-order languages
 and structures, computable ages, potential embeddings and embedding information, and
-effective Fraïssé constructions. The library is developed as a reusable spine, with
-paper-specific statements kept in wrapper modules under `ComputableModelTheory/Paper/`.
+effective Fraïssé constructions. The library is developed as a reusable spine over
+mathlib's `FirstOrder` model theory, importing classical infinitary-logic foundations
+from [infinitary-logic](https://github.com/cameronfreer/infinitary-logic) as a pinned
+dependency.
 
 ## Current status
 
@@ -41,8 +43,18 @@ extending the tuple assignment. Terms and atomic data over natural-number variab
 are evaluated by single programs uniform in the age index and a list environment;
 atomic equivalence is exactly agreement on width-valid atomic data; the failure of
 actualness of arbitrary potential embedding data is uniformly r.e.; and embedding
-information is defined semantically with an r.e. complement. Effective HP/JEP/AP
-witnesses and limits are to come.
+information is defined semantically with an r.e. complement.
+
+On top of that base: canonical least-term transport of values along potential embedding
+data; total composition of potential data with its identity, associativity, and
+realized-embedding laws; `Primcodable` spans and amalgamation diagrams with coded
+commutativity matching realized commutativity; the indexed HP/JEP/AP properties with
+joint embedding data; effective HP/JEP/AP witness interfaces (total selectors with
+computability and conditional soundness); an abstract EI-decision interface; a minimal
+oracle jump calculus (`ComputesJumpOf`, with the r.e.-to-decidable bridges and the
+displayed `0′`), giving `EI(K) ≤ O′` in interface form; and a thin representation
+boundary to `infinitary-logic`'s Scott/back-and-forth and Henkin layers. Witness
+extraction and the effective Fraïssé limit are to come.
 
 ## Staging
 
@@ -52,8 +64,6 @@ witnesses and limits are to come.
 | 2 | Computable structures and diagrams (ω-presentations, term/qf evaluation, atomic diagrams) |
 | 3 | Computable ages and potential embeddings (tuple closures, atomic equivalence, embedding information) |
 | 4 | AP/Fraïssé upper bound (effective HP/JEP/AP witnesses, computable Fraïssé construction) |
-| 5 | CAP/cofinal material (distinguished extensions, cofinal ultrahomogeneity, cofinal limits) |
-| 6 | Lower bounds (diagonalization against oracle strength) |
 
 ## Building
 

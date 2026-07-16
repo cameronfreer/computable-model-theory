@@ -355,10 +355,10 @@ theorem compData_assoc {F G H : PotentialEmbeddingData} (hGH : G.codIdx = H.domI
   rw [List.map_map, ← hfun]
   rfl
 
-/-- The source-faithful totalization of composition: the composite on actual `G`, otherwise a
-fallback carrying `G`'s range at `F`'s domain and `G`'s codomain. Not claimed computable in this
-tranche; later it is computable relative to an oracle deciding `IsEmbedding`. -/
-noncomputable def paperComp (G F : PotentialEmbeddingData) : PotentialEmbeddingData :=
+/-- The checked (source-faithful) totalization of composition: the composite on actual `G`,
+otherwise a fallback carrying `G`'s range at `F`'s domain and `G`'s codomain. Not claimed
+computable here; later it is computable relative to an oracle deciding `IsEmbedding`. -/
+noncomputable def checkedComp (G F : PotentialEmbeddingData) : PotentialEmbeddingData :=
   open Classical in
   if G.IsEmbedding K then K.compData G F
   else ⟨F.domIdx, G.codIdx, G.rangeTuple⟩
