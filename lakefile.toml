@@ -10,6 +10,13 @@ weak.linter.mathlibStandardSet = true
 maxSynthPendingDepth = 3
 
 [[require]]
+name = "InfinitaryLogic"
+git = "https://github.com/cameronfreer/infinitary-logic"
+rev = "6614ec7076f0b4d1911f48cb89a51d5e693fea88"
+
+# Mathlib last so its dependency versions take precedence over transitive ones
+# (e.g. batteries / Cli pulled in by LeanArchitect), per Mathlib's lake update guidance.
+[[require]]
 name = "mathlib"
 scope = "leanprover-community"
 rev = "v4.32.0"
