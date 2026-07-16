@@ -37,6 +37,22 @@ theorem test_sameAtomicTypeAt_refl (i : ℕ) {n : ℕ} (a : Fin n → ℕ) :
     K.sameAtomicTypeAt i i a a :=
   fun _ ↦ Iff.rfl
 
+/-- D2, general form: on a relational language, atomic equivalence is same atomic
+type. -/
+theorem test_atomicEquivalent_iff_sameAtomicType {L' : Language} [L'.IsRelational]
+    {M N : Type*} [L'.Structure M] [L'.Structure N] {k : ℕ} (a : Fin k → M)
+    (b : Fin k → N) :
+    AtomicEquivalent L' a b ↔ @SameAtomicType L' M _ k N _ a b :=
+  atomicEquivalent_iff_sameAtomicType a b
+
+/-- D2 at indexed presentations, in back-and-forth form: level zero is CMT atomic
+equivalence on relational languages. -/
+theorem test_bfEquivAt_zero_iff_atomicEquivalent [L.IsRelational] (i j : ℕ) {n : ℕ}
+    (a b : Fin n → ℕ) :
+    K.bfEquivAt i j 0 a b ↔
+      @AtomicEquivalent L ℕ ℕ (K.structureAt i) (K.structureAt j) n a b :=
+  K.bfEquivAt_zero_iff_atomicEquivalent i j a b
+
 end
 
 section UpstreamSurface
@@ -66,6 +82,8 @@ end UpstreamSurface
 
 #assert_standard_axioms test_bfEquivAt_zero
 #assert_standard_axioms test_sameAtomicTypeAt_refl
+#assert_standard_axioms test_atomicEquivalent_iff_sameAtomicType
+#assert_standard_axioms test_bfEquivAt_zero_iff_atomicEquivalent
 #assert_standard_axioms test_upstream_bfEquiv_zero
 #assert_standard_axioms test_upstream_atomicDiagram
 #assert_standard_axioms test_upstream_model_existence

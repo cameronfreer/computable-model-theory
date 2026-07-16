@@ -3,6 +3,7 @@ Copyright (c) 2026 Cameron Freer. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
+import ComputableModelTheory.ModelTheory.Computable.AtomicEquiv
 import ComputableModelTheory.ModelTheory.Computable.ComputableAge
 import InfinitaryLogic.Scott.AtomicDiagram
 import InfinitaryLogic.Scott.BackAndForth
@@ -70,6 +71,74 @@ the upstream characterization `BFEquiv.zero` re-exported at indexed presentation
 theorem bfEquivAt_zero (i j : ℕ) {n : ℕ} (a b : Fin n → ℕ) :
     K.bfEquivAt i j 0 a b ↔ K.sameAtomicTypeAt i j a b :=
   @BFEquiv.zero L ℕ (K.structureAt i) ℕ (K.structureAt j) n a b
+
+end ComputableAgeIn
+
+section RelationalAgreement
+
+/-! ### D2: the relational agreement theorem
+
+On relational languages the two atomic notions coincide: CMT's `AtomicEquivalent`
+(agreement on all term equalities and relation atoms) and upstream's `SameAtomicType`
+(agreement on all variable-level atomic indices). The relational hypothesis is essential
+in the equivalence's interesting direction: with function symbols, `AtomicIdx` omits
+equalities between non-variable terms, so `SameAtomicType` would be strictly weaker.
+Relationalization of general languages is a separate bridge, deliberately not part of
+this theorem. -/
+
+variable {L' : Language} {M N : Type*} [L'.Structure M] [L'.Structure N] {k : ℕ}
+
+/-- In a relational language every term is a variable. -/
+private theorem exists_eq_var [L'.IsRelational] {α : Type*} (t : L'.Term α) :
+    ∃ i, t = Term.var i := by
+  cases t with
+  | var i => exact ⟨i, rfl⟩
+  | func f _ => exact isEmptyElim f
+
+/-- D2 agreement, general form: on a relational language, atomic equivalence is exactly
+same atomic type. Variables index all atoms: term-equality atoms reduce to
+variable-equality indices and relation atoms to relation indices, in both directions. -/
+theorem atomicEquivalent_iff_sameAtomicType [L'.IsRelational] (a : Fin k → M)
+    (b : Fin k → N) :
+    AtomicEquivalent L' a b ↔ @SameAtomicType L' M _ k N _ a b := by
+  constructor
+  · rintro ⟨hterm, hrel⟩ idx
+    cases idx with
+    | eq i j => exact hterm (Term.var i) (Term.var j)
+    | rel R f => exact hrel R fun m ↦ Term.var (f m)
+  · intro h
+    refine ⟨fun t₁ t₂ ↦ ?_, fun R ts ↦ ?_⟩
+    · obtain ⟨i, rfl⟩ := exists_eq_var t₁
+      obtain ⟨j, rfl⟩ := exists_eq_var t₂
+      exact h (.eq i j)
+    · choose g hg using fun m ↦ exists_eq_var (ts m)
+      have ha : (fun m ↦ (ts m).realize a) = a ∘ g := funext fun m ↦ by rw [hg m]; rfl
+      have hb : (fun m ↦ (ts m).realize b) = b ∘ g := funext fun m ↦ by rw [hg m]; rfl
+      rw [ha, hb]
+      exact h (.rel R g)
+
+end RelationalAgreement
+
+namespace ComputableAgeIn
+
+variable (K : ComputableAgeIn O L)
+
+/-- D2 at indexed presentations: on a relational language, same atomic type through the
+boundary is CMT's atomic equivalence with the stored structures passed explicitly. -/
+theorem sameAtomicTypeAt_iff_atomicEquivalent [L.IsRelational] (i j : ℕ) {n : ℕ}
+    (a b : Fin n → ℕ) :
+    K.sameAtomicTypeAt i j a b ↔
+      @AtomicEquivalent L ℕ ℕ (K.structureAt i) (K.structureAt j) n a b :=
+  (@atomicEquivalent_iff_sameAtomicType L ℕ ℕ (K.structureAt i) (K.structureAt j) n
+    _ a b).symm
+
+/-- D2 in back-and-forth form: on a relational language, level zero of back-and-forth
+equivalence at indexed presentations is CMT's atomic equivalence. -/
+theorem bfEquivAt_zero_iff_atomicEquivalent [L.IsRelational] (i j : ℕ) {n : ℕ}
+    (a b : Fin n → ℕ) :
+    K.bfEquivAt i j 0 a b ↔
+      @AtomicEquivalent L ℕ ℕ (K.structureAt i) (K.structureAt j) n a b :=
+  (K.bfEquivAt_zero i j a b).trans (K.sameAtomicTypeAt_iff_atomicEquivalent i j a b)
 
 end ComputableAgeIn
 
