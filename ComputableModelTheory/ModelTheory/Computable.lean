@@ -12,6 +12,7 @@ import ComputableModelTheory.ModelTheory.Computable.Diagram
 import ComputableModelTheory.ModelTheory.Computable.GeneratedPresentation
 import ComputableModelTheory.ModelTheory.Computable.GraphExample
 import ComputableModelTheory.ModelTheory.Computable.QFSatisfaction
+import ComputableModelTheory.ModelTheory.Computable.RankPresentation
 import ComputableModelTheory.ModelTheory.Computable.Structure
 import ComputableModelTheory.ModelTheory.Computable.SuccExample
 import ComputableModelTheory.ModelTheory.Computable.TermClosure
