@@ -458,6 +458,17 @@ end ComputableIn
 
 end
 
+/-- Total unbounded search: the least witness of a total oracle-computable predicate is
+computable in the oracle. The oracle analogue of mathlib's `Computable.find`; extracted
+from the canonical-transport layer to the computability substrate, next to
+`RecursiveIn.rfind_total`. -/
+theorem ComputableIn.find {α : Type*} [Primcodable α] {O : Set (ℕ →. ℕ)}
+    {f : α → ℕ → Bool} (hf : ComputableIn₂ O f) (h : ∀ a, ∃ n, f a n = true) :
+    ComputableIn O fun a ↦ Nat.find (h a) := by
+  refine (RecursiveIn.rfind_total hf).of_eq fun a ↦ ?_
+  rw [Part.eq_some_iff, Nat.mem_rfind]
+  exact ⟨by simp [Nat.find_spec (h a)], fun {m} hm ↦ by simp [Nat.find_min (h a) hm]⟩
+
 namespace Nat
 
 /-- `Nat.rfind` over a total `Bool`-valued predicate halts exactly when a witness exists.

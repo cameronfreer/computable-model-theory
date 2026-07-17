@@ -12,10 +12,12 @@ The Level-1 carrier notion for representations whose members need not have carri
 of `ℕ` (issue #16): a **c.e. presentation** carries total-on-codes structure data, a
 domain *enumeration*, domain-closure laws, and computability claimed **only on the
 domain**, through partial evaluators. The type is deliberately distinct from
-`ComputableStructureIn` and never claims a decidable domain: from a c.e. domain one
-cannot computably totalize the operations, for the same reason the uniform Pullback
-cannot produce decidable initial segments. `ComputableStructureIn` is exactly the all-ℕ
-special case (`ComputableStructureIn.toCePresentation`, with `enum = id`).
+`ComputableStructureIn` and never claims a decidable domain: there is no computable
+totalization *uniformly, or in general, from the c.e.-presentation data* — a particular
+presentation's evaluators may well admit computable total extensions, but nothing
+produces one from the data, for the same reason the uniform Pullback cannot produce
+decidable initial segments. `ComputableStructureIn` is exactly the all-ℕ special case
+(`ComputableStructureIn.toCePresentation`, with `enum = id`).
 
 The enumeration-rank machinery for the Level-1 Pullback lives here: `freshAt` marks the
 positions where the enumeration produces a new element; `rankIdx` is the partial
@@ -275,24 +277,309 @@ theorem mem_domain_of_mem_rankEnum {r x : ℕ} (h : x ∈ P.rankEnum r) :
   obtain ⟨i, -, rfl⟩ := (Part.mem_map_iff _).1 h
   exact P.enum_mem_domain i
 
-/-- The rank of an element: the least enumeration position producing it, mapped through
-nothing — `rankOf` diverges off the domain, halts on it. Composition with `rankIdx`
-data is deferred to the rank-presentation construction. -/
-noncomputable def rankOf : ℕ →. ℕ :=
+/-- The first enumeration position producing an element: partial, diverging off the
+domain, halting on it. The position it returns is fresh; composing with the fresh count
+gives the element's rank (`rankOf`). -/
+noncomputable def firstIdxOf : ℕ →. ℕ :=
   fun x ↦ Nat.rfind fun k ↦ Part.some (decide (P.enum k = x))
 
-/-- The element rank search is partial recursive in the oracle. -/
-theorem rankOf_recursiveIn : RecursiveIn O P.rankOf :=
+/-- The first-position search is partial recursive in the oracle. -/
+theorem firstIdxOf_recursiveIn : RecursiveIn O P.firstIdxOf :=
   RecursiveIn.rfind_total
     (((Primrec.eq (α := ℕ)).decide.to_comp.computableIn₂ (O := O)).comp
       (P.enum_computableIn.comp ComputableIn.snd) ComputableIn.fst)
 
-/-- The rank search halts exactly on the domain. -/
-theorem rankOf_dom_iff (x : ℕ) : (P.rankOf x).Dom ↔ x ∈ P.domain := by
+/-- The first-position search halts exactly on the domain. -/
+theorem firstIdxOf_dom_iff (x : ℕ) : (P.firstIdxOf x).Dom ↔ x ∈ P.domain := by
   have h := Nat.rfind_some_dom_iff (f := fun (y : ℕ) k ↦ decide (P.enum k = y)) (a := x)
-  rw [rankOf]
+  rw [firstIdxOf]
   exact h.trans
     ⟨fun ⟨n, hn⟩ ↦ ⟨n, of_decide_eq_true hn⟩, fun ⟨n, hn⟩ ↦ ⟨n, decide_eq_true hn⟩⟩
+
+/-- Membership specification of the first-position search. -/
+theorem mem_firstIdxOf_iff {x i : ℕ} :
+    i ∈ P.firstIdxOf x ↔ P.enum i = x ∧ ∀ j < i, P.enum j ≠ x := by
+  rw [firstIdxOf, Nat.mem_rfind]
+  constructor
+  · rintro ⟨hspec, hmin⟩
+    rw [Part.mem_some_iff] at hspec
+    refine ⟨of_decide_eq_true hspec.symm, fun j hj he ↦ ?_⟩
+    have := hmin hj
+    rw [Part.mem_some_iff] at this
+    exact absurd (decide_eq_true he) (by rw [← this]; exact fun h ↦ Bool.noConfusion h)
+  · rintro ⟨he, hmin⟩
+    exact ⟨Part.mem_some_iff.2 (decide_eq_true he).symm,
+      fun {m} hm ↦ Part.mem_some_iff.2 (decide_eq_false (hmin m hm)).symm⟩
+
+/-- First positions are fresh. -/
+theorem freshAt_of_mem_firstIdxOf {x i : ℕ} (h : i ∈ P.firstIdxOf x) :
+    P.freshAt i = true := by
+  obtain ⟨he, hmin⟩ := P.mem_firstIdxOf_iff.1 h
+  exact (P.freshAt_iff i).2 fun j hj hej ↦ hmin j hj (hej.trans he)
+
+/-! ### First occurrences and rank counting
+
+`firstOcc k` is the first position enumerating the same element as position `k` — total,
+by bounded least search, the least-representative device of effective union
+constructions. `countFreshBelow k` counts the fresh positions below `k`; the
+characterization `mem_rankIdx_iff` identifies `rankIdx r` as the fresh position with
+exactly `r` fresh predecessors, from which the enumeration-rank inverse laws follow. -/
+
+/-- The first position enumerating the same element as position `k`. Total: bounded by
+`k` itself. -/
+def firstOcc (k : ℕ) : ℕ :=
+  Nat.find (⟨k, rfl⟩ : ∃ j, P.enum j = P.enum k)
+
+theorem enum_firstOcc (k : ℕ) : P.enum (P.firstOcc k) = P.enum k :=
+  Nat.find_spec (⟨k, rfl⟩ : ∃ j, P.enum j = P.enum k)
+
+theorem firstOcc_le (k : ℕ) : P.firstOcc k ≤ k :=
+  Nat.find_le rfl
+
+theorem enum_ne_of_lt_firstOcc {k j : ℕ} (hj : j < P.firstOcc k) :
+    P.enum j ≠ P.enum k :=
+  Nat.find_min (⟨k, rfl⟩ : ∃ j, P.enum j = P.enum k) hj
+
+/-- First occurrences are fresh. -/
+theorem freshAt_firstOcc (k : ℕ) : P.freshAt (P.firstOcc k) = true :=
+  (P.freshAt_iff _).2 fun _ hj he ↦
+    P.enum_ne_of_lt_firstOcc hj (he.trans (P.enum_firstOcc k))
+
+/-- Fresh positions are their own first occurrence. -/
+theorem firstOcc_eq_self_of_fresh {k : ℕ} (h : P.freshAt k = true) :
+    P.firstOcc k = k := by
+  rcases Nat.lt_or_ge (P.firstOcc k) k with hlt | hge
+  · exact absurd (P.enum_firstOcc k) ((P.freshAt_iff k).1 h _ hlt)
+  · exact Nat.le_antisymm (P.firstOcc_le k) hge
+
+/-- First occurrence is computable in the oracle. -/
+theorem firstOcc_computableIn : ComputableIn O P.firstOcc := by
+  have hB : ∀ k, ∃ j, (fun j ↦ decide (P.enum j = P.enum k)) j = true :=
+    fun k ↦ ⟨k, decide_eq_true rfl⟩
+  have hfind : ComputableIn O fun k ↦ Nat.find (hB k) :=
+    ComputableIn.find
+      ((((Primrec.eq (α := ℕ)).decide.to_comp.computableIn₂ (O := O)).comp
+        (P.enum_computableIn.comp ComputableIn.snd)
+        (P.enum_computableIn.comp ComputableIn.fst)).to₂)
+      hB
+  refine hfind.of_eq fun k ↦ Nat.le_antisymm ?_ ?_
+  · exact Nat.find_le (decide_eq_true (P.enum_firstOcc k))
+  · exact Nat.find_le (of_decide_eq_true (Nat.find_spec (hB k)))
+
+/-- The number of fresh positions below `k`. -/
+def countFreshBelow (k : ℕ) : ℕ :=
+  (List.range k).foldr (fun j acc ↦ bif P.freshAt j then acc + 1 else acc) 0
+
+@[simp]
+theorem countFreshBelow_zero : P.countFreshBelow 0 = 0 :=
+  rfl
+
+private theorem foldr_count_shift (g : ℕ → Bool) (l : List ℕ) (c : ℕ) :
+    l.foldr (fun j acc ↦ bif g j then acc + 1 else acc) c =
+      l.foldr (fun j acc ↦ bif g j then acc + 1 else acc) 0 + c := by
+  induction l with
+  | nil => simp
+  | cons a t ih =>
+    cases h : g a
+    · simpa [h] using ih
+    · simp only [List.foldr_cons, h, cond_true, ih]
+      omega
+
+theorem countFreshBelow_succ (k : ℕ) :
+    P.countFreshBelow (k + 1) =
+      P.countFreshBelow k + (bif P.freshAt k then 1 else 0) := by
+  rw [countFreshBelow, List.range_succ, List.foldr_append]
+  rw [show List.foldr (fun j acc ↦ bif P.freshAt j then acc + 1 else acc) 0 [k]
+      = (bif P.freshAt k then 1 else 0) from by cases h : P.freshAt k <;> simp [h]]
+  exact foldr_count_shift P.freshAt (List.range k) _
+
+theorem countFreshBelow_mono {j k : ℕ} (h : j ≤ k) :
+    P.countFreshBelow j ≤ P.countFreshBelow k := by
+  induction k with
+  | zero => exact (Nat.le_zero.1 h) ▸ le_rfl
+  | succ n ih =>
+    rcases Nat.lt_or_ge j (n + 1) with hlt | hge
+    · exact le_trans (ih (Nat.lt_succ_iff.1 hlt))
+        (by rw [P.countFreshBelow_succ n]; omega)
+    · exact (Nat.le_antisymm h hge) ▸ le_rfl
+
+/-- Counting is constant across a fresh-free interval. -/
+theorem countFreshBelow_eq_of_no_fresh {j k : ℕ} (hjk : j ≤ k)
+    (hno : ∀ m, j ≤ m → m < k → P.freshAt m = false) :
+    P.countFreshBelow k = P.countFreshBelow j := by
+  induction k with
+  | zero => rw [Nat.le_zero.1 hjk]
+  | succ n ih =>
+    rcases Nat.lt_or_ge j (n + 1) with hlt | hge
+    · have hj := Nat.lt_succ_iff.1 hlt
+      rw [P.countFreshBelow_succ n, hno n hj (Nat.lt_succ_self n),
+        ih hj fun m hm hmn ↦ hno m hm (Nat.lt_succ_of_lt hmn)]
+      rfl
+    · rw [Nat.le_antisymm hjk hge]
+
+/-- Counting is computable in the oracle. -/
+theorem countFreshBelow_computableIn : ComputableIn O P.countFreshBelow := by
+  have hstep : ComputableIn O fun q : ℕ × (ℕ × ℕ) ↦
+      bif P.freshAt q.2.1 then q.2.2 + 1 else q.2.2 :=
+    ComputableIn.cond
+      (P.freshAt_computableIn.comp (ComputableIn.fst.comp ComputableIn.snd))
+      ((Primrec.succ.to_comp.computableIn (O := O)).comp
+        (ComputableIn.snd.comp ComputableIn.snd))
+      (ComputableIn.snd.comp ComputableIn.snd)
+  exact ComputableIn.list_foldr
+    (Primrec.list_range.to_comp.computableIn)
+    (ComputableIn.const 0) hstep.to₂
+
+/-- The characterization of rank positions: `rankIdx r` is exactly the fresh position
+with `r` fresh predecessors. -/
+theorem mem_rankIdx_iff {r i : ℕ} :
+    i ∈ P.rankIdx r ↔ P.freshAt i = true ∧ P.countFreshBelow i = r := by
+  induction r generalizing i with
+  | zero =>
+    rw [rankIdx_zero, Part.mem_some_iff]
+    constructor
+    · rintro rfl
+      exact ⟨P.freshAt_zero, rfl⟩
+    · rintro ⟨hf, hc⟩
+      by_contra hne
+      have h0 : 0 < i := Nat.pos_of_ne_zero hne
+      have : 1 ≤ P.countFreshBelow i := by
+        calc 1 = P.countFreshBelow 1 := by
+              rw [P.countFreshBelow_succ 0, P.freshAt_zero]; rfl
+          _ ≤ P.countFreshBelow i := P.countFreshBelow_mono h0
+      omega
+  | succ n ih =>
+    rw [rankIdx_succ]
+    constructor
+    · intro h
+      obtain ⟨j, hj, hfind⟩ := Part.mem_bind_iff.1 h
+      obtain ⟨hjf, hjc⟩ := ih.1 hj
+      have hand : (decide (j < i) && P.freshAt i) = true :=
+        (Part.mem_some_iff.1 (Nat.rfind_spec hfind)).symm
+      have hji : j < i := of_decide_eq_true ((Bool.and_eq_true _ _).mp hand).1
+      have hif : P.freshAt i = true := ((Bool.and_eq_true _ _).mp hand).2
+      have hno : ∀ m, j + 1 ≤ m → m < i → P.freshAt m = false := by
+        intro m hm hmi
+        have hmin := Nat.rfind_min hfind hmi
+        rw [Part.mem_some_iff] at hmin
+        have hfalse : (decide (j < m) && P.freshAt m) = false := hmin.symm
+        rcases Bool.and_eq_false_iff.1 hfalse with hlt | hfr
+        · exact absurd hlt (by simp [Nat.lt_of_succ_le hm])
+        · exact hfr
+      refine ⟨hif, ?_⟩
+      rw [P.countFreshBelow_eq_of_no_fresh (Nat.succ_le_of_lt hji) hno,
+        P.countFreshBelow_succ j, hjf, hjc]
+      rfl
+    · rintro ⟨hif, hic⟩
+      -- The greatest fresh position below `i` has count `n`; it is `rankIdx n` by the
+      -- inductive hypothesis, and `i` is then the least fresh position beyond it.
+      have hi0 : 0 < i := by
+        rcases Nat.eq_zero_or_pos i with h0 | h
+        · rw [h0] at hic
+          simp at hic
+        · exact h
+      set j := Nat.findGreatest (fun j ↦ P.freshAt j = true) (i - 1) with hjdef
+      have hji : j < i :=
+        Nat.lt_of_le_of_lt (Nat.findGreatest_le _) (by omega)
+      have hjf : P.freshAt j = true :=
+        Nat.findGreatest_spec (P := fun m ↦ P.freshAt m = true)
+          (Nat.zero_le (i - 1)) P.freshAt_zero
+      have hjno : ∀ m, j < m → m < i → P.freshAt m = false := by
+        intro m hjm hmi
+        have hng : ¬ P.freshAt m = true :=
+          Nat.findGreatest_is_greatest hjm (by omega)
+        cases h : P.freshAt m
+        · rfl
+        · exact absurd h hng
+      have hjc : P.countFreshBelow j = n := by
+        have hstep : P.countFreshBelow i = P.countFreshBelow j + 1 := by
+          rw [P.countFreshBelow_eq_of_no_fresh (Nat.succ_le_of_lt hji)
+              (fun m hm hmi ↦ hjno m (Nat.lt_of_succ_le hm) hmi),
+            P.countFreshBelow_succ j, hjf]
+          rfl
+        omega
+      have hjmem : j ∈ P.rankIdx n := ih.2 ⟨hjf, hjc⟩
+      refine Part.mem_bind_iff.2 ⟨j, hjmem, ?_⟩
+      rw [Nat.mem_rfind]
+      constructor
+      · rw [Part.mem_some_iff]
+        simp [hji, hif]
+      · intro m hmi
+        rw [Part.mem_some_iff]
+        rcases Nat.lt_or_ge j m with hjm | hmj
+        · simp [hjno m hjm hmi]
+        · simp [Nat.not_lt_of_ge hmj]
+
+/-! ### The enumeration-rank correspondence -/
+
+/-- The rank of the element at position `k`: the fresh count below its first
+occurrence. Total and computable — the least-representative coding of effective union
+constructions. Its range is exactly the rank domain. -/
+def posRank (k : ℕ) : ℕ :=
+  P.countFreshBelow (P.firstOcc k)
+
+theorem posRank_computableIn : ComputableIn O P.posRank :=
+  P.countFreshBelow_computableIn.comp P.firstOcc_computableIn
+
+/-- The first occurrence of any position realizes its rank. -/
+theorem firstOcc_mem_rankIdx_posRank (k : ℕ) :
+    P.firstOcc k ∈ P.rankIdx (P.posRank k) :=
+  P.mem_rankIdx_iff.2 ⟨P.freshAt_firstOcc k, rfl⟩
+
+/-- `posRank` recovers the rank of any defined rank position. -/
+theorem posRank_of_mem_rankIdx {r i : ℕ} (h : i ∈ P.rankIdx r) :
+    P.posRank i = r := by
+  obtain ⟨hf, hc⟩ := P.mem_rankIdx_iff.1 h
+  rw [posRank, P.firstOcc_eq_self_of_fresh hf, hc]
+
+/-- Gate: the rank domain is exactly the range of the total computable `posRank` —
+in particular c.e. (and downward closed, by `rankIdx_dom_mono`). -/
+theorem rankIdx_dom_iff_mem_range_posRank (r : ℕ) :
+    (P.rankIdx r).Dom ↔ r ∈ Set.range P.posRank := by
+  constructor
+  · intro h
+    exact ⟨(P.rankIdx r).get h, P.posRank_of_mem_rankIdx (Part.get_mem h)⟩
+  · rintro ⟨k, rfl⟩
+    exact Part.dom_iff_mem.2 ⟨P.firstOcc k, P.firstOcc_mem_rankIdx_posRank k⟩
+
+/-- The rank of an element: the fresh count below its first enumeration position.
+Partial: halts exactly on the domain. The inverse of `rankEnum` on their respective
+domains. -/
+noncomputable def rankOf : ℕ →. ℕ :=
+  fun x ↦ (P.firstIdxOf x).map P.countFreshBelow
+
+theorem rankOf_recursiveIn : RecursiveIn O P.rankOf :=
+  RecursiveIn.map P.firstIdxOf_recursiveIn
+    ((P.countFreshBelow_computableIn.comp ComputableIn.snd).to₂)
+
+/-- The rank search halts exactly on the domain. -/
+theorem rankOf_dom_iff (x : ℕ) : (P.rankOf x).Dom ↔ x ∈ P.domain := by
+  rw [rankOf]
+  exact Part.dom_iff_mem.trans
+    ⟨fun ⟨r, hr⟩ ↦ by
+      obtain ⟨i, hi, -⟩ := (Part.mem_map_iff _).1 hr
+      exact (P.firstIdxOf_dom_iff x).1 (Part.dom_iff_mem.2 ⟨i, hi⟩),
+      fun hx ↦ by
+        obtain ⟨i, hi⟩ := Part.dom_iff_mem.1 ((P.firstIdxOf_dom_iff x).2 hx)
+        exact ⟨P.countFreshBelow i, (Part.mem_map_iff _).2 ⟨i, hi, rfl⟩⟩⟩
+
+/-- Gate (inverse, one direction): `rankOf` inverts `rankEnum` on the rank domain. -/
+theorem rankOf_rankEnum {r x : ℕ} (h : x ∈ P.rankEnum r) : r ∈ P.rankOf x := by
+  obtain ⟨i, hi, rfl⟩ := (Part.mem_map_iff _).1 h
+  obtain ⟨hf, hc⟩ := P.mem_rankIdx_iff.1 hi
+  have hfirst : i ∈ P.firstIdxOf (P.enum i) :=
+    P.mem_firstIdxOf_iff.2 ⟨rfl, fun j hj ↦ (P.freshAt_iff i).1 hf j hj⟩
+  exact (Part.mem_map_iff _).2 ⟨i, hfirst, hc⟩
+
+/-- Gate (inverse, other direction): `rankEnum` inverts `rankOf` on the domain. -/
+theorem rankEnum_rankOf {x : ℕ} (hx : x ∈ P.domain) :
+    ∃ r ∈ P.rankOf x, x ∈ P.rankEnum r := by
+  obtain ⟨i, hi⟩ := Part.dom_iff_mem.1 ((P.firstIdxOf_dom_iff x).2 hx)
+  obtain ⟨he, -⟩ := P.mem_firstIdxOf_iff.1 hi
+  refine ⟨P.countFreshBelow i, (Part.mem_map_iff _).2 ⟨i, hi, rfl⟩, ?_⟩
+  have hmem : i ∈ P.rankIdx (P.countFreshBelow i) :=
+    P.mem_rankIdx_iff.2 ⟨P.freshAt_of_mem_firstIdxOf hi, rfl⟩
+  exact (Part.mem_map_iff _).2 ⟨i, hmem, he⟩
 
 end CePresentationIn
 

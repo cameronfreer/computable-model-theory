@@ -40,9 +40,9 @@ theorem test_toCePresentation_domain (S : ComputableStructureIn O L) :
 /-- The rank machinery is computable/partial recursive in the oracle. -/
 theorem test_rank_machinery_recursiveIn :
     ComputableIn O P.freshAt ∧ RecursiveIn O P.rankIdx ∧
-      RecursiveIn O P.rankEnum ∧ RecursiveIn O P.rankOf :=
+      RecursiveIn O P.rankEnum ∧ RecursiveIn O P.firstIdxOf :=
   ⟨P.freshAt_computableIn, P.rankIdx_recursiveIn, P.rankEnum_recursiveIn,
-    P.rankOf_recursiveIn⟩
+    P.firstIdxOf_recursiveIn⟩
 
 /-- The rank domain is downward closed: the c.e. initial segment of the Level-1
 Pullback. -/
@@ -58,8 +58,22 @@ theorem test_rankIdx_spec {r i j : ℕ} (hi : i ∈ P.rankIdx r)
 /-- Rank-enumerated values lie in the domain, and the rank search halts exactly on the
 domain. -/
 theorem test_rank_domain_correspondence {r x : ℕ} (h : x ∈ P.rankEnum r) (y : ℕ) :
-    x ∈ P.domain ∧ ((P.rankOf y).Dom ↔ y ∈ P.domain) :=
-  ⟨P.mem_domain_of_mem_rankEnum h, P.rankOf_dom_iff y⟩
+    x ∈ P.domain ∧ ((P.firstIdxOf y).Dom ↔ y ∈ P.domain) :=
+  ⟨P.mem_domain_of_mem_rankEnum h, P.firstIdxOf_dom_iff y⟩
+
+/-- Gate: the rank domain is c.e. — the range of the total computable `posRank` (and
+downward closed, by the gate above). -/
+theorem test_rank_domain_ce (r : ℕ) :
+    ComputableIn O P.posRank ∧ ((P.rankIdx r).Dom ↔ r ∈ Set.range P.posRank) :=
+  ⟨P.posRank_computableIn, P.rankIdx_dom_iff_mem_range_posRank r⟩
+
+/-- Gate: `rankEnum` and `rankOf` are inverse on their respective domains, and the rank
+search halts exactly on the domain. -/
+theorem test_rank_inverse_laws {r x y : ℕ} (h : x ∈ P.rankEnum r) (hy : y ∈ P.domain)
+    (z : ℕ) :
+    r ∈ P.rankOf x ∧ (∃ s ∈ P.rankOf y, y ∈ P.rankEnum s) ∧
+      ((P.rankOf z).Dom ↔ z ∈ P.domain) :=
+  ⟨P.rankOf_rankEnum h, P.rankEnum_rankOf hy, P.rankOf_dom_iff z⟩
 
 end
 
@@ -82,4 +96,6 @@ end ConcreteCe
 #assert_standard_axioms test_rankIdx_dom_mono
 #assert_standard_axioms test_rankIdx_spec
 #assert_standard_axioms test_rank_domain_correspondence
+#assert_standard_axioms test_rank_domain_ce
+#assert_standard_axioms test_rank_inverse_laws
 #assert_standard_axioms test_empty_adapter_domain
