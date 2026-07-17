@@ -11,6 +11,7 @@ import ComputableModelTheory.ModelTheory.Computable.CePresentation
 import ComputableModelTheory.ModelTheory.Computable.Diagram
 import ComputableModelTheory.ModelTheory.Computable.GeneratedPresentation
 import ComputableModelTheory.ModelTheory.Computable.GraphExample
+import ComputableModelTheory.ModelTheory.Computable.InitialSegmentPresentation
 import ComputableModelTheory.ModelTheory.Computable.QFSatisfaction
 import ComputableModelTheory.ModelTheory.Computable.RankPresentation
 import ComputableModelTheory.ModelTheory.Computable.Structure
