@@ -31,16 +31,6 @@ namespace FirstOrder.Language
 
 variable {O : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
 
-/-- Total unbounded search: the least witness of a total oracle-computable predicate is
-computable in the oracle. The oracle analogue of mathlib's `Computable.find`; a candidate
-for extraction to the computability substrate next to `RecursiveIn.rfind_total`. -/
-theorem ComputableIn.find {α : Type*} [Primcodable α] {f : α → ℕ → Bool}
-    (hf : ComputableIn₂ O f) (h : ∀ a, ∃ n, f a n = true) :
-    ComputableIn O fun a ↦ Nat.find (h a) := by
-  refine (RecursiveIn.rfind_total hf).of_eq fun a ↦ ?_
-  rw [Part.eq_some_iff, Nat.mem_rfind]
-  exact ⟨by simp [Nat.find_spec (h a)], fun {m} hm ↦ by simp [Nat.find_min (h a) hm]⟩
-
 namespace ComputableAgeIn
 
 variable (K : ComputableAgeIn O L)
