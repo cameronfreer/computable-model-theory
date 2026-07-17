@@ -15,10 +15,12 @@ This file supplements `Mathlib.Computability.RecursiveIn` with typed combinators
 `list_foldr`, and `list_map`, by running the fold as a partial recursion over positions
 and discharging totality), option and sum case analysis (through
 `RecursiveIn.nat_casesOn_right` and the `decode` bridges, mirroring the absolute
-proofs), and strong recursion on natural numbers (`ComputableIn.nat_strong_rec`, by
-computing the full course-of-values list), together with thin domain and specification
-wrappers for `Nat.rfind` over
-total `Bool`-valued predicates. Each combinator is proved by descending to the
+proofs), strong recursion on natural numbers (`ComputableIn.nat_strong_rec`, by
+computing the full course-of-values list), the partial traversal of lists
+(`listMapPart`, with its exact domain theorem and pointwise `Forall₂` membership
+characterization, and `RecursiveIn.listMapPart`), total unbounded search
+(`ComputableIn.find`), together with thin domain and specification wrappers for
+`Nat.rfind` over total `Bool`-valued predicates. Each combinator is proved by descending to the
 `Nat.RecursiveIn` constructors through `Primcodable` encodings, following the proofs of
 the corresponding absolute facts in `Mathlib.Computability.Partrec`.
 
@@ -457,6 +459,151 @@ theorem nat_strong_rec (f : α → ℕ → σ) {g : α → List σ → Option σ
 end ComputableIn
 
 end
+
+/-! ### Partial traversal of lists
+
+`listMapPart g` maps a partial function over a list inside `Part`: defined exactly when
+`g` is defined on every element, in which case it returns the pointwise image in order.
+The workhorse for transporting evaluators along partial recodings. -/
+
+section ListMapPart
+
+variable {α β : Type*}
+
+/-- Map a partial function over a list, inside `Part`: the partial traversal. -/
+def listMapPart (g : α →. β) : List α →. List β
+  | [] => Part.some []
+  | a :: t => (g a).bind fun b ↦ (listMapPart g t).map (b :: ·)
+
+@[simp]
+theorem listMapPart_nil (g : α →. β) : listMapPart g [] = Part.some [] :=
+  rfl
+
+theorem listMapPart_cons (g : α →. β) (a : α) (t : List α) :
+    listMapPart g (a :: t) = (g a).bind fun b ↦ (listMapPart g t).map (b :: ·) :=
+  rfl
+
+/-- Membership characterization: the traversal relates input and output pointwise, in
+order. Length preservation is `List.Forall₂.length_eq` of this. -/
+theorem mem_listMapPart_iff {g : α →. β} {l : List α} {l' : List β} :
+    l' ∈ listMapPart g l ↔ List.Forall₂ (fun a b ↦ b ∈ g a) l l' := by
+  induction l generalizing l' with
+  | nil =>
+    simp only [listMapPart_nil, Part.mem_some_iff]
+    constructor
+    · rintro rfl; exact List.Forall₂.nil
+    · rintro ⟨⟩
+      rfl
+  | cons a t ih =>
+    rw [listMapPart_cons]
+    constructor
+    · intro h
+      obtain ⟨b, hb, hmap⟩ := Part.mem_bind_iff.1 h
+      obtain ⟨t', ht', rfl⟩ := (Part.mem_map_iff _).1 hmap
+      exact List.Forall₂.cons hb (ih.1 ht')
+    · rintro (_ | ⟨hb, ht⟩)
+      exact Part.mem_bind_iff.2 ⟨_, hb, (Part.mem_map_iff _).2 ⟨_, ih.2 ht, rfl⟩⟩
+
+/-- Exact domain: the traversal is defined iff `g` is defined on every element. -/
+theorem listMapPart_dom_iff {g : α →. β} {l : List α} :
+    (listMapPart g l).Dom ↔ ∀ a ∈ l, (g a).Dom := by
+  induction l with
+  | nil => simp
+  | cons a t ih =>
+    rw [listMapPart_cons]
+    constructor
+    · intro h
+      obtain ⟨b, hb, hmap⟩ := Part.mem_bind_iff.1 (Part.dom_iff_mem.1 h).choose_spec
+      obtain ⟨t', ht', -⟩ := (Part.mem_map_iff _).1 hmap
+      intro x hx
+      rcases List.mem_cons.1 hx with rfl | hxt
+      · exact Part.dom_iff_mem.2 ⟨b, hb⟩
+      · exact (ih.1 (Part.dom_iff_mem.2 ⟨t', ht'⟩)) x hxt
+    · intro h
+      obtain ⟨b, hb⟩ := Part.dom_iff_mem.1 (h a List.mem_cons_self)
+      obtain ⟨t', ht'⟩ := Part.dom_iff_mem.1
+        (ih.2 fun x hx ↦ h x (List.mem_cons_of_mem a hx))
+      exact Part.dom_iff_mem.2
+        ⟨b :: t', Part.mem_bind_iff.2 ⟨b, hb, (Part.mem_map_iff _).2 ⟨t', ht', rfl⟩⟩⟩
+
+theorem listMapPart_append (g : α →. β) (l₁ l₂ : List α) :
+    listMapPart g (l₁ ++ l₂) = (listMapPart g l₁).bind fun b₁ ↦
+      (listMapPart g l₂).map (b₁ ++ ·) := by
+  induction l₁ with
+  | nil => simp [Part.map_id']
+  | cons a t ih =>
+    simp only [List.cons_append, listMapPart_cons, ih, Part.bind_assoc]
+    congr 1
+
+end ListMapPart
+
+section ListMapPartRec
+
+variable {α β : Type*} [Primcodable α] [Primcodable β] {O : Set (ℕ →. ℕ)}
+
+/-- The partial traversal is partial recursive in the oracle whenever the mapped
+function is, uniformly in a parameter. -/
+theorem RecursiveIn.listMapPart₂ {g : σ → α →. β} [Primcodable σ]
+    (hg : RecursiveIn₂ O g) :
+    RecursiveIn₂ O fun (s : σ) (l : List α) ↦ listMapPart (g s) l := by
+  -- Indexed form: walk positions with `Nat.rec`, appending each image.
+  have hstep : RecursiveIn₂ O fun (p : σ × List α) (q : ℕ × List β) ↦
+      ((p.2[q.1]? : Part α).bind (g p.1)).map fun b ↦ q.2 ++ [b] :=
+    ((RecursiveIn.map
+      (RecursiveIn.bind
+        (ComputableIn.ofOption
+          (Computable.list_getElem?.computableIn.comp
+            ((ComputableIn.snd.comp ComputableIn.fst).pair
+              (ComputableIn.fst.comp ComputableIn.snd))))
+        ((hg.comp
+          (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst))
+          ComputableIn.snd).to₂))
+      (((Computable.list_concat.computableIn₂ (O := O)).comp
+        (ComputableIn.snd.comp (ComputableIn.snd.comp ComputableIn.fst))
+        ComputableIn.snd).to₂)).of_eq fun q ↦ by
+        simp)
+  have hF : RecursiveIn O fun p : σ × List α ↦
+      Nat.rec (motive := fun _ ↦ Part (List β)) (Part.some [])
+        (fun y IH ↦ IH.bind fun acc ↦
+          ((p.2[y]? : Part α).bind (g p.1)).map fun b ↦ acc ++ [b])
+        p.2.length :=
+    RecursiveIn.nat_rec
+      (Computable.list_length.computableIn.comp ComputableIn.snd)
+      (RecursiveIn.comp RecursiveIn.some (ComputableIn.const ([] : List β)))
+      hstep
+  refine hF.of_eq fun p ↦ ?_
+  -- Bridge the indexed walk to the structural traversal, prefix by prefix.
+  suffices haux : ∀ n ≤ p.2.length,
+      Nat.rec (motive := fun _ ↦ Part (List β)) (Part.some [])
+        (fun y IH ↦ IH.bind fun acc ↦
+          ((p.2[y]? : Part α).bind (g p.1)).map fun b ↦ acc ++ [b]) n
+        = listMapPart (g p.1) (p.2.take n) by
+    rw [haux p.2.length le_rfl, List.take_length]
+  intro n hn
+  induction n with
+  | zero => simp
+  | succ m ihm =>
+    have hm : m ≤ p.2.length := Nat.le_of_succ_le hn
+    rw [show (Nat.rec (motive := fun _ ↦ Part (List β)) (Part.some [])
+        (fun y IH ↦ IH.bind fun acc ↦
+          ((p.2[y]? : Part α).bind (g p.1)).map fun b ↦ acc ++ [b]) (m + 1))
+        = (Nat.rec (motive := fun _ ↦ Part (List β)) (Part.some [])
+        (fun y IH ↦ IH.bind fun acc ↦
+          ((p.2[y]? : Part α).bind (g p.1)).map fun b ↦ acc ++ [b]) m).bind
+          (fun acc ↦ ((p.2[m]? : Part α).bind (g p.1)).map fun b ↦ acc ++ [b])
+      from rfl, ihm hm,
+      List.take_add_one, List.getElem?_eq_getElem (Nat.lt_of_succ_le hn),
+      listMapPart_append]
+    simp [Part.bind_some_eq_map, listMapPart_cons, Part.map_map, Function.comp_def]
+
+/-- The unparameterized partial traversal is partial recursive in the oracle. -/
+theorem RecursiveIn.listMapPart {g : α →. β} (hg : RecursiveIn O g) :
+    RecursiveIn O (_root_.listMapPart g) :=
+  (RecursiveIn₂.comp
+    (RecursiveIn.listMapPart₂ (g := fun _ : Unit ↦ g) (hg.comp ComputableIn.snd))
+    (ComputableIn.const ()) ComputableIn.id).of_eq fun _ ↦ rfl
+
+end ListMapPartRec
 
 /-- Total unbounded search: the least witness of a total oracle-computable predicate is
 computable in the oracle. The oracle analogue of mathlib's `Computable.find`; extracted
