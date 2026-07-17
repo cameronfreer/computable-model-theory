@@ -161,6 +161,111 @@ theorem rankRelEval_spec (d : RelationApplicationData L ℕ)
   rw [RelationApplicationData.ofSymbolArgs?_of_length_eq _ hlen]
   exact Part.mem_some _
 
+/-! ### The rank structure and the Level-1 bundle
+
+`rankStr` is the transported evaluators, defaulted off-domain: all on-domain content
+flows from the evaluator specifications, and the default is never relied upon. The
+bundled presentation uses `posRank` as its enumeration, so its domain is *literally*
+`Set.range posRank` through the one canonical `domain` definition — no independently
+equivalent predicate exists to cohere. -/
+
+open Classical in
+/-- The rank structure: functions evaluate through `rankFunEval` (default `0`
+off-domain), relations hold exactly when the decider verdicts `true`. -/
+@[reducible]
+noncomputable def rankStr : L.Structure ℕ where
+  funMap {_} f v :=
+    ((P.rankFunEval (FunctionApplicationData.ofFixed f v)).toOption).getD 0
+  RelMap {_} R v :=
+    true ∈ P.rankRelEval (RelationApplicationData.ofFixed R v)
+
+/-- Commuting square, encoded form: the rank structure's interpretation is the rank of
+the source interpretation. Matches the evaluator specification. -/
+theorem rankStr_funMap_mem_rankOf {n : ℕ} (f : L.Functions n) (v src : Fin n → ℕ)
+    (hsrc : ∀ k, src k ∈ P.rankEnum (v k)) :
+    @Structure.funMap L ℕ P.rankStr n f v
+      ∈ P.rankOf (@Structure.funMap L ℕ P.str n f src) := by
+  classical
+  obtain ⟨y, hy, hyeval⟩ :=
+    P.rankFunEval_spec (FunctionApplicationData.ofFixed f v) src hsrc
+  have hval : @Structure.funMap L ℕ P.rankStr n f v = y := by
+    show ((P.rankFunEval (FunctionApplicationData.ofFixed f v)).toOption).getD 0 = y
+    rw [Part.toOption_eq_some_iff.2 hyeval]
+    rfl
+  rwa [hval]
+
+/-- Commuting square, decoded form: decoding the rank structure's output recovers the
+source interpretation. What downstream isomorphism and preservation arguments
+consume. -/
+theorem rankEnum_rankStr_funMap {n : ℕ} (f : L.Functions n) (v src : Fin n → ℕ)
+    (hsrc : ∀ k, src k ∈ P.rankEnum (v k)) :
+    @Structure.funMap L ℕ P.str n f src
+      ∈ P.rankEnum (@Structure.funMap L ℕ P.rankStr n f v) :=
+  P.mem_rankEnum_of_mem_rankOf (P.rankStr_funMap_mem_rankOf f v src hsrc)
+
+/-- Commuting square, relations: the rank structure holds a relation exactly when the
+source does. -/
+theorem rankStr_relMap_iff {n : ℕ} (R : L.Relations n) (v src : Fin n → ℕ)
+    (hsrc : ∀ k, src k ∈ P.rankEnum (v k)) :
+    @Structure.RelMap L ℕ P.rankStr n R v ↔ @Structure.RelMap L ℕ P.str n R src := by
+  obtain ⟨b, hb, hbiff⟩ :=
+    P.rankRelEval_spec (RelationApplicationData.ofFixed R v) src hsrc
+  show true ∈ P.rankRelEval (RelationApplicationData.ofFixed R v) ↔ _
+  constructor
+  · intro htrue
+    exact hbiff.1 (Part.mem_unique hb htrue)
+  · intro hR
+    rwa [← hbiff.2 hR]
+
+/-- The source tuple realizing a tuple of defined ranks. -/
+private noncomputable def srcOf {n : ℕ} (v : Fin n → ℕ)
+    (hv : ∀ k, v k ∈ Set.range P.posRank) : Fin n → ℕ :=
+  fun k ↦ (P.rankEnum (v k)).get
+    ((P.rankEnum_dom_iff (v k)).2 ((P.rankIdx_dom_iff_mem_range_posRank (v k)).2 (hv k)))
+
+private theorem srcOf_mem {n : ℕ} (v : Fin n → ℕ)
+    (hv : ∀ k, v k ∈ Set.range P.posRank) (k : Fin n) :
+    P.srcOf v hv k ∈ P.rankEnum (v k) :=
+  Part.get_mem _
+
+/-- The Level-1 rank presentation: the rank structure with `posRank` as its
+enumeration — so its domain is definitionally `Set.range posRank` — and the factored
+evaluators as its computability content. -/
+noncomputable def rankPresentation : CePresentationIn O L where
+  str := P.rankStr
+  enum := P.posRank
+  enum_computableIn := P.posRank_computableIn
+  domain_closed := by
+    intro n f v hv
+    have hmem := P.rankStr_funMap_mem_rankOf f v (P.srcOf v hv) (P.srcOf_mem v hv)
+    exact (P.rankIdx_dom_iff_mem_range_posRank _).1 (P.rankIdx_dom_of_mem_rankOf hmem)
+  funEval := P.rankFunEval
+  funEval_recursiveIn := P.rankFunEval_recursiveIn
+  funEval_correct := by
+    intro d hd
+    have hspec := P.rankFunEval_spec d (P.srcOf d.args hd) (P.srcOf_mem d.args hd)
+    obtain ⟨y, hy, hyeval⟩ := hspec
+    have hval : @FunctionApplicationData.funMap L ℕ P.rankStr d = y := by
+      show @Structure.funMap L ℕ P.rankStr _ d.symbol d.args = y
+      have := P.rankStr_funMap_mem_rankOf d.symbol d.args
+        (P.srcOf d.args hd) (P.srcOf_mem d.args hd)
+      exact Part.mem_unique this hy
+    rwa [hval]
+  relEval := P.rankRelEval
+  relEval_recursiveIn := P.rankRelEval_recursiveIn
+  relEval_correct := by
+    intro d hd
+    obtain ⟨b, hb, hbiff⟩ :=
+      P.rankRelEval_spec d (P.srcOf d.args hd) (P.srcOf_mem d.args hd)
+    refine ⟨b, hb, hbiff.trans ?_⟩
+    exact (P.rankStr_relMap_iff d.symbol d.args
+      (P.srcOf d.args hd) (P.srcOf_mem d.args hd)).symm
+
+/-- The bundled rank domain is literally the range of `posRank`. -/
+@[simp]
+theorem rankPresentation_domain : P.rankPresentation.domain = Set.range P.posRank :=
+  rfl
+
 end CePresentationIn
 
 end FirstOrder.Language

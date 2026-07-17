@@ -571,6 +571,17 @@ theorem rankOf_rankEnum {r x : ℕ} (h : x ∈ P.rankEnum r) : r ∈ P.rankOf x 
     P.mem_firstIdxOf_iff.2 ⟨rfl, fun j hj ↦ (P.freshAt_iff i).1 hf j hj⟩
   exact (Part.mem_map_iff _).2 ⟨i, hfirst, hc⟩
 
+/-- The rank enumeration is defined exactly where the rank position is. -/
+theorem rankEnum_dom_iff (r : ℕ) : (P.rankEnum r).Dom ↔ (P.rankIdx r).Dom :=
+  Iff.rfl
+
+/-- Ranks produced by `rankOf` are defined rank positions. -/
+theorem rankIdx_dom_of_mem_rankOf {r x : ℕ} (h : r ∈ P.rankOf x) :
+    (P.rankIdx r).Dom := by
+  obtain ⟨i, hi, rfl⟩ := (Part.mem_map_iff _).1 h
+  exact Part.dom_iff_mem.2
+    ⟨i, P.mem_rankIdx_iff.2 ⟨P.freshAt_of_mem_firstIdxOf hi, rfl⟩⟩
+
 /-- Gate (inverse, other direction): `rankEnum` inverts `rankOf` on the domain. -/
 theorem rankEnum_rankOf {x : ℕ} (hx : x ∈ P.domain) :
     ∃ r ∈ P.rankOf x, x ∈ P.rankEnum r := by
@@ -580,6 +591,14 @@ theorem rankEnum_rankOf {x : ℕ} (hx : x ∈ P.domain) :
   have hmem : i ∈ P.rankIdx (P.countFreshBelow i) :=
     P.mem_rankIdx_iff.2 ⟨P.freshAt_of_mem_firstIdxOf hi, rfl⟩
   exact (Part.mem_map_iff _).2 ⟨i, hmem, he⟩
+
+/-- Decoding after ranking: `rankEnum` realizes any rank `rankOf` produces. -/
+theorem mem_rankEnum_of_mem_rankOf {r x : ℕ} (h : r ∈ P.rankOf x) :
+    x ∈ P.rankEnum r := by
+  have hx : x ∈ P.domain :=
+    (P.rankOf_dom_iff x).1 (Part.dom_iff_mem.2 ⟨r, h⟩)
+  obtain ⟨r', hr', hmem⟩ := P.rankEnum_rankOf hx
+  rwa [Part.mem_unique h hr']
 
 end CePresentationIn
 
