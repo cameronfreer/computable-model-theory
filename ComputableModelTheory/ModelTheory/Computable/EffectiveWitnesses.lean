@@ -23,10 +23,16 @@ selected output to the corresponding indexed property:
   on actual spans. Selectors are total on arbitrary codes, so the span's actualness is a
   hypothesis of the soundness law, matching its deliberate absence from
   `IsAmalgamationOf`.
+* `CAPWitnessIn E K`: the faithful computable-amalgamation interface — `APWitnessIn`'s
+  contract plus the **unconditional** clauses the totalization convention demands on
+  every raw span code (index shape, left-map actualness, right-map well-formedness),
+  with the derived `toAPWitnessIn` sharing the selector and its computability proof
+  unchanged.
 
 Interfaces only: no witness is constructed here, and none is claimed to exist. The
 existence of a witness immediately yields the corresponding indexed property
-(`HPWitnessIn.indexedHP`, `JEPWitnessIn.indexedJEP`, `APWitnessIn.indexedAP`).
+(`HPWitnessIn.indexedHP`, `JEPWitnessIn.indexedJEP`, `APWitnessIn.indexedAP`,
+`CAPWitnessIn.indexedAP`).
 -/
 
 open Encodable FirstOrder Language
@@ -70,7 +76,49 @@ structure APWitnessIn (E : Set (ℕ →. ℕ)) (K : ComputableAgeIn O L) where
   /-- On actual spans, the selected diagram amalgamates. -/
   sound : ∀ S : PotentialSpanData, S.IsActual K → (select S).IsAmalgamationOf K S
 
+/-- An effective CAP witness — the faithful interface for the computable amalgamation
+property, whose totalization convention demands more than `APWitnessIn`: *"even if `f`
+and `g` do not extend to embeddings, we ask for `e` to extend to an embedding"*. On
+**every raw span code** — whether an *invalid map* (well-shaped codes whose maps fail
+to be actual, the case the convention totalizes over) or an *entirely malformed code*
+(e.g. wrong tuple lengths) — the selected diagram is index-shaped for the input, its
+left map is actual, and its right map is at least well-formed (a genuine map from its
+generator tuple, even when not an embedding). Full actualness and coded commutativity
+are conditional on exactly `S.IsActual K` — no hidden EI-decision or decidability
+premise. Operationally, the unconditional left embedding is what lets a chain
+construction keep extending through scheduled candidate maps that turn out invalid.
+
+No existence or extraction theorem for such witnesses appears here; search-based
+extraction belongs downstream, under its explicit search hypotheses. -/
+structure CAPWitnessIn (E : Set (ℕ →. ℕ)) (K : ComputableAgeIn O L) where
+  /-- The selector: from span data, diagram data. -/
+  select : PotentialSpanData → AmalgamationDiagramData
+  /-- The selector is computable in `E`. -/
+  computable : ComputableIn E select
+  /-- Unconditional: the selected diagram is index-shaped for the input span. -/
+  shape : ∀ S : PotentialSpanData, (select S).WellShapedFor S
+  /-- Unconditional: the selected left map is actual. -/
+  leftToApex_isEmbedding : ∀ S : PotentialSpanData,
+    (select S).leftToApex.IsEmbedding K
+  /-- Unconditional: the selected right map is well-formed. -/
+  rightToApex_wellFormed : ∀ S : PotentialSpanData,
+    (select S).rightToApex.WellFormed K
+  /-- On actual spans, the selected diagram amalgamates. -/
+  sound : ∀ S : PotentialSpanData, S.IsActual K → (select S).IsAmalgamationOf K S
+
 variable {E : Set (ℕ →. ℕ)} {K : ComputableAgeIn O L}
+
+/-- The derived AP witness of a CAP witness: the selector and its computability proof
+are shared **unchanged** — only the unconditional clauses are forgotten. -/
+def CAPWitnessIn.toAPWitnessIn (W : CAPWitnessIn E K) : APWitnessIn E K where
+  select := W.select
+  computable := W.computable
+  sound := W.sound
+
+@[simp]
+theorem CAPWitnessIn.toAPWitnessIn_select (W : CAPWitnessIn E K) :
+    W.toAPWitnessIn.select = W.select :=
+  rfl
 
 /-- An HP witness yields the indexed hereditary property. -/
 theorem HPWitnessIn.indexedHP (W : HPWitnessIn E K) : K.IndexedHP :=
@@ -83,5 +131,10 @@ theorem JEPWitnessIn.indexedJEP (W : JEPWitnessIn E K) : K.IndexedJEP :=
 /-- An AP witness yields the indexed amalgamation property. -/
 theorem APWitnessIn.indexedAP (W : APWitnessIn E K) : K.IndexedAP :=
   fun S hS ↦ ⟨W.select S, W.sound S hS⟩
+
+/-- A CAP witness yields the indexed amalgamation property, through its derived AP
+witness. -/
+theorem CAPWitnessIn.indexedAP (W : CAPWitnessIn E K) : K.IndexedAP :=
+  W.toAPWitnessIn.indexedAP
 
 end FirstOrder.Language
