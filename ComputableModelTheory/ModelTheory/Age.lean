@@ -13,6 +13,7 @@ import ComputableModelTheory.ModelTheory.Computable.PotentialComposition
 import ComputableModelTheory.ModelTheory.Computable.PotentialEmbedding
 import ComputableModelTheory.ModelTheory.Computable.PotentialSpan
 import ComputableModelTheory.ModelTheory.Computable.UniformAtomic
+import ComputableModelTheory.ModelTheory.Computable.WitnessExtraction
 import ComputableModelTheory.ModelTheory.Computable.UniformTermEvaluation
 import Mathlib.ModelTheory.FinitelyGenerated
 import Mathlib.ModelTheory.Fraisse
