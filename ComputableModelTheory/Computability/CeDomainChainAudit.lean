@@ -18,6 +18,13 @@ limit equivalence laws on the (c.e.) limit domain; the partial comparison decide
 its uniform recursiveness and on-domain specification; stage compatibility — and all of
 it exercised concretely on the **shift chain**, whose steps `x ↦ x + 1` are genuinely
 not inclusions, so tag/coherence/transport errors cannot hide behind identity maps.
+
+The certified layer's gates: normalization is valid/equivalent/idempotent, equal
+normalization is exactly limit equivalence, the canonical-representative domain is
+computably decidable, and normalized stage injections are injective and commute with
+transport. **No normalization statement exists for bare Level-1 stages**: `normalize`
+takes the `DecidableStagesCertificate` as an explicit argument, so the constraint is
+enforced by the API shape, not by an audit claim.
 -/
 
 open Encodable
@@ -115,6 +122,71 @@ theorem test_shift_not_limEquiv : ¬(shiftChain O).limEquiv (0, 5) (2, 3) := by
 
 end ShiftChain
 
+section CertifiedGates
+
+variable {O : Set (ℕ →. ℕ)} {C : CeDomainChainIn O}
+variable (cert : C.DecidableStagesCertificate)
+
+/-- Gate: normalization is valid and equivalent on valid representatives, and
+idempotent. -/
+theorem test_normalize_spec {p : ℕ × ℕ} (hp : C.limMem p) :
+    (C.limMem (CeDomainChainIn.normalize cert p) ∧
+      C.limEquiv p (CeDomainChainIn.normalize cert p)) ∧
+      CeDomainChainIn.normalize cert (CeDomainChainIn.normalize cert p)
+        = CeDomainChainIn.normalize cert p :=
+  ⟨CeDomainChainIn.normalize_spec cert hp, CeDomainChainIn.normalize_normalize cert hp⟩
+
+/-- Gate: for valid representatives, equal normalization is exactly limit
+equivalence. -/
+theorem test_normalize_eq_iff {p q : ℕ × ℕ} (hp : C.limMem p) (hq : C.limMem q) :
+    CeDomainChainIn.normalize cert p = CeDomainChainIn.normalize cert q ↔
+      C.limEquiv p q :=
+  CeDomainChainIn.normalize_eq_iff cert hp hq
+
+/-- Gate: normalization is computable and the canonical-representative domain is
+computably decidable, under the certificate. -/
+theorem test_canonical_decidable :
+    ComputableIn O (CeDomainChainIn.normalize cert) ∧
+      ComputablePredIn O fun p : ℕ × ℕ ↦
+        cert.memB p.1 p.2 = true ∧ CeDomainChainIn.normalize cert p = p :=
+  ⟨CeDomainChainIn.normalize_computableIn cert,
+    CeDomainChainIn.isCanonical_computablePredIn cert⟩
+
+/-- Gate: normalized stage injections are injective on stage domains and commute with
+chain transport. -/
+theorem test_normalize_stageInto {i j x₁ x₂ y : ℕ} (hij : i ≤ j)
+    (hx₁ : x₁ ∈ C.domainAt i) (hx₂ : x₂ ∈ C.domainAt i)
+    (hinj : CeDomainChainIn.normalize cert (CeDomainChainIn.stageInto i x₁)
+      = CeDomainChainIn.normalize cert (CeDomainChainIn.stageInto i x₂))
+    (hy : y ∈ C.transportTo i j x₁) :
+    x₁ = x₂ ∧ CeDomainChainIn.normalize cert (CeDomainChainIn.stageInto i x₁)
+      = CeDomainChainIn.normalize cert (CeDomainChainIn.stageInto j y) :=
+  ⟨CeDomainChainIn.normalize_stageInto_injOn cert hx₁ hx₂ hinj,
+    CeDomainChainIn.normalize_stageInto_transport cert hij hx₁ hy⟩
+
+end CertifiedGates
+
+section ShiftCertified
+
+variable (O : Set (ℕ →. ℕ))
+
+/-- The (trivial) decidable-stages certificate of the shift chain: every stage is all
+of ℕ. -/
+def shiftCert : (shiftChain O).DecidableStagesCertificate where
+  memB _ _ := true
+  memB_computableIn := ComputableIn.const true
+  memB_iff := fun _ x ↦ ⟨fun _ ↦ ⟨x, rfl⟩, fun _ ↦ rfl⟩
+
+/-- Gate: the shift chain normalizes the identified pair `(0, 1)` and `(2, 3)` to the
+same canonical representative. -/
+theorem test_shift_normalize_eq :
+    CeDomainChainIn.normalize (shiftCert O) (0, 1)
+      = CeDomainChainIn.normalize (shiftCert O) (2, 3) :=
+  (CeDomainChainIn.normalize_eq_iff (shiftCert O) ⟨1, rfl⟩ ⟨3, rfl⟩).2
+    (test_shift_limEquiv O)
+
+end ShiftCertified
+
 #assert_standard_axioms test_transport_laws
 #assert_standard_axioms test_transport_injOn
 #assert_standard_axioms test_limEquiv_equivalence
@@ -123,3 +195,8 @@ end ShiftChain
 #assert_standard_axioms test_shift_transport
 #assert_standard_axioms test_shift_limEquiv
 #assert_standard_axioms test_shift_not_limEquiv
+#assert_standard_axioms test_normalize_spec
+#assert_standard_axioms test_normalize_eq_iff
+#assert_standard_axioms test_canonical_decidable
+#assert_standard_axioms test_normalize_stageInto
+#assert_standard_axioms test_shift_normalize_eq

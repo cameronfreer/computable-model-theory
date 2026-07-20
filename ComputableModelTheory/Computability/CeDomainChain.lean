@@ -16,11 +16,16 @@ as a stage-tagged partial computation; `transportTo i j` is the induced transpor
 from stage `i` to stage `j`, with the coherence (`transportTo_trans`), domain
 preservation, and on-domain injectivity laws.
 
-The Level-1 limit carrier is the **raw pair type** `ℕ × ℕ` (stage, code) — no
-quotient is formed. Its equivalence `limEquiv` holds when both elements transport to
-the maximum of their stages and agree there; on the (c.e., never claimed decidable)
-limit domain it is a genuine equivalence relation, with transitivity by pushing to a
-common later stage and descending along transport injectivity. The comparison is
+**Terminology guard:** the raw pair type `ℕ × ℕ` (stage, code) is the
+**representative space**, not the extensional direct-limit carrier — its meaningful
+equality is `limEquiv`, *never* Lean equality of codes. The actual carrier exists only
+as a semantic quotient or, at the certified decidable level, as canonical
+representatives (`normalize`); downstream structure lifting must respect `limEquiv`
+invariance and may not compare codes with `=`. The equivalence `limEquiv` holds when
+both elements transport to the maximum of their stages and agree there; on the (c.e.,
+never claimed decidable) limit domain it is a genuine equivalence relation, with
+transitivity by pushing to a common later stage and descending along transport
+injectivity. The comparison is
 also available as a computation: `limEquivTest` is partial recursive and halts with
 the verdict on domain pairs — a *partial* decider, which is all Level 1 can offer.
 Canonical (least-representative) normalization requires deciding stage-domain
@@ -364,5 +369,263 @@ theorem stageInto_compat {i x : ℕ} (hx : x ∈ C.domainAt i) :
     rw [show max i (i + 1) = i + 1 from by omega, transportTo_self]
     exact Part.mem_some _
 
+
+/-! ### Certified canonical representatives
+
+Everything below is gated on an explicit `DecidableStagesCertificate` — no
+normalization exists for bare Level-1 c.e. stages, by construction. Candidates are
+enumerated through `Nat.unpair`, which decodes every code totally. -/
+
+/-- A decidable-stages certificate: a computable Boolean membership decider for every
+stage domain. Supplied input; nothing recovers this from the c.e. data. -/
+structure DecidableStagesCertificate (C : CeDomainChainIn O) where
+  /-- The stage-domain membership decider. -/
+  memB : ℕ → ℕ → Bool
+  /-- The decider is computable uniformly in the stage. -/
+  memB_computableIn : ComputableIn O fun p : ℕ × ℕ ↦ memB p.1 p.2
+  /-- The decider decides stage-domain membership. -/
+  memB_iff : ∀ i x, memB i x = true ↔ x ∈ C.domainAt i
+
+variable {C} (cert : C.DecidableStagesCertificate)
+
+/-- The pair a candidate code denotes. -/
+private def candOf (n : ℕ) : ℕ × ℕ :=
+  (n.unpair.1, n.unpair.2)
+
+private theorem candOf_pair (q : ℕ × ℕ) : candOf (Nat.pair q.1 q.2) = q := by
+  simp [candOf]
+
+/-- The candidate test of the normalization search: code `n` denotes a valid pair
+equivalent to `p`. Partial only through the comparison, which halts on every candidate
+once `p` is valid. -/
+private def normTest (p : ℕ × ℕ) (n : ℕ) : Part Bool :=
+  bif cert.memB n.unpair.1 n.unpair.2 then C.limEquivTest p (candOf n)
+  else Part.some false
+
+private theorem normTest_dom {p : ℕ × ℕ} (hp : C.limMem p) (n : ℕ) :
+    (normTest cert p n).Dom := by
+  rw [normTest]
+  rcases hm : cert.memB n.unpair.1 n.unpair.2 with - | -
+  · exact trivial
+  · obtain ⟨b, hb, -⟩ :=
+      C.limEquivTest_spec hp ((cert.memB_iff n.unpair.1 n.unpair.2).1 hm)
+    exact Part.dom_iff_mem.2 ⟨b, hb⟩
+
+private theorem normTest_true_iff {p : ℕ × ℕ} (hp : C.limMem p) (n : ℕ) :
+    true ∈ normTest cert p n ↔ C.limMem (candOf n) ∧ C.limEquiv p (candOf n) := by
+  rw [normTest]
+  rcases hm : cert.memB n.unpair.1 n.unpair.2 with - | -
+  · simp only [cond_false]
+    constructor
+    · intro h
+      exact absurd (Part.mem_some_iff.1 h).symm (by simp)
+    · rintro ⟨hval, -⟩
+      exact absurd ((cert.memB_iff n.unpair.1 n.unpair.2).2 hval) (by simp [hm])
+  · have hqmem : C.limMem (candOf n) :=
+      (cert.memB_iff n.unpair.1 n.unpair.2).1 hm
+    obtain ⟨b, hb, hbiff⟩ := C.limEquivTest_spec hp hqmem
+    simp only [cond_true]
+    exact ⟨fun htrue ↦ ⟨hqmem, hbiff.1 (Part.mem_unique hb htrue)⟩,
+      fun hh ↦ hbiff.2 hh.2 ▸ hb⟩
+
+private theorem normTest_exists {p : ℕ × ℕ} (hp : C.limMem p) :
+    ∃ n, true ∈ normTest cert p n :=
+  ⟨Nat.pair p.1 p.2, (normTest_true_iff cert hp _).2
+    (by rw [candOf_pair]; exact ⟨hp, C.limEquiv_refl p⟩)⟩
+
+/-- Equivalent valid representatives have identical candidate tests — the engine of
+representative-independence. -/
+private theorem normTest_congr {p q : ℕ × ℕ} (hp : C.limMem p) (hq : C.limMem q)
+    (h : C.limEquiv p q) : normTest cert p = normTest cert q := by
+  funext n
+  rw [normTest, normTest]
+  rcases hm : cert.memB n.unpair.1 n.unpair.2 with - | -
+  · rfl
+  · have hqmem : C.limMem (candOf n) :=
+      (cert.memB_iff n.unpair.1 n.unpair.2).1 hm
+    obtain ⟨b₁, hb₁, hbiff₁⟩ := C.limEquivTest_spec hp hqmem
+    obtain ⟨b₂, hb₂, hbiff₂⟩ := C.limEquivTest_spec hq hqmem
+    simp only [cond_true]
+    have hbeq : b₁ = b₂ := by
+      have hiff : (b₁ = true) ↔ (b₂ = true) := by
+        rw [hbiff₁, hbiff₂]
+        exact ⟨fun hc ↦ C.limEquiv_trans hq hp hqmem (C.limEquiv_symm h) hc,
+          fun hc ↦ C.limEquiv_trans hp hq hqmem h hc⟩
+      cases b₁ <;> cases b₂ <;> simp_all
+    ext v
+    exact ⟨fun hv ↦ (Part.mem_unique hv hb₁) ▸ hbeq ▸ hb₂,
+      fun hv ↦ (Part.mem_unique hv hb₂) ▸ hbeq ▸ hb₁⟩
+
+/-- The normalization program: on a valid representative, search for the least code of
+a valid equivalent pair; on invalid input, return the input. Total. -/
+private def normProg (p : ℕ × ℕ) : Part (ℕ × ℕ) :=
+  bif cert.memB p.1 p.2 then (Nat.rfind (normTest cert p)).map candOf
+  else Part.some p
+
+private theorem normProg_dom (p : ℕ × ℕ) : (normProg cert p).Dom := by
+  rw [normProg]
+  rcases hm : cert.memB p.1 p.2 with - | -
+  · exact trivial
+  · have hp := (cert.memB_iff p.1 p.2).1 hm
+    obtain ⟨n, hn⟩ := normTest_exists cert hp
+    have hdom : (Nat.rfind (normTest cert p)).Dom :=
+      Nat.rfind_dom.2 ⟨n, hn, fun {m} _ ↦ normTest_dom cert hp m⟩
+    obtain ⟨k, hk⟩ := Part.dom_iff_mem.1 hdom
+    exact Part.dom_iff_mem.2 ⟨candOf k, (Part.mem_map_iff _).2 ⟨k, hk, rfl⟩⟩
+
+/-- The canonical representative: the pair denoted by the least code of a valid pair
+equivalent to the input (the input itself off the limit domain). Exists only under an
+explicit decidable-stages certificate. -/
+noncomputable def normalize (p : ℕ × ℕ) : ℕ × ℕ :=
+  (normProg cert p).get (normProg_dom cert p)
+
+private theorem normalize_mem (p : ℕ × ℕ) : normalize cert p ∈ normProg cert p :=
+  Part.get_mem _
+
+/-- Gate: normalization is valid and equivalent on valid representatives. -/
+theorem normalize_spec {p : ℕ × ℕ} (hp : C.limMem p) :
+    C.limMem (normalize cert p) ∧ C.limEquiv p (normalize cert p) := by
+  have h := normalize_mem cert p
+  rw [show normProg cert p = (Nat.rfind (normTest cert p)).map candOf from by
+    rw [normProg, (cert.memB_iff p.1 p.2).2 hp]; rfl] at h
+  obtain ⟨n, hn, heq⟩ := (Part.mem_map_iff _).1 h
+  have hspec := (normTest_true_iff cert hp n).1 (Nat.rfind_spec hn)
+  rw [← heq]
+  exact ⟨hspec.1, hspec.2⟩
+
+/-- Representative-independence half: equivalent valid representatives normalize
+identically. -/
+theorem normalize_eq_of_limEquiv {p q : ℕ × ℕ} (hp : C.limMem p) (hq : C.limMem q)
+    (h : C.limEquiv p q) : normalize cert p = normalize cert q := by
+  have hcongr := normTest_congr cert hp hq h
+  have e₁ : normProg cert p = (Nat.rfind (normTest cert p)).map candOf := by
+    rw [normProg, (cert.memB_iff p.1 p.2).2 hp]
+    rfl
+  have e₂ : normProg cert q = (Nat.rfind (normTest cert q)).map candOf := by
+    rw [normProg, (cert.memB_iff q.1 q.2).2 hq]
+    rfl
+  have heq : normProg cert p = normProg cert q := by
+    rw [e₁, e₂, hcongr]
+  unfold normalize
+  simp only [heq]
+
+/-- Gate: for valid representatives, equal normalization is exactly limit
+equivalence. -/
+theorem normalize_eq_iff {p q : ℕ × ℕ} (hp : C.limMem p) (hq : C.limMem q) :
+    normalize cert p = normalize cert q ↔ C.limEquiv p q := by
+  constructor
+  · intro h
+    obtain ⟨hval_p, hequiv_p⟩ := normalize_spec cert hp
+    obtain ⟨hval_q, hequiv_q⟩ := normalize_spec cert hq
+    exact C.limEquiv_trans hp hval_p hq hequiv_p
+      (h ▸ C.limEquiv_symm hequiv_q)
+  · exact normalize_eq_of_limEquiv cert hp hq
+
+/-- Gate: normalization is idempotent on valid representatives. -/
+theorem normalize_normalize {p : ℕ × ℕ} (hp : C.limMem p) :
+    normalize cert (normalize cert p) = normalize cert p := by
+  obtain ⟨hval, hequiv⟩ := normalize_spec cert hp
+  exact (normalize_eq_iff cert hval hp).2 (C.limEquiv_symm hequiv)
+
+attribute [local irreducible] CeDomainChainIn.transportTo
+  CeDomainChainIn.limEquivTest in
+/-- The candidate test is partial recursive uniformly in the representative. -/
+private theorem normTest_recursiveIn :
+    RecursiveIn O fun q : (ℕ × ℕ) × ℕ ↦ normTest cert q.1 q.2 := by
+  have hunpair₁ : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦ q.2.unpair.1 :=
+    ComputableIn.fst.comp (ComputableIn.unpair.comp ComputableIn.snd)
+  have hunpair₂ : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦ q.2.unpair.2 :=
+    ComputableIn.snd.comp (ComputableIn.unpair.comp ComputableIn.snd)
+  have hguard : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦
+      encode (cert.memB q.2.unpair.1 q.2.unpair.2) :=
+    ComputableIn.encode.comp
+      (cert.memB_computableIn.comp (hunpair₁.pair hunpair₂))
+  have htest : RecursiveIn₂ O fun (q : (ℕ × ℕ) × ℕ) (_ : ℕ) ↦
+      C.limEquivTest q.1 (candOf q.2) :=
+    ((C.limEquivTest_recursiveIn.comp
+      ((ComputableIn.fst.comp ComputableIn.fst).pair
+        ((hunpair₁.comp ComputableIn.fst).pair
+          (hunpair₂.comp ComputableIn.fst)))) :
+      RecursiveIn O fun r : ((ℕ × ℕ) × ℕ) × ℕ ↦
+        C.limEquivTest r.1.1 (candOf r.1.2)).to₂
+  refine (RecursiveIn.nat_casesOn_right hguard
+    (ComputableIn.const (false : Bool)) htest).of_eq fun q ↦ ?_
+  rcases hm : cert.memB q.2.unpair.1 q.2.unpair.2 with - | -
+  · rw [normTest, hm]
+    rfl
+  · rw [normTest, hm]
+    rfl
+
+/-- Normalization is computable under the certificate. -/
+theorem normalize_computableIn : ComputableIn O (normalize cert) := by
+  have hcand : ComputableIn O fun n : ℕ ↦ candOf n :=
+    (ComputableIn.fst.comp ComputableIn.unpair).pair
+      (ComputableIn.snd.comp ComputableIn.unpair)
+  have hRfind : RecursiveIn O fun p : ℕ × ℕ ↦
+      (Nat.rfind (normTest cert p)).map candOf :=
+    RecursiveIn.map (RecursiveIn.rfind (normTest_recursiveIn cert))
+      ((hcand.comp ComputableIn.snd).to₂)
+  have hguard : ComputableIn O fun p : ℕ × ℕ ↦ encode (cert.memB p.1 p.2) :=
+    ComputableIn.encode.comp cert.memB_computableIn
+  have hProg : RecursiveIn O (normProg cert) := by
+    refine (RecursiveIn.nat_casesOn_right hguard ComputableIn.id
+      (((hRfind.comp ComputableIn.fst) :
+        RecursiveIn O fun r : (ℕ × ℕ) × ℕ ↦
+          (Nat.rfind (normTest cert r.1)).map candOf).to₂)).of_eq fun p ↦ ?_
+    rcases hm : cert.memB p.1 p.2 with - | -
+    · rw [normProg, hm]
+      rfl
+    · rw [normProg, hm]
+      rfl
+  exact hProg.of_eq fun p ↦ (Part.some_get (normProg_dom cert p)).symm
+
+/-- Gate: the canonical-representative domain is decidable — computably, under the
+certificate. -/
+theorem isCanonical_computablePredIn :
+    ComputablePredIn O fun p : ℕ × ℕ ↦
+      cert.memB p.1 p.2 = true ∧ normalize cert p = p := by
+  have h₁ : ComputablePredIn O fun p : ℕ × ℕ ↦ cert.memB p.1 p.2 = true :=
+    ⟨fun _ ↦ instDecidableEqBool _ _,
+      ((Primrec.eq (α := Bool)).decide.to_comp.computableIn₂ (O := O)).comp
+        cert.memB_computableIn (ComputableIn.const true)⟩
+  have h₂ : ComputablePredIn O fun p : ℕ × ℕ ↦ normalize cert p = p := by
+    refine ⟨fun p ↦ decidable_of_iff _ Encodable.encode_injective.eq_iff, ?_⟩
+    exact (((Primrec.eq (α := ℕ)).decide.to_comp.computableIn₂ (O := O)).comp
+      (ComputableIn.encode.comp (normalize_computableIn cert))
+      ComputableIn.encode).of_eq
+      fun p ↦ decide_eq_decide.2 Encodable.encode_injective.eq_iff
+  exact h₁.and h₂
+
+/-- Gate: normalized stage injections are injective on stage domains. -/
+theorem normalize_stageInto_injOn {i x₁ x₂ : ℕ} (hx₁ : x₁ ∈ C.domainAt i)
+    (hx₂ : x₂ ∈ C.domainAt i)
+    (h : normalize cert (stageInto i x₁) = normalize cert (stageInto i x₂)) :
+    x₁ = x₂ := by
+  have hequiv := (normalize_eq_iff cert (p := stageInto i x₁)
+    (q := stageInto i x₂) hx₁ hx₂).1 h
+  obtain ⟨z, hz₁, hz₂⟩ := hequiv
+  have hmax : max i i = i := Nat.max_self i
+  rw [show (stageInto i x₁).1 = i from rfl, show (stageInto i x₂).1 = i from rfl,
+    hmax] at hz₁ hz₂
+  have e₁ : z = x₁ := Part.mem_some_iff.1 (by rwa [transportTo_self] at hz₁)
+  have e₂ : z = x₂ := Part.mem_some_iff.1 (by rwa [transportTo_self] at hz₂)
+  omega
+
+/-- Gate: normalized stage injections commute with chain transport. -/
+theorem normalize_stageInto_transport {i j x y : ℕ} (hij : i ≤ j)
+    (hx : x ∈ C.domainAt i) (hy : y ∈ C.transportTo i j x) :
+    normalize cert (stageInto i x) = normalize cert (stageInto j y) := by
+  have hydom : y ∈ C.domainAt j := by
+    obtain ⟨w, hw, hwdom⟩ := C.transportTo_dom j hij hx
+    rwa [Part.mem_unique hy hw]
+  refine (normalize_eq_iff cert (p := stageInto i x) (q := stageInto j y)
+    hx hydom).2 ⟨y, ?_, ?_⟩
+  · rw [show max (stageInto i x).1 (stageInto j y).1 = j from by
+      simp [stageInto]; omega]
+    exact hy
+  · rw [show max (stageInto i x).1 (stageInto j y).1 = j from by
+      simp [stageInto]; omega]
+    rw [show (stageInto j y).1 = j from rfl, transportTo_self]
+    exact Part.mem_some _
 
 end CeDomainChainIn
