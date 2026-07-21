@@ -5,6 +5,7 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Computable.CeStructureLimit
 import ComputableModelTheory.ModelTheory.Computable.DecidablePresentation
+import ComputableModelTheory.ModelTheory.Computable.InitialSegmentPresentation
 
 /-!
 # The coded presentation of a c.e. structure chain, under certificates
@@ -785,6 +786,28 @@ theorem stageIntoCoded_relMap {i n : ℕ} (R : L.Relations n) (v : Fin n → ℕ
     (fun k ↦ hv k) (fun _ ↦ le_refl i) fun k ↦ ?_
   rw [transportTo, CeDomainChainIn.transportTo_self]
   exact Part.mem_some _
+
+/-! ### Initial-segment conversion — only after everything else
+
+The coded carrier is a decidable set with no reason to be an initial segment; the
+conversion goes through the c.e. inclusion and the enumeration-rank machinery of the
+Level-1 layer, and the initial-segment form arrives only as the nonuniform corollary
+of that machinery. -/
+
+/-- The rank presentation of the coded presentation: the Level-1 initial-segment-style
+recoding through `posRank`. -/
+noncomputable def codedRankPresentation (U : D.UniformEvaluatorsIn) :
+    CePresentationIn O L :=
+  (D.codedPresentation cert U).toCePresentation.rankPresentation
+
+/-- The nonuniform corollary: some initial-segment presentation carries the rank
+recoding of the coded presentation. Level 2 data (which shape, and the certificates)
+is not computable from the chain — this is an existence statement only. -/
+theorem exists_initialSegment_coded (U : D.UniformEvaluatorsIn) :
+    ∃ Q : ComputableInitialSegmentPresentationIn O L,
+      Q.str = (D.codedPresentation cert U).toCePresentation.rankStr ∧
+        Q.domain = Set.range (D.codedPresentation cert U).toCePresentation.posRank :=
+  CePresentationIn.exists_initialSegment _
 
 end CeStructureChainIn
 

@@ -97,6 +97,14 @@ theorem test_stageIntoCoded_structure {i n : ℕ} (f : L.Functions n)
         ↔ @Structure.RelMap L ℕ (D.stageAt i).str n R v) :=
   ⟨D.stageIntoCoded_funMap cert f v hv, D.stageIntoCoded_relMap cert R v hv⟩
 
+/-- Gate: the initial-segment conversion exists, only through the c.e. inclusion and
+the rank machinery — a nonuniform corollary, never uniform data. -/
+theorem test_coded_initialSegment (U : D.UniformEvaluatorsIn) :
+    ∃ Q : ComputableInitialSegmentPresentationIn O L,
+      Q.str = (D.codedPresentation cert U).toCePresentation.rankStr ∧
+        Q.domain = Set.range (D.codedPresentation cert U).toCePresentation.posRank :=
+  D.exists_initialSegment_coded cert U
+
 end AbstractGates
 
 section ConcreteGates
@@ -255,3 +263,4 @@ open FirstOrder.Language
 #assert_standard_axioms test_stageIntoCoded_carrier
 #assert_standard_axioms test_stageIntoCoded_structure
 #assert_standard_axioms test_pathShift_stageIntoCoded_collapse
+#assert_standard_axioms test_coded_initialSegment
