@@ -254,7 +254,7 @@ theorem limEquiv_symm {p q : ℕ × ℕ} (h : C.limEquiv p q) : C.limEquiv q p :
   exact ⟨z, by rwa [Nat.max_comm], by rwa [Nat.max_comm]⟩
 
 /-- The common value of an equivalent pair at any later stage. -/
-private theorem limEquiv_push {p q : ℕ × ℕ} (hp : C.limMem p)
+theorem limEquiv_push {p q : ℕ × ℕ} (hp : C.limMem p)
     (h : C.limEquiv p q) {M : ℕ} (hM : max p.1 q.1 ≤ M) :
     ∃ w, w ∈ C.transportTo p.1 M p.2 ∧ w ∈ C.transportTo q.1 M q.2 := by
   obtain ⟨z, hz₁, hz₂⟩ := h
@@ -265,6 +265,15 @@ private theorem limEquiv_push {p q : ℕ × ℕ} (hp : C.limMem p)
   obtain ⟨w, hw, -⟩ := C.transportTo_dom M hM hzdom
   exact ⟨w, C.transportTo_trans (Nat.le_max_left _ _) hM hz₁ hw,
     C.transportTo_trans (Nat.le_max_right _ _) hM hz₂ hw⟩
+
+/-- Transports of equivalent representatives agree at any common later stage — the
+engine of every invariance statement over the chain. -/
+theorem transportTo_eq_of_limEquiv {p q : ℕ × ℕ} (hp : C.limMem p)
+    (h : C.limEquiv p q) {M s t : ℕ} (hpM : p.1 ≤ M) (hqM : q.1 ≤ M)
+    (hs : s ∈ C.transportTo p.1 M p.2) (ht : t ∈ C.transportTo q.1 M q.2) :
+    s = t := by
+  obtain ⟨w, hw₁, hw₂⟩ := C.limEquiv_push hp h (Nat.max_le.2 ⟨hpM, hqM⟩)
+  exact (Part.mem_unique hs hw₁).trans (Part.mem_unique hw₂ ht)
 
 /-- Transitivity on the limit domain: push to a common later stage, then descend along
 transport injectivity. -/
