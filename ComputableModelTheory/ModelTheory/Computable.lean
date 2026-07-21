@@ -9,6 +9,7 @@ import ComputableModelTheory.ModelTheory.Computable.AtomicEquivComputability
 import ComputableModelTheory.ModelTheory.Computable.AtomicSatisfaction
 import ComputableModelTheory.ModelTheory.Computable.CePresentation
 import ComputableModelTheory.ModelTheory.Computable.CeStructureChain
+import ComputableModelTheory.ModelTheory.Computable.CeStructureLimit
 import ComputableModelTheory.ModelTheory.Computable.Diagram
 import ComputableModelTheory.ModelTheory.Computable.GeneratedPresentation
 import ComputableModelTheory.ModelTheory.Computable.GraphExample
