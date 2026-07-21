@@ -664,6 +664,128 @@ theorem codedPresentation_domain (U : D.UniformEvaluatorsIn) :
     (D.codedPresentation cert U).domain = {c | IsCanonicalCode D cert c} :=
   Set.ext fun _ ↦ D.canonCodeB_eq_true_iff cert
 
+/-! ### Normalized stage embeddings and the union of stages -/
+
+/-- Canonical codes are equal exactly when their decoded pairs are limit
+equivalent — the coded carrier separates limit elements. -/
+theorem canonicalCode_eq_of_limEquiv {c₁ c₂ : ℕ}
+    (h₁ : IsCanonicalCode D cert c₁) (h₂ : IsCanonicalCode D cert c₂)
+    (h : D.toDomainChain.limEquiv (Nat.unpair c₁) (Nat.unpair c₂)) : c₁ = c₂ := by
+  have heq := CeDomainChainIn.normalize_eq_of_limEquiv cert h₁.limMem h₂.limMem h
+  rw [h₁.2, h₂.2] at heq
+  calc c₁ = Nat.pair (Nat.unpair c₁).1 (Nat.unpair c₁).2 := (Nat.pair_unpair c₁).symm
+    _ = Nat.pair (Nat.unpair c₂).1 (Nat.unpair c₂).2 := by rw [heq]
+    _ = c₂ := Nat.pair_unpair c₂
+
+/-- The normalized stage embedding into the coded carrier: a stage element goes to
+the code of its canonical representative. -/
+noncomputable def stageIntoCoded (i x : ℕ) : ℕ :=
+  Nat.pair (CeDomainChainIn.normalize cert (i, x)).1
+    (CeDomainChainIn.normalize cert (i, x)).2
+
+theorem stageIntoCoded_isCanonical {i x : ℕ} (hx : x ∈ (D.stageAt i).domain) :
+    IsCanonicalCode D cert (D.stageIntoCoded cert i x) :=
+  D.isCanonicalCode_pair cert (D.isCanonicalPair_normalize cert hx)
+
+theorem stageIntoCoded_unpair_equiv {i x : ℕ} (hx : x ∈ (D.stageAt i).domain) :
+    D.toDomainChain.limEquiv ((i, x) : ℕ × ℕ)
+      (Nat.unpair (D.stageIntoCoded cert i x)) := by
+  rw [stageIntoCoded, Nat.unpair_pair]
+  exact (CeDomainChainIn.normalize_spec cert (p := (i, x)) hx).2
+
+/-- Normalized stage embeddings are injective on each stage's domain. -/
+theorem stageIntoCoded_injective {i x₁ x₂ : ℕ} (hx₁ : x₁ ∈ (D.stageAt i).domain)
+    (hx₂ : x₂ ∈ (D.stageAt i).domain)
+    (h : D.stageIntoCoded cert i x₁ = D.stageIntoCoded cert i x₂) : x₁ = x₂ := by
+  refine CeDomainChainIn.normalize_stageInto_injOn cert hx₁ hx₂ ?_
+  have h₁ := congrArg (fun c ↦ (Nat.unpair c).1) h
+  have h₂ := congrArg (fun c ↦ (Nat.unpair c).2) h
+  simp only [stageIntoCoded, Nat.unpair_pair] at h₁ h₂
+  exact Prod.ext h₁ h₂
+
+/-- Normalized stage embeddings commute with transport: an element and any transport
+image share their canonical code. -/
+theorem stageIntoCoded_transport {i j x y : ℕ} (hij : i ≤ j)
+    (hx : x ∈ (D.stageAt i).domain) (hy : y ∈ D.transportTo i j x) :
+    D.stageIntoCoded cert i x = D.stageIntoCoded cert j y := by
+  have h := CeDomainChainIn.normalize_stageInto_transport cert hij hx hy
+  rw [show CeDomainChainIn.stageInto i x = ((i : ℕ), x) from rfl,
+    show CeDomainChainIn.stageInto j y = ((j : ℕ), y) from rfl] at h
+  rw [stageIntoCoded, stageIntoCoded, h]
+
+/-- The union of stages: every canonical code is a normalized stage image — the coded
+carrier is exhausted by (indeed, equal to) the images of the stage domains. -/
+theorem stageIntoCoded_surjective {c : ℕ} (hc : IsCanonicalCode D cert c) :
+    ∃ i x, x ∈ (D.stageAt i).domain ∧ c = D.stageIntoCoded cert i x := by
+  refine ⟨(Nat.unpair c).1, (Nat.unpair c).2, hc.limMem, ?_⟩
+  rw [stageIntoCoded, hc.2, Nat.pair_unpair]
+
+/-- Normalized stage embeddings are homomorphisms: the coded function of stage images
+is the stage image of the stage function value. -/
+theorem stageIntoCoded_funMap {i n : ℕ} (f : L.Functions n) (v : Fin n → ℕ)
+    (hv : ∀ k, v k ∈ (D.stageAt i).domain) :
+    D.codedFunMap cert f (fun k ↦ D.stageIntoCoded cert i (v k))
+      = D.stageIntoCoded cert i (@Structure.funMap L ℕ (D.stageAt i).str n f v) := by
+  have hcanon : ∀ k, IsCanonicalCode D cert (D.stageIntoCoded cert i (v k)) :=
+    fun k ↦ D.stageIntoCoded_isCanonical cert (hv k)
+  have hout : (@Structure.funMap L ℕ (D.stageAt i).str n f v) ∈ (D.stageAt i).domain :=
+    (D.stageAt i).domain_closed n f v hv
+  refine D.canonicalCode_eq_of_limEquiv cert
+    (D.codedFunMap_isCanonical cert f _ hcanon)
+    (D.stageIntoCoded_isCanonical cert hout) ?_
+  -- The stage-`i` computation is itself a limit value of the image tuple.
+  have hbase : D.LimFunGraph f (fun k ↦ ((i, v k) : ℕ × ℕ))
+      (i, @Structure.funMap L ℕ (D.stageAt i).str n f v) := by
+    refine ⟨i, v, fun _ ↦ le_refl i, ?_, D.toDomainChain.limEquiv_refl _⟩
+    intro k
+    rw [transportTo, CeDomainChainIn.transportTo_self]
+    exact Part.mem_some _
+  have hbase' : D.LimFunGraph f
+      (fun k ↦ Nat.unpair (D.stageIntoCoded cert i (v k)))
+      (i, @Structure.funMap L ℕ (D.stageAt i).str n f v) :=
+    D.limFunGraph_of_limEquiv (v := fun k ↦ ((i, v k) : ℕ × ℕ))
+      (v' := fun k ↦ Nat.unpair (D.stageIntoCoded cert i (v k)))
+      (out := (i, @Structure.funMap L ℕ (D.stageAt i).str n f v))
+      (out' := (i, @Structure.funMap L ℕ (D.stageAt i).str n f v)) f
+      (fun k ↦ hv k) (fun k ↦ (hcanon k).limMem)
+      (fun k ↦ D.stageIntoCoded_unpair_equiv cert (hv k)) hout hout
+      (D.toDomainChain.limEquiv_refl _) hbase
+  have h₁ := D.limFunGraph_functional
+    (out₁ := Nat.unpair (D.codedFunMap cert f
+      (fun k ↦ D.stageIntoCoded cert i (v k))))
+    (out₂ := (i, @Structure.funMap L ℕ (D.stageAt i).str n f v)) f
+    (fun k ↦ (hcanon k).limMem)
+    (D.codedFunMap_limFunGraph cert f _ hcanon) hbase'
+    (D.codedFunMap_isCanonical cert f _ hcanon).limMem hout
+  exact D.toDomainChain.limEquiv_trans
+    (p := Nat.unpair (D.codedFunMap cert f
+      (fun k ↦ D.stageIntoCoded cert i (v k))))
+    (q := (i, @Structure.funMap L ℕ (D.stageAt i).str n f v))
+    (r := Nat.unpair (D.stageIntoCoded cert i
+      (@Structure.funMap L ℕ (D.stageAt i).str n f v)))
+    (D.codedFunMap_isCanonical cert f _ hcanon).limMem hout
+    (D.stageIntoCoded_isCanonical cert hout).limMem h₁
+    (D.stageIntoCoded_unpair_equiv cert hout)
+
+/-- Normalized stage embeddings transfer relations exactly. -/
+theorem stageIntoCoded_relMap {i n : ℕ} (R : L.Relations n) (v : Fin n → ℕ)
+    (hv : ∀ k, v k ∈ (D.stageAt i).domain) :
+    D.codedRelMap cert R (fun k ↦ D.stageIntoCoded cert i (v k))
+      ↔ @Structure.RelMap L ℕ (D.stageAt i).str n R v := by
+  have hcanon : ∀ k, IsCanonicalCode D cert (D.stageIntoCoded cert i (v k)) :=
+    fun k ↦ D.stageIntoCoded_isCanonical cert (hv k)
+  rw [D.codedRelMap_iff cert R _ hcanon]
+  refine Iff.trans (D.limRelHolds_iff_of_limEquiv
+    (v := fun k ↦ Nat.unpair (D.stageIntoCoded cert i (v k)))
+    (v' := fun k ↦ ((i, v k) : ℕ × ℕ)) R
+    (fun k ↦ (hcanon k).limMem) (fun k ↦ hv k)
+    fun k ↦ D.toDomainChain.limEquiv_symm
+      (D.stageIntoCoded_unpair_equiv cert (hv k))) ?_
+  refine D.limRelHolds_iff_realization (v := fun k ↦ ((i, v k) : ℕ × ℕ)) R
+    (fun k ↦ hv k) (fun _ ↦ le_refl i) fun k ↦ ?_
+  rw [transportTo, CeDomainChainIn.transportTo_self]
+  exact Part.mem_some _
+
 end CeStructureChainIn
 
 end FirstOrder.Language

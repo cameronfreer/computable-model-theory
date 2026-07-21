@@ -74,6 +74,29 @@ theorem test_coded_ce_inclusion (U : D.UniformEvaluatorsIn) :
   ((D.codedPresentation cert U).toCePresentation_domain).trans
     (D.codedPresentation_domain cert U)
 
+/-- Gate: normalized stage embeddings are injective on stage domains, commute with
+transport, and exhaust the coded carrier (the union of stages). -/
+theorem test_stageIntoCoded_carrier {i j x x₂ y c : ℕ} (hij : i ≤ j)
+    (hx : x ∈ (D.stageAt i).domain) (hx₂ : x₂ ∈ (D.stageAt i).domain)
+    (hy : y ∈ D.transportTo i j x)
+    (heq : D.stageIntoCoded cert i x = D.stageIntoCoded cert i x₂)
+    (hc : CeStructureChainIn.IsCanonicalCode D cert c) :
+    x = x₂ ∧ D.stageIntoCoded cert i x = D.stageIntoCoded cert j y ∧
+      ∃ i' x', x' ∈ (D.stageAt i').domain ∧ c = D.stageIntoCoded cert i' x' :=
+  ⟨D.stageIntoCoded_injective cert hx hx₂ heq,
+    D.stageIntoCoded_transport cert hij hx hy,
+    D.stageIntoCoded_surjective cert hc⟩
+
+/-- Gate: normalized stage embeddings are homomorphisms for functions and embeddings
+for relations into the coded structure. -/
+theorem test_stageIntoCoded_structure {i n : ℕ} (f : L.Functions n)
+    (R : L.Relations n) (v : Fin n → ℕ) (hv : ∀ k, v k ∈ (D.stageAt i).domain) :
+    (D.codedFunMap cert f (fun k ↦ D.stageIntoCoded cert i (v k))
+        = D.stageIntoCoded cert i (@Structure.funMap L ℕ (D.stageAt i).str n f v)) ∧
+      (D.codedRelMap cert R (fun k ↦ D.stageIntoCoded cert i (v k))
+        ↔ @Structure.RelMap L ℕ (D.stageAt i).str n R v) :=
+  ⟨D.stageIntoCoded_funMap cert f v hv, D.stageIntoCoded_relMap cert R v hv⟩
+
 end AbstractGates
 
 section ConcreteGates
@@ -202,6 +225,19 @@ theorem test_pathShift_coded_relMap :
           exact (CeDomainChainIn.normalize_spec (pathShiftCert O) hval₁).2)).1
     (test_pathShift_relHolds O)
 
+/-- Concrete gate: transport identifies normalized stage images across stages — `3`
+at stage 0 and `5` at stage 2 share their canonical code in the path-graph chain. -/
+theorem test_pathShift_stageIntoCoded_collapse :
+    (pathShiftChain O).stageIntoCoded (pathShiftCert O) 0 3
+      = (pathShiftChain O).stageIntoCoded (pathShiftCert O) 2 5 :=
+  (pathShiftChain O).stageIntoCoded_transport (pathShiftCert O) (by omega)
+    ⟨3, rfl⟩ (by
+      show (5 : ℕ) ∈ (pathShiftChain O).transportTo 0 2 3
+      exact (pathShiftChain O).toDomainChain.transportTo_trans (by omega) (by omega)
+        ((pathShiftChain O).toDomainChain.step_mem_transportTo_succ (Part.mem_some _))
+        ((pathShiftChain O).toDomainChain.step_mem_transportTo_succ
+          (Part.mem_some _)))
+
 end ConcreteGates
 
 end FirstOrder.Language
@@ -216,3 +252,6 @@ open FirstOrder.Language
 #assert_standard_axioms pathShiftUniform
 #assert_standard_axioms test_succShift_coded_funMap
 #assert_standard_axioms test_pathShift_coded_relMap
+#assert_standard_axioms test_stageIntoCoded_carrier
+#assert_standard_axioms test_stageIntoCoded_structure
+#assert_standard_axioms test_pathShift_stageIntoCoded_collapse
