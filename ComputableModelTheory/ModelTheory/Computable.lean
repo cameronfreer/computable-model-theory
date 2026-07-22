@@ -11,6 +11,7 @@ import ComputableModelTheory.ModelTheory.Computable.CePresentation
 import ComputableModelTheory.ModelTheory.Computable.CeStructureChain
 import ComputableModelTheory.ModelTheory.Computable.CeStructureLimit
 import ComputableModelTheory.ModelTheory.Computable.ChainPresentation
+import ComputableModelTheory.ModelTheory.Computable.ComputableIso
 import ComputableModelTheory.ModelTheory.Computable.DecidablePresentation
 import ComputableModelTheory.ModelTheory.Computable.Diagram
 import ComputableModelTheory.ModelTheory.Computable.GeneratedPresentation
