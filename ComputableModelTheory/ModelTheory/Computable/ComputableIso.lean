@@ -443,4 +443,222 @@ noncomputable def uniformRankIsoFamily (P : ℕ → CePresentationIn O L)
   toFun_uniform := h.rankOf_uniform
   invFun_uniform := h.rankEnum_uniform
 
+/-! ### Transport along a computable permutation
+
+Representation-level transport: pushing a presentation forward along a computable
+permutation of ℕ (with computable inverse) yields a presentation, computably
+isomorphic to the original. Witness-level transport (HP/JEP/AP structures) is a
+separate, later tranche. -/
+
+/-- A computable permutation of ℕ with computable inverse. -/
+structure ComputablePermIn (O : Set (ℕ →. ℕ)) where
+  toFun : ℕ → ℕ
+  invFun : ℕ → ℕ
+  toFun_computableIn : ComputableIn O toFun
+  invFun_computableIn : ComputableIn O invFun
+  left_inv : ∀ x, invFun (toFun x) = x
+  right_inv : ∀ y, toFun (invFun y) = y
+
+namespace CePresentationIn
+
+variable (P : CePresentationIn O L) (π : ComputablePermIn O)
+
+/-- The pushforward structure: conjugate by the permutation. -/
+@[reducible]
+def permStr : L.Structure ℕ where
+  funMap {n} f v :=
+    π.toFun (@Structure.funMap L ℕ P.str n f fun k ↦ π.invFun (v k))
+  RelMap {n} R v := @Structure.RelMap L ℕ P.str n R fun k ↦ π.invFun (v k)
+
+/-- The pushforward function evaluator: decode the arguments, evaluate at the source,
+re-encode the value. -/
+noncomputable def permFunEval : FunctionApplicationData L ℕ →. ℕ :=
+  fun d ↦ ((FunctionApplicationData.ofSymbolArgs?
+      (d.toSymbol, d.argsList.map π.invFun) :
+      Option (FunctionApplicationData L ℕ)) :
+      Part (FunctionApplicationData L ℕ)).bind
+    fun d' ↦ (P.funEval d').map π.toFun
+
+/-- The pushforward relation decider. -/
+noncomputable def permRelEval : RelationApplicationData L ℕ →. Bool :=
+  fun d ↦ ((RelationApplicationData.ofSymbolArgs?
+      (d.toSymbol, d.argsList.map π.invFun) :
+      Option (RelationApplicationData L ℕ)) :
+      Part (RelationApplicationData L ℕ)).bind P.relEval
+
+theorem permFunEval_recursiveIn : RecursiveIn O (P.permFunEval π) := by
+  have hAsm : RecursiveIn O fun d : FunctionApplicationData L ℕ ↦
+      ((FunctionApplicationData.ofSymbolArgs?
+        (d.toSymbol, d.argsList.map π.invFun) :
+        Option (FunctionApplicationData L ℕ)) :
+        Part (FunctionApplicationData L ℕ)) :=
+    ComputableIn.ofOption
+      ((FunctionApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn).comp
+        ((FunctionApplicationData.primrec_toSymbol.to_comp.computableIn).pair
+          (ComputableIn.list_map
+            (FunctionApplicationData.primrec_argsList.to_comp.computableIn)
+            ((π.invFun_computableIn.comp ComputableIn.snd).to₂))))
+  exact RecursiveIn.bind hAsm
+    (((RecursiveIn.map P.funEval_recursiveIn
+      ((π.toFun_computableIn.comp ComputableIn.snd).to₂)).comp
+        ComputableIn.snd).to₂)
+
+theorem permRelEval_recursiveIn : RecursiveIn O (P.permRelEval π) := by
+  have hAsm : RecursiveIn O fun d : RelationApplicationData L ℕ ↦
+      ((RelationApplicationData.ofSymbolArgs?
+        (d.toSymbol, d.argsList.map π.invFun) :
+        Option (RelationApplicationData L ℕ)) :
+        Part (RelationApplicationData L ℕ)) :=
+    ComputableIn.ofOption
+      ((RelationApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn).comp
+        ((RelationApplicationData.primrec_toSymbol.to_comp.computableIn).pair
+          (ComputableIn.list_map
+            (RelationApplicationData.primrec_argsList.to_comp.computableIn)
+            ((π.invFun_computableIn.comp ComputableIn.snd).to₂))))
+  exact RecursiveIn.bind hAsm
+    ((P.relEval_recursiveIn.comp ComputableIn.snd).to₂)
+
+/-- The pushforward presentation. -/
+noncomputable def permPresentation : CePresentationIn O L where
+  str := P.permStr π
+  enum n := π.toFun (P.enum n)
+  enum_computableIn := π.toFun_computableIn.comp P.enum_computableIn
+  domain_closed := fun n f v hv ↦ by
+    have hv' : ∀ k, π.invFun (v k) ∈ P.domain := fun k ↦ by
+      obtain ⟨m, hm⟩ := hv k
+      rw [← hm, π.left_inv]
+      exact P.enum_mem_domain m
+    obtain ⟨m, hm⟩ := P.domain_closed n f _ hv'
+    refine ⟨m, ?_⟩
+    show π.toFun (P.enum m) = _
+    rw [hm]
+    rfl
+  funEval := P.permFunEval π
+  funEval_recursiveIn := P.permFunEval_recursiveIn π
+  funEval_correct := fun d hd ↦ by
+    have hd' : ∀ k, π.invFun (d.args k) ∈ P.domain := fun k ↦ by
+      obtain ⟨m, hm⟩ := hd k
+      rw [← hm, π.left_inv]
+      exact P.enum_mem_domain m
+    have hlen : (d.argsList.map π.invFun).length = d.toSymbol.arity := by
+      simp [FunctionApplicationData.argsList, FunctionApplicationData.toSymbol,
+        FunctionSymbol.arity]
+    set d' : FunctionApplicationData L ℕ :=
+      FunctionApplicationData.equivSubtype.symm
+        ⟨(d.toSymbol, d.argsList.map π.invFun), hlen⟩ with hd'def
+    have hargs : d'.args = fun k ↦ π.invFun (d.args k) := by
+      funext i
+      show (d.argsList.map π.invFun).get (Fin.cast hlen.symm i) = _
+      simp [FunctionApplicationData.argsList]
+    have hval := P.funEval_correct d' (by rw [hargs]; exact hd')
+    have hfun : @FunctionApplicationData.funMap L ℕ P.str d'
+        = @Structure.funMap L ℕ P.str d.arity d.symbol fun k ↦ π.invFun (d.args k) := by
+      show @Structure.funMap L ℕ P.str _ d'.symbol d'.args = _
+      rw [hargs]
+      exact rfl
+    rw [hfun] at hval
+    rw [permFunEval]
+    refine Part.mem_bind_iff.2 ⟨d', ?_, ?_⟩
+    · rw [FunctionApplicationData.ofSymbolArgs?_of_length_eq _ hlen]
+      exact Part.mem_some _
+    · exact (Part.mem_map_iff _).2 ⟨_, hval, rfl⟩
+  relEval := P.permRelEval π
+  relEval_recursiveIn := P.permRelEval_recursiveIn π
+  relEval_correct := fun d hd ↦ by
+    have hd' : ∀ k, π.invFun (d.args k) ∈ P.domain := fun k ↦ by
+      obtain ⟨m, hm⟩ := hd k
+      rw [← hm, π.left_inv]
+      exact P.enum_mem_domain m
+    have hlen : (d.argsList.map π.invFun).length = d.toSymbol.arity := by
+      simp [RelationApplicationData.argsList, RelationApplicationData.toSymbol,
+        RelationSymbol.arity]
+    set d' : RelationApplicationData L ℕ :=
+      RelationApplicationData.equivSubtype.symm
+        ⟨(d.toSymbol, d.argsList.map π.invFun), hlen⟩ with hd'def
+    have hargs : d'.args = fun k ↦ π.invFun (d.args k) := by
+      funext i
+      show (d.argsList.map π.invFun).get (Fin.cast hlen.symm i) = _
+      simp [RelationApplicationData.argsList]
+    obtain ⟨b, hb, hbiff⟩ := P.relEval_correct d' (by rw [hargs]; exact hd')
+    have hrel : @RelationApplicationData.relMap L ℕ P.str d'
+        ↔ @Structure.RelMap L ℕ P.str d.arity d.symbol
+          fun k ↦ π.invFun (d.args k) := by
+      show @Structure.RelMap L ℕ P.str _ d'.symbol d'.args ↔ _
+      rw [hargs]
+      exact Iff.rfl
+    refine ⟨b, ?_, hbiff.trans hrel⟩
+    rw [permRelEval]
+    refine Part.mem_bind_iff.2 ⟨d', ?_, hb⟩
+    rw [RelationApplicationData.ofSymbolArgs?_of_length_eq _ hlen]
+    exact Part.mem_some _
+
+theorem mem_permPresentation_domain_iff {y : ℕ} :
+    y ∈ (P.permPresentation π).domain ↔ π.invFun y ∈ P.domain := by
+  constructor
+  · rintro ⟨n, hn⟩
+    rw [show (P.permPresentation π).enum n = π.toFun (P.enum n) from rfl] at hn
+    rw [← hn, π.left_inv]
+    exact P.enum_mem_domain n
+  · rintro ⟨n, hn⟩
+    exact ⟨n, by rw [show (P.permPresentation π).enum n = π.toFun (P.enum n) from rfl,
+      hn, π.right_inv]⟩
+
+/-- The transport isomorphism: the permutation, domain-restricted, is a computable
+isomorphism onto the pushforward. -/
+noncomputable def permIso : CeIsoIn P (P.permPresentation π) where
+  toFun x := (CeIsoIn.domId P x).map π.toFun
+  invFun y := (CeIsoIn.domId (P.permPresentation π) y).map π.invFun
+  toFun_recursiveIn :=
+    RecursiveIn.map (CeIsoIn.domId_recursiveIn P)
+      ((π.toFun_computableIn.comp ComputableIn.snd).to₂)
+  invFun_recursiveIn :=
+    RecursiveIn.map (CeIsoIn.domId_recursiveIn _)
+      ((π.invFun_computableIn.comp ComputableIn.snd).to₂)
+  toFun_dom := fun x ↦ CeIsoIn.domId_dom P x
+  invFun_dom := fun y ↦ CeIsoIn.domId_dom _ y
+  toFun_mem := fun {x y} h ↦ by
+    obtain ⟨z, hz, rfl⟩ := (Part.mem_map_iff _).1 h
+    obtain ⟨hx, rfl⟩ := CeIsoIn.mem_domId_iff.1 hz
+    exact (P.mem_permPresentation_domain_iff π).2 (by rwa [π.left_inv])
+  invFun_toFun := fun {x y} h ↦ by
+    obtain ⟨z, hz, rfl⟩ := (Part.mem_map_iff _).1 h
+    obtain ⟨hx, rfl⟩ := CeIsoIn.mem_domId_iff.1 hz
+    refine (Part.mem_map_iff _).2 ⟨π.toFun z, CeIsoIn.mem_domId_iff.2
+      ⟨(P.mem_permPresentation_domain_iff π).2 (by rwa [π.left_inv]), rfl⟩, ?_⟩
+    rw [π.left_inv]
+  toFun_invFun := fun {y x} h ↦ by
+    obtain ⟨z, hz, rfl⟩ := (Part.mem_map_iff _).1 h
+    obtain ⟨hy, rfl⟩ := CeIsoIn.mem_domId_iff.1 hz
+    refine (Part.mem_map_iff _).2 ⟨π.invFun z, CeIsoIn.mem_domId_iff.2
+      ⟨(P.mem_permPresentation_domain_iff π).1 hy, rfl⟩, ?_⟩
+    rw [π.right_inv]
+  toFun_funMap := fun n f v w hw ↦ by
+    have hv : ∀ k, v k ∈ P.domain ∧ w k = π.toFun (v k) := fun k ↦ by
+      obtain ⟨z, hz, hval⟩ := (Part.mem_map_iff _).1 (hw k)
+      obtain ⟨hx, rfl⟩ := CeIsoIn.mem_domId_iff.1 hz
+      exact ⟨hx, hval.symm⟩
+    have hwv : w = fun k ↦ π.toFun (v k) := funext fun k ↦ (hv k).2
+    subst hwv
+    have hfun : @Structure.funMap L ℕ (P.permPresentation π).str n f
+        (fun k ↦ π.toFun (v k)) = π.toFun (@Structure.funMap L ℕ P.str n f v) := by
+      show π.toFun (@Structure.funMap L ℕ P.str n f fun k ↦ π.invFun (π.toFun (v k)))
+        = _
+      congr 1
+      exact congrArg _ (funext fun k ↦ π.left_inv (v k))
+    rw [hfun]
+    exact (Part.mem_map_iff _).2 ⟨_, CeIsoIn.mem_domId_iff.2
+      ⟨P.domain_closed n f v fun k ↦ (hv k).1, rfl⟩, rfl⟩
+  toFun_relMap := fun n R v w hw ↦ by
+    have hv : ∀ k, v k ∈ P.domain ∧ w k = π.toFun (v k) := fun k ↦ by
+      obtain ⟨z, hz, hval⟩ := (Part.mem_map_iff _).1 (hw k)
+      obtain ⟨hx, rfl⟩ := CeIsoIn.mem_domId_iff.1 hz
+      exact ⟨hx, hval.symm⟩
+    have hwv : w = fun k ↦ π.toFun (v k) := funext fun k ↦ (hv k).2
+    subst hwv
+    show @Structure.RelMap L ℕ P.str n R (fun k ↦ π.invFun (π.toFun (v k))) ↔ _
+    rw [show (fun k ↦ π.invFun (π.toFun (v k))) = v from
+      funext fun k ↦ π.left_inv (v k)]
+
+end CePresentationIn
+
 end FirstOrder.Language
