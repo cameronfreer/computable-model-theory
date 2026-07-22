@@ -22,6 +22,7 @@ import ComputableModelTheory.ModelTheory.Computable.RankPresentation
 import ComputableModelTheory.ModelTheory.Computable.Structure
 import ComputableModelTheory.ModelTheory.Computable.SuccExample
 import ComputableModelTheory.ModelTheory.Computable.TermClosure
+import ComputableModelTheory.ModelTheory.Computable.TupleReindex
 import ComputableModelTheory.ModelTheory.Computable.TermEvaluation
 import Mathlib.ModelTheory.Basic
 import Mathlib.ModelTheory.Semantics
