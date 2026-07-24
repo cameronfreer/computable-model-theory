@@ -18,7 +18,9 @@ and discharging totality), option and sum case analysis (through
 proofs), strong recursion on natural numbers (`ComputableIn.nat_strong_rec`, by
 computing the full course-of-values list), the partial traversal of lists
 (`listMapPart`, with its exact domain theorem and pointwise `Forall₂` membership
-characterization, and `RecursiveIn.listMapPart`), total unbounded search
+characterization, and `RecursiveIn.listMapPart`), partial folds of lists
+(`foldlPart`/`foldrPart`, defined exactly when every step halts on the running
+accumulator, with `RecursiveIn.foldlPart₂`/`foldrPart₂`), total unbounded search
 (`ComputableIn.find`), together with thin domain and specification wrappers for
 `Nat.rfind` over total `Bool`-valued predicates. Each combinator is proved by descending to the
 `Nat.RecursiveIn` constructors through `Primcodable` encodings, following the proofs of
@@ -604,6 +606,126 @@ theorem RecursiveIn.listMapPart {g : α →. β} (hg : RecursiveIn O g) :
     (ComputableIn.const ()) ComputableIn.id).of_eq fun _ ↦ rfl
 
 end ListMapPartRec
+
+/-! ### Partial folds of lists
+
+`foldlPart`/`foldrPart` fold a **partial** step over a list inside `Part`: defined
+exactly when every step halts on the running accumulator. The partial analogue of the
+total `list_foldl`/`list_foldr`, and the engine of partial term evaluation, where the
+function-symbol step halts only on-domain. -/
+
+section FoldPart
+
+variable {α β σ : Type*}
+
+/-- Left fold of a partial step over a list, inside `Part`. -/
+def foldlPart (g : σ → β →. σ) : σ → List β →. σ
+  | acc, [] => Part.some acc
+  | acc, b :: t => (g acc b).bind fun acc' ↦ foldlPart g acc' t
+
+@[simp]
+theorem foldlPart_nil (g : σ → β →. σ) (acc : σ) : foldlPart g acc [] = Part.some acc :=
+  rfl
+
+theorem foldlPart_cons (g : σ → β →. σ) (acc : σ) (b : β) (t : List β) :
+    foldlPart g acc (b :: t) = (g acc b).bind fun acc' ↦ foldlPart g acc' t :=
+  rfl
+
+/-- Appending one element runs one more step at the end. -/
+theorem foldlPart_concat (g : σ → β →. σ) (acc : σ) (l : List β) (x : β) :
+    foldlPart g acc (l ++ [x]) = (foldlPart g acc l).bind fun acc' ↦ g acc' x := by
+  induction l generalizing acc with
+  | nil => simp [foldlPart_cons]
+  | cons b t ih =>
+    rw [List.cons_append, foldlPart_cons, foldlPart_cons, Part.bind_assoc]
+    exact congrArg _ (funext fun acc' ↦ ih acc')
+
+/-- Right fold of a partial step over a list, inside `Part`. -/
+def foldrPart (g : β → σ →. σ) (init : σ) (l : List β) : Part σ :=
+  foldlPart (fun acc b ↦ g b acc) init l.reverse
+
+theorem foldrPart_nil (g : β → σ →. σ) (init : σ) : foldrPart g init [] = Part.some init :=
+  rfl
+
+theorem foldrPart_cons (g : β → σ →. σ) (init : σ) (b : β) (t : List β) :
+    foldrPart g init (b :: t) = (foldrPart g init t).bind fun acc ↦ g b acc := by
+  rw [foldrPart, List.reverse_cons, foldlPart_concat, foldrPart]
+
+end FoldPart
+
+section FoldPartRec
+
+variable {α β σ γ : Type*} [Primcodable α] [Primcodable β] [Primcodable σ] [Primcodable γ]
+variable {O : Set (ℕ →. ℕ)}
+
+/-- Parameterized partial left fold is partial recursive in the oracle: walk positions
+with `Nat.rec`, threading the running accumulator. The parameter is a **single** type
+`δ` (bundling everything except the list) and the initial accumulator is a computable
+function of it, so the input is the flat `δ × List β` — the deeper `(_ × _) × List β`
+nesting makes the `getElem?` combinator diverge at `whnf`. Mirrors
+`RecursiveIn.listMapPart₂`. -/
+theorem RecursiveIn.foldlPart₂ {δ : Type*} [Primcodable δ] {g : δ → σ → β →. σ}
+    {init : δ → σ}
+    (hg : RecursiveIn₂ O fun (ds : δ × σ) (b : β) ↦ g ds.1 ds.2 b)
+    (hinit : ComputableIn O init) :
+    RecursiveIn O fun p : δ × List β ↦ foldlPart (g p.1) (init p.1) p.2 := by
+  have hstep : RecursiveIn₂ O fun (p : δ × List β) (qs : ℕ × σ) ↦
+      (p.2[qs.1]? : Part β).bind fun b ↦ g p.1 qs.2 b :=
+    RecursiveIn.bind
+      (ComputableIn.ofOption
+        (Computable.list_getElem?.computableIn.comp
+          ((ComputableIn.snd.comp ComputableIn.fst).pair
+            (ComputableIn.fst.comp ComputableIn.snd))))
+      ((hg.comp
+        ((ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst)).pair
+          (ComputableIn.snd.comp (ComputableIn.snd.comp ComputableIn.fst)))
+        ComputableIn.snd).to₂)
+  have hF : RecursiveIn O fun p : δ × List β ↦
+      Nat.rec (motive := fun _ ↦ Part σ) (Part.some (init p.1))
+        (fun y IH ↦ IH.bind fun acc ↦ (p.2[y]? : Part β).bind fun b ↦ g p.1 acc b)
+        p.2.length :=
+    RecursiveIn.nat_rec
+      (Computable.list_length.computableIn.comp ComputableIn.snd)
+      (RecursiveIn.comp RecursiveIn.some (hinit.comp ComputableIn.fst))
+      hstep
+  refine hF.of_eq fun p ↦ ?_
+  suffices haux : ∀ n ≤ p.2.length,
+      Nat.rec (motive := fun _ ↦ Part σ) (Part.some (init p.1))
+        (fun y IH ↦ IH.bind fun acc ↦ (p.2[y]? : Part β).bind fun b ↦ g p.1 acc b) n
+        = foldlPart (g p.1) (init p.1) (p.2.take n) by
+    rw [haux p.2.length le_rfl, List.take_length]
+  intro n hn
+  induction n with
+  | zero => simp
+  | succ m ihm =>
+    have hm : m ≤ p.2.length := Nat.le_of_succ_le hn
+    rw [show (Nat.rec (motive := fun _ ↦ Part σ) (Part.some (init p.1))
+        (fun y IH ↦ IH.bind fun acc ↦ (p.2[y]? : Part β).bind fun b ↦ g p.1 acc b)
+        (m + 1))
+        = (Nat.rec (motive := fun _ ↦ Part σ) (Part.some (init p.1))
+        (fun y IH ↦ IH.bind fun acc ↦ (p.2[y]? : Part β).bind fun b ↦ g p.1 acc b) m).bind
+          (fun acc ↦ (p.2[m]? : Part β).bind fun b ↦ g p.1 acc b)
+      from rfl, ihm hm,
+      List.take_add_one, List.getElem?_eq_getElem (Nat.lt_of_succ_le hn),
+      Option.toList_some, foldlPart_concat]
+    simp [Part.bind_assoc]
+
+/-- Parameterized partial right fold is partial recursive in the oracle. -/
+theorem RecursiveIn.foldrPart₂ {δ : Type*} [Primcodable δ] {g : δ → β → σ →. σ}
+    {init : δ → σ}
+    (hg : RecursiveIn₂ O fun (db : δ × β) (acc : σ) ↦ g db.1 db.2 acc)
+    (hinit : ComputableIn O init) :
+    RecursiveIn O fun p : δ × List β ↦ foldrPart (g p.1) (init p.1) p.2 := by
+  have hrev : RecursiveIn O fun p : δ × List β ↦
+      foldlPart (fun acc b ↦ g p.1 b acc) (init p.1) p.2.reverse :=
+    (RecursiveIn.foldlPart₂ (g := fun d acc b ↦ g d b acc) (init := init)
+      (hg.comp ((ComputableIn.fst.comp ComputableIn.fst).pair ComputableIn.snd)
+        (ComputableIn.snd.comp ComputableIn.fst)) hinit).comp
+      (ComputableIn.fst.pair
+        ((Computable.list_reverse.computableIn).comp ComputableIn.snd))
+  exact hrev.of_eq fun p ↦ rfl
+
+end FoldPartRec
 
 /-- Total unbounded search: the least witness of a total oracle-computable predicate is
 computable in the oracle. The oracle analogue of mathlib's `Computable.find`; extracted
