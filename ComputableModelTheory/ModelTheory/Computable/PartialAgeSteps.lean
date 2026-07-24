@@ -27,7 +27,9 @@ inverse serves both same-class reappearance and the CHP selector.
 
 Uniform computability of these operations (`tupleAtSteps` computable in the oracle,
 `firstStepFor`/`stepsForTuple` partial recursive, all uniformly in the index) is
-established with the re-indexed family that consumes them.
+established below as public results, so the re-indexed family and the CHP selector can
+reuse them. `stepsForTuple` is kept partial recursive with its exact domain theorem —
+never totalized.
 -/
 
 open Encodable Part FirstOrder Language
@@ -123,6 +125,66 @@ theorem exists_mem_stepsForTuple {i : ℕ} {s : List ℕ}
     ∃ steps ∈ A.stepsForTuple i s, A.tupleAtSteps i steps = s := by
   obtain ⟨steps, hsteps⟩ := Part.dom_iff_mem.1 ((A.stepsForTuple_dom_iff).2 hs)
   exact ⟨steps, hsteps, A.tupleAtSteps_of_mem_stepsForTuple hsteps⟩
+
+/-! ### Uniform computability
+
+Public, so the CHP construction can reuse them. Two elaboration hazards, both crossed by
+staying in explicit natural-number encodings: `Option`-equality (`Primrec.eq (α := Option ℕ)`)
+and `option_casesOn` both diverge at `whnf` here, so the enumeration comparison goes
+through `encode` and `Nat`-equality, and the fold step through `Option.map`/`getD` rather
+than a case split. Composing the oracle-computable `enum?` with plain projections is
+fine at any product depth; it is `Nat.unpair` (whose `ℕ × ℕ` output reopens the
+Primcodable machinery) that must be avoided. -/
+
+/-- The witness search is partial recursive uniformly in the member and element. -/
+theorem firstStepFor_recursiveIn :
+    RecursiveIn O fun p : ℕ × ℕ ↦ A.firstStepFor p.1 p.2 := by
+  have hpred : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦
+      decide (A.enum? q.1.1 q.2 = Option.some q.1.2) := by
+    have he : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦ A.enum? q.1.1 q.2 :=
+      A.enum?_computableIn.comp
+        ((ComputableIn.fst.comp ComputableIn.fst).pair ComputableIn.snd)
+    have hs : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦ (Option.some q.1.2 : Option ℕ) :=
+      ComputableIn.option_some.comp (ComputableIn.snd.comp ComputableIn.fst)
+    exact (((Primrec.eq (α := ℕ)).decide.to_comp.computableIn₂ (O := O)).comp
+      (ComputableIn.encode.comp he) (ComputableIn.encode.comp hs)).of_eq
+      fun _ ↦ (decide_eq_decide).2 Encodable.encode_inj
+  unfold firstStepFor
+  exact RecursiveIn.rfind_total (f := fun (p : ℕ × ℕ) (m : ℕ) ↦
+    decide (A.enum? p.1 m = Option.some p.2)) hpred
+
+/-- The step search is partial recursive uniformly in the member and tuple. Its exact
+domain theorem is `stepsForTuple_dom_iff`; it is never totalized. -/
+theorem stepsForTuple_recursiveIn :
+    RecursiveIn O fun p : ℕ × List ℕ ↦ A.stepsForTuple p.1 p.2 := by
+  unfold stepsForTuple
+  exact RecursiveIn.listMapPart₂ (g := A.firstStepFor) A.firstStepFor_recursiveIn
+
+/-- `tupleAtSteps` is computable uniformly in the member and step list. -/
+theorem tupleAtSteps_computableIn :
+    ComputableIn O fun p : ℕ × List ℕ ↦ A.tupleAtSteps p.1 p.2 := by
+  have hmap : ComputableIn O fun r : (ℕ × List ℕ) × ℕ × List ℕ ↦
+      (A.enum? r.1.1 r.2.1).map (· :: r.2.2) :=
+    ComputableIn.option_map
+      (A.enum?_computableIn.comp
+        ((ComputableIn.fst.comp ComputableIn.fst).pair
+          (ComputableIn.fst.comp ComputableIn.snd)))
+      ((Computable.list_cons.computableIn₂ (O := O)).comp ComputableIn.snd
+        (ComputableIn.snd.comp (ComputableIn.snd.comp ComputableIn.fst))).to₂
+  have hstep : ComputableIn₂ O fun (p : ℕ × List ℕ) (bs : ℕ × List ℕ) ↦
+      ((A.enum? p.1 bs.1).map (· :: bs.2)).getD bs.2 :=
+    (ComputableIn.option_getD hmap (ComputableIn.snd.comp ComputableIn.snd)).to₂
+  refine (ComputableIn.list_foldr ComputableIn.snd (ComputableIn.const [])
+    hstep).of_eq fun p ↦ ?_
+  obtain ⟨i, l⟩ := p
+  rw [tupleAtSteps]
+  induction l with
+  | nil => rfl
+  | cons a l ih =>
+    rw [List.foldr_cons, ih]
+    rcases h : A.enum? i a with - | b
+    · rw [List.filterMap_cons_none h]; simp
+    · rw [List.filterMap_cons_some h]; simp
 
 end PartialAgeIn
 
