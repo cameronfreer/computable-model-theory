@@ -133,6 +133,58 @@ theorem soleStackValue_eq_some_iff {vs : List ℕ} {v : ℕ} :
   | [_] => simp [soleStackValue]
   | _ :: _ :: _ => simp [soleStackValue]
 
+theorem primrec_soleStackValue : Primrec soleStackValue := by
+  have h : Primrec fun vs : List ℕ ↦
+      cond (decide (vs.length = 1)) vs.head? Option.none :=
+    Primrec.cond (Primrec.eq.comp Primrec.list_length (Primrec.const 1)).decide
+      Primrec.list_head? (Primrec.const Option.none)
+  exact h.of_eq fun vs ↦ by
+    by_cases hvs : vs.length = 1 <;> simp [soleStackValue, hvs]
+
+/-- The **total** half of a machine step: what the step will push and onto what, and
+whether the pushed value must be asked of the evaluator. `none` is an undefined step — a
+variable off the end of the environment, or an arity mismatch (in particular argument
+underflow). `some (none, x, rest)` pushes `x` outright; `some (some d, _, rest)` pushes
+the evaluator's value at `d`. Isolating this half leaves exactly one partial call per
+step, so the whole machine is a partial fold whose step is a guarded evaluator call. -/
+def stepPlan (env : Tuple ℕ) (g : ℕ ⊕ (Σ j, L.Functions j)) (acc : List ℕ) :
+    Option (Option (FunctionApplicationData L ℕ) × ℕ × List ℕ) :=
+  match g with
+  | Sum.inl n => (env[n]?).map fun x ↦ (Option.none, x, acc)
+  | Sum.inr s =>
+    (FunctionApplicationData.ofSymbolArgs? ((s, acc.take s.1) :
+      L.FunctionSymbol × List ℕ)).map fun d ↦ (Option.some d, 0, acc.drop s.1)
+
+/-- The total half of a machine step is primitive recursive, uniformly in the environment,
+the symbol, and the stack. -/
+theorem primrec_stepPlan :
+    Primrec fun x : (Tuple ℕ × (ℕ ⊕ (Σ j, L.Functions j))) × List ℕ ↦
+      stepPlan x.1.1 x.1.2 x.2 := by
+  have hinl : Primrec₂ fun (x : (Tuple ℕ × (ℕ ⊕ (Σ j, L.Functions j))) × List ℕ) (n : ℕ) ↦
+      (x.1.1[n]?).map fun v ↦
+        ((Option.none : Option (FunctionApplicationData L ℕ)), v, x.2) :=
+    (Primrec.option_map
+      (Primrec.list_getElem?.comp (Primrec.fst.comp (Primrec.fst.comp Primrec.fst))
+        Primrec.snd)
+      (((Primrec.const Option.none).pair
+        (Primrec.snd.pair (Primrec.snd.comp (Primrec.fst.comp Primrec.fst)))).to₂)).to₂
+  have hinr : Primrec₂ fun (x : (Tuple ℕ × (ℕ ⊕ (Σ j, L.Functions j))) × List ℕ)
+      (s : Σ j, L.Functions j) ↦
+      (FunctionApplicationData.ofSymbolArgs? ((s, x.2.take s.1) :
+        L.FunctionSymbol × List ℕ)).map fun d ↦ (Option.some d, 0, x.2.drop s.1) :=
+    (Primrec.option_map
+      (FunctionApplicationData.primrec_ofSymbolArgs?.comp
+        (Primrec.snd.pair
+          (Primrec.list_take.comp ((primrec_functionSymbol_arity (L := L)).comp Primrec.snd)
+            (Primrec.snd.comp Primrec.fst))))
+      (((Primrec.option_some.comp Primrec.snd).pair
+        ((Primrec.const 0).pair
+          (Primrec.list_drop.comp
+            ((primrec_functionSymbol_arity (L := L)).comp (Primrec.snd.comp Primrec.fst))
+            (Primrec.snd.comp (Primrec.fst.comp Primrec.fst))))).to₂)).to₂
+  exact (Primrec.sumCasesOn (Primrec.snd.comp Primrec.fst) hinl hinr).of_eq fun x ↦ by
+    rcases x with ⟨⟨env, g | s⟩, acc⟩ <;> rfl
+
 namespace PartialAgeIn
 
 variable (A : PartialAgeIn O L)
@@ -380,6 +432,109 @@ theorem partialRealize_eq_realize_restrictVar {i : ℕ} {env : Tuple ℕ} {k : �
   letI : L.Structure ℕ := A.structureAt i
   rw [partialRealize_eq_some henv (hk ▸ hvb)]
   exact congrArg _ (Term.realize_envFun_restrictVar hk t hvb)
+
+/-! ### Uniform computability
+
+The machine is a partial fold whose step is a **guarded evaluator call**: `stepPlan` does
+all the total work and leaves exactly one partial call per step, so the step crosses to
+`RecursiveIn` through `RecursiveIn.option_casesOn_right` and the whole stack through
+`RecursiveIn.foldrPart₂`. Fixing the variable type at `ℕ` is what makes the fold's element
+type `ℕ ⊕ Σ n, L.Functions n` — one `Primcodable` type, independent of any arity — so the
+fold engine applies unchanged. -/
+
+variable (A)
+
+/-- Each machine step is a total plan followed by a single guarded evaluator call. -/
+theorem partialValueStep_eq (i : ℕ) (env : Tuple ℕ) (g : ℕ ⊕ (Σ j, L.Functions j))
+    (acc : List ℕ) :
+    A.partialValueStep i env g acc =
+      ((stepPlan env g acc : Option (Option (FunctionApplicationData L ℕ) × ℕ × List ℕ)) :
+        Part (Option (FunctionApplicationData L ℕ) × ℕ × List ℕ)).bind fun p ↦
+        (Option.casesOn (motive := fun _ ↦ Part ℕ) p.1 (Part.some p.2.1)
+          (A.funEval i)).map (· :: p.2.2) := by
+  cases g with
+  | inl n =>
+    show ((env[n]? : Option ℕ) : Part ℕ).map (· :: acc) = _
+    rcases h : env[n]? with - | x <;> simp [stepPlan, h]
+  | inr s =>
+    show (((FunctionApplicationData.ofSymbolArgs? ((s, acc.take s.1) :
+        L.FunctionSymbol × List ℕ) : Option (FunctionApplicationData L ℕ)) :
+      Part (FunctionApplicationData L ℕ)).bind
+        fun d ↦ (A.funEval i d).map (· :: acc.drop s.1)) = _
+    rcases h : FunctionApplicationData.ofSymbolArgs? ((s, acc.take s.1) :
+      L.FunctionSymbol × List ℕ) with - | d <;> simp [stepPlan, h]
+
+/-- The machine step is partial recursive uniformly in the member, the environment, the
+symbol, and the stack. -/
+theorem partialValueStep_recursiveIn :
+    RecursiveIn O fun x : ((ℕ × Tuple ℕ) × (ℕ ⊕ (Σ j, L.Functions j))) × List ℕ ↦
+      A.partialValueStep x.1.1.1 x.1.1.2 x.1.2 x.2 := by
+  have hplan : ComputableIn O fun x : ((ℕ × Tuple ℕ) × (ℕ ⊕ (Σ j, L.Functions j))) × List ℕ ↦
+      stepPlan x.1.1.2 x.1.2 x.2 :=
+    ((primrec_stepPlan (L := L)).comp
+      (((Primrec.snd.comp (Primrec.fst.comp Primrec.fst)).pair
+        (Primrec.snd.comp Primrec.fst)).pair Primrec.snd)).to_comp.computableIn
+  have hcall : RecursiveIn O fun y : (((ℕ × Tuple ℕ) × (ℕ ⊕ (Σ j, L.Functions j))) ×
+      List ℕ) × (Option (FunctionApplicationData L ℕ) × ℕ × List ℕ) ↦
+      Option.casesOn (motive := fun _ ↦ Part ℕ) y.2.1 (Part.some y.2.2.1)
+        (A.funEval y.1.1.1.1) :=
+    RecursiveIn.option_casesOn_right
+      ((Primrec.fst.comp Primrec.snd).to_comp.computableIn)
+      ((Primrec.fst.comp (Primrec.snd.comp Primrec.snd)).to_comp.computableIn)
+      ((A.funEval_recursiveIn.comp
+        (((Primrec.fst.comp (Primrec.fst.comp (Primrec.fst.comp
+          (Primrec.fst.comp Primrec.fst)))).to_comp.computableIn).pair
+          ComputableIn.snd)).to₂)
+  have hstep : RecursiveIn O fun y : (((ℕ × Tuple ℕ) × (ℕ ⊕ (Σ j, L.Functions j))) ×
+      List ℕ) × (Option (FunctionApplicationData L ℕ) × ℕ × List ℕ) ↦
+      (Option.casesOn (motive := fun _ ↦ Part ℕ) y.2.1 (Part.some y.2.2.1)
+        (A.funEval y.1.1.1.1)).map (· :: y.2.2.2) :=
+    RecursiveIn.map hcall
+      (((Computable.list_cons.computableIn₂ (O := O)).comp ComputableIn.snd
+        ((Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp
+          Primrec.fst))).to_comp.computableIn)).to₂)
+  exact (RecursiveIn.bind (ComputableIn.ofOption hplan) hstep.to₂).of_eq fun x ↦
+    (A.partialValueStep_eq x.1.1.1 x.1.1.2 x.1.2 x.2).symm
+
+/-- The machine is partial recursive uniformly in the member, the environment, and the
+symbol list. -/
+theorem partialValueStack_recursiveIn :
+    RecursiveIn O fun p : (ℕ × Tuple ℕ) × List (ℕ ⊕ (Σ j, L.Functions j)) ↦
+      A.partialValueStack p.1.1 p.1.2 p.2 :=
+  (RecursiveIn.foldrPart₂ (δ := ℕ × Tuple ℕ)
+    (g := fun d b acc ↦ A.partialValueStep d.1 d.2 b acc) (init := fun _ ↦ ([] : List ℕ))
+    A.partialValueStep_recursiveIn.to₂ (ComputableIn.const [])).of_eq fun _ ↦ rfl
+
+/-- Partial term evaluation is partial recursive uniformly in the member, the environment,
+and the term. Its exact domain, on an on-domain environment, is
+`partialRealize_dom_iff`. -/
+theorem partialRealize_recursiveIn :
+    RecursiveIn O fun p : (ℕ × Tuple ℕ) × L.Term ℕ ↦ A.partialRealize p.1.1 p.1.2 p.2 := by
+  have hcode : ComputableIn O fun p : (ℕ × Tuple ℕ) × L.Term ℕ ↦
+      ((p.1, p.2.listEncode) : (ℕ × Tuple ℕ) × List (ℕ ⊕ (Σ j, L.Functions j))) :=
+    ComputableIn.pair (O := O) (α := (ℕ × Tuple ℕ) × L.Term ℕ) (β := ℕ × Tuple ℕ)
+      (γ := List (ℕ ⊕ (Σ j, L.Functions j)))
+      (f := fun p ↦ p.1) (g := fun p ↦ p.2.listEncode)
+      (ComputableIn.fst (O := O) (α := ℕ × Tuple ℕ) (β := L.Term ℕ))
+      (ComputableIn.comp (O := O) (α := (ℕ × Tuple ℕ) × L.Term ℕ) (β := L.Term ℕ)
+        (σ := List (ℕ ⊕ (Σ j, L.Functions j)))
+        (f := Term.listEncode) (g := fun p ↦ p.2)
+        (Term.primrec_listEncode.to_comp.computableIn)
+        (ComputableIn.snd (O := O) (α := ℕ × Tuple ℕ) (β := L.Term ℕ)))
+  have hstack : RecursiveIn O fun p : (ℕ × Tuple ℕ) × L.Term ℕ ↦
+      A.partialValueStack p.1.1 p.1.2 p.2.listEncode :=
+    RecursiveIn.comp (O := O) (α := (ℕ × Tuple ℕ) × L.Term ℕ)
+      (β := (ℕ × Tuple ℕ) × List (ℕ ⊕ (Σ j, L.Functions j))) (σ := List ℕ)
+      (f := fun q : (ℕ × Tuple ℕ) × List (ℕ ⊕ (Σ j, L.Functions j)) ↦
+        A.partialValueStack q.1.1 q.1.2 q.2)
+      (g := fun p : (ℕ × Tuple ℕ) × L.Term ℕ ↦ (p.1, p.2.listEncode))
+      A.partialValueStack_recursiveIn hcode
+  exact RecursiveIn.bind (O := O) (α := (ℕ × Tuple ℕ) × L.Term ℕ) (β := List ℕ) (σ := ℕ)
+    (f := fun p ↦ A.partialValueStack p.1.1 p.1.2 p.2.listEncode)
+    (g := fun _ vs ↦ ((soleStackValue vs : Option ℕ) : Part ℕ)) hstack
+    ((ComputableIn.ofOption (O := O) (α := ((ℕ × Tuple ℕ) × L.Term ℕ) × List ℕ) (β := ℕ)
+      (f := fun y ↦ soleStackValue y.2)
+      ((primrec_soleStackValue.comp Primrec.snd).to_comp.computableIn)).to₂)
 
 end PartialAgeIn
 
