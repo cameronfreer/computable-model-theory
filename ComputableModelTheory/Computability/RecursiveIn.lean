@@ -20,7 +20,8 @@ computing the full course-of-values list), the partial traversal of lists
 (`listMapPart`, with its exact domain theorem and pointwise `Forall₂` membership
 characterization, and `RecursiveIn.listMapPart`), partial folds of lists
 (`foldlPart`/`foldrPart`, defined exactly when every step halts on the running
-accumulator, with `RecursiveIn.foldlPart₂`/`foldrPart₂`), total unbounded search
+accumulator, with `RecursiveIn.foldlPart₂`/`foldrPart₂`, and the partial option-case
+`RecursiveIn.option_casesOn_right` they carry), total unbounded search
 (`ComputableIn.find`), together with thin domain and specification wrappers for
 `Nat.rfind` over total `Bool`-valued predicates. Each combinator is proved by descending to the
 `Nat.RecursiveIn` constructors through `Primcodable` encodings, following the proofs of
@@ -708,7 +709,7 @@ theorem RecursiveIn.foldlPart₂ {δ : Type*} [Primcodable δ] {g : δ → σ �
       from rfl, ihm hm,
       List.take_add_one, List.getElem?_eq_getElem (Nat.lt_of_succ_le hn),
       Option.toList_some, foldlPart_concat]
-    simp [Part.bind_assoc]
+    simp
 
 /-- Parameterized partial right fold is partial recursive in the oracle. -/
 theorem RecursiveIn.foldrPart₂ {δ : Type*} [Primcodable δ] {g : δ → β → σ →. σ}
@@ -724,6 +725,35 @@ theorem RecursiveIn.foldrPart₂ {δ : Type*} [Primcodable δ] {g : δ → β �
       (ComputableIn.fst.pair
         ((Computable.list_reverse.computableIn).comp ComputableIn.snd))
   exact hrev.of_eq fun p ↦ rfl
+
+/-- Case analysis on a computed option with a **total** `none` branch and a partial `some`
+branch — the partial mirror of `ComputableIn.option_casesOn`, and the shape a partial
+evaluator guarded by a total assembly step takes.
+
+Realized as a one-element partial fold over `Option.toList`, reusing the `foldlPart₂`
+engine: the fold's `Nat.rec` skeleton is already known to elaborate here, whereas opening
+a fresh polymorphic `Primcodable` eliminator on `Option` is exactly what diverges at
+`whnf`. -/
+theorem RecursiveIn.option_casesOn_right {o : α → Option β} {f : α → σ} {g : α → β →. σ}
+    (ho : ComputableIn O o) (hf : ComputableIn O f) (hg : RecursiveIn₂ O g) :
+    RecursiveIn O fun a ↦
+      Option.casesOn (motive := fun _ ↦ Part σ) (o a) (Part.some (f a)) (g a) := by
+  have hlist : ComputableIn O fun a ↦ (o a).toList := by
+    have h : ComputableIn O fun a ↦ ((o a).map fun b ↦ [b]).getD [] :=
+      ComputableIn.option_getD
+        (ComputableIn.option_map ho
+          (((Computable.list_cons.computableIn₂ (O := O)).comp ComputableIn.snd
+            (ComputableIn.const [])).to₂))
+        (ComputableIn.const [])
+    exact h.of_eq fun a ↦ by cases o a <;> rfl
+  have hfold : RecursiveIn O fun p : α × List β ↦
+      foldlPart (fun (_ : σ) (b : β) ↦ g p.1 b) (f p.1) p.2 :=
+    RecursiveIn.foldlPart₂ (g := fun a (_ : σ) (b : β) ↦ g a b) (init := f)
+      ((hg.comp (ComputableIn.fst.comp ComputableIn.fst) ComputableIn.snd).to₂) hf
+  refine (hfold.comp (ComputableIn.id.pair hlist)).of_eq fun a ↦ ?_
+  cases h : o a with
+  | none => simp
+  | some b => simp [foldlPart_cons]
 
 end FoldPartRec
 
