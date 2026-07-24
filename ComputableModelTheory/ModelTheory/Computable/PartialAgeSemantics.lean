@@ -64,6 +64,87 @@ theorem IsoTo.trans {P Q W : PartialCePresentationIn O L}
     (h₁ : P.IsoTo Q) (h₂ : Q.IsoTo W) : P.IsoTo W :=
   h₁.elim fun e₁ ↦ h₂.elim fun e₂ ↦ ⟨e₂.comp e₁⟩
 
+/-- Realizing a term inside a member's carrier is realizing it in the ambient structure, on
+the underlying values — the inclusion is a homomorphism, by construction of
+`subtypeStr`. -/
+theorem realize_domain_val (P : PartialCePresentationIn O L) {n : ℕ} (v : Fin n → P.domain)
+    (T : L.Term (Fin n)) :
+    ((T.realize v : P.domain) : ℕ) =
+      @Term.realize L ℕ P.str _ (fun k ↦ ((v k : ℕ))) T := by
+  induction T with
+  | var k => rfl
+  | @func m f ts ih =>
+    show @Structure.funMap L ℕ P.str m f (fun k ↦ (((ts k).realize v : P.domain) : ℕ)) =
+      @Structure.funMap L ℕ P.str m f
+        fun k ↦ @Term.realize L ℕ P.str _ (fun k ↦ ((v k : ℕ))) (ts k)
+    exact congrArg _ (funext fun k ↦ ih k)
+
+/-! ### Identity-on-underlying bridges
+
+Two semantic bridges between members, both the identity on the underlying naturals. They
+are what lets a construction stated on **raw** carriers be compared with one stated inside
+a member's carrier **subtype**; nothing about enumerations or evaluators enters, and
+neither needs a nonemptiness hypothesis. -/
+
+/-- Members with the same ambient structure data and the same carrier are first-order
+equivalent, by the identity. No nonemptiness is required: an empty carrier closes through
+the domain equality alone. -/
+def eqDomainEquiv {P Q : PartialCePresentationIn O L} (hstr : Q.str = P.str)
+    (hdom : Q.domain = P.domain) : Q.domain ≃[L] P.domain where
+  toFun q := ⟨q.1, by rw [← hdom]; exact q.2⟩
+  invFun p := ⟨p.1, by rw [hdom]; exact p.2⟩
+  left_inv _ := rfl
+  right_inv _ := rfl
+  map_fun' {m} f v := Subtype.ext (by
+    show @Structure.funMap L ℕ Q.str m f (fun k ↦ (v k).1) =
+      @Structure.funMap L ℕ P.str m f (fun k ↦ (v k).1)
+    rw [hstr])
+  map_rel' {m} r v := by
+    show @Structure.RelMap L ℕ P.str m r (fun k ↦ (v k).1) ↔
+      @Structure.RelMap L ℕ Q.str m r (fun k ↦ (v k).1)
+    rw [hstr]
+
+/-- **The generated-carrier bridge.** A member whose carrier consists exactly of the
+underlying values of the terms over a tuple `t` drawn from another member's carrier is
+first-order equivalent to the closure of `t` computed **inside** that other member's
+carrier subtype.
+
+Both sides are the identity on the underlying naturals; the content is that a raw-domain
+subtype and a closure inside a subtype agree, functions and relations included. The
+hypothesis is stated by term values rather than by an ambient substructure, so no
+substructure of `ℕ` at the unnamed instance `P.str` ever has to be formed. Reusable
+wherever a generated substructure is presented on raw carriers. -/
+def closureDomainEquiv {P Q : PartialCePresentationIn O L} {n : ℕ} (t : Fin n → P.domain)
+    (hstr : Q.str = P.str)
+    (hdom : ∀ x : ℕ, x ∈ Q.domain ↔ ∃ T : L.Term (Fin n), ((T.realize t : P.domain) : ℕ) = x) :
+    Q.domain ≃[L] Substructure.closure L (Set.range t) := by
+  have hmem : ∀ q : Q.domain, (q.1 : ℕ) ∈ P.domain := by
+    rintro ⟨x, hx⟩
+    obtain ⟨T, hT⟩ := (hdom x).1 hx
+    exact hT ▸ (T.realize t).2
+  have hclo : ∀ q : Q.domain,
+      (⟨q.1, hmem q⟩ : P.domain) ∈ Substructure.closure L (Set.range t) := by
+    intro q
+    obtain ⟨T, hT⟩ := (hdom q.1).1 q.2
+    exact (mem_closure_range_iff_exists_term t).2 ⟨T, Subtype.ext hT⟩
+  have hback : ∀ s : Substructure.closure L (Set.range t), ((s : P.domain) : ℕ) ∈ Q.domain := by
+    intro s
+    obtain ⟨T, hT⟩ := (mem_closure_range_iff_exists_term t).1 s.2
+    exact (hdom _).2 ⟨T, congrArg Subtype.val hT⟩
+  exact
+    { toFun := fun q ↦ ⟨⟨q.1, hmem q⟩, hclo q⟩
+      invFun := fun s ↦ ⟨((s : P.domain) : ℕ), hback s⟩
+      left_inv := fun _ ↦ rfl
+      right_inv := fun _ ↦ rfl
+      map_fun' := fun {m} f v ↦ Subtype.ext (Subtype.ext (by
+        show @Structure.funMap L ℕ Q.str m f (fun k ↦ (v k).1) =
+          @Structure.funMap L ℕ P.str m f (fun k ↦ (v k).1)
+        rw [hstr]))
+      map_rel' := fun {m} r v ↦ by
+        show @Structure.RelMap L ℕ P.str m r (fun k ↦ (v k).1) ↔
+          @Structure.RelMap L ℕ Q.str m r (fun k ↦ (v k).1)
+        rw [hstr] }
+
 end PartialCePresentationIn
 
 namespace PartialAgeIn
