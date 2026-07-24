@@ -104,6 +104,22 @@ def eqDomainEquiv {P Q : PartialCePresentationIn O L} (hstr : Q.str = P.str)
       @Structure.RelMap L ℕ Q.str m r (fun k ↦ (v k).1)
     rw [hstr]
 
+/-- A member whose carrier is contained in another's, with the same ambient structure data,
+embeds in it by the identity. The `⊆` companion of `eqDomainEquiv`; again no nonemptiness
+is required. -/
+def subsetDomainEmbedding {P Q : PartialCePresentationIn O L} (hstr : Q.str = P.str)
+    (hdom : Q.domain ⊆ P.domain) : Q.domain ↪[L] P.domain where
+  toFun q := ⟨q.1, hdom q.2⟩
+  inj' _ _ h := Subtype.ext (congrArg Subtype.val h : (_ : ℕ) = _)
+  map_fun' {m} f v := Subtype.ext (by
+    show @Structure.funMap L ℕ Q.str m f (fun k ↦ (v k).1) =
+      @Structure.funMap L ℕ P.str m f (fun k ↦ (v k).1)
+    rw [hstr])
+  map_rel' {m} r v := by
+    show @Structure.RelMap L ℕ P.str m r (fun k ↦ (v k).1) ↔
+      @Structure.RelMap L ℕ Q.str m r (fun k ↦ (v k).1)
+    rw [hstr]
+
 /-- **The generated-carrier bridge.** A member whose carrier consists exactly of the
 underlying values of the terms over a tuple `t` drawn from another member's carrier is
 first-order equivalent to the closure of `t` computed **inside** that other member's

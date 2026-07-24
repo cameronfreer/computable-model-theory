@@ -318,6 +318,16 @@ theorem reindexed_domainAt (e : ℕ) :
   ext x
   exact exists_genEnum?_eq_some_iff
 
+/-- The carrier of a re-indexed member, read off a *known* decoding of its index. Stated
+separately because rewriting `memberIndex c` inside the ambient structure instance is a
+motive-sensitive step that `simp` declines but `rw` handles. -/
+theorem reindexed_domainAt_of_memberIndex {c i : ℕ} {steps : List ℕ}
+    (h : memberIndex c = (i, steps)) :
+    A.reindexed.domainAt c =
+      {x | x ∈ @Substructure.closure L ℕ (A.structureAt i)
+        (Set.range (Tuple.view (A.tupleAtSteps i steps)))} := by
+  rw [A.reindexed_domainAt c, h]
+
 /-- Re-indexed members sit inside their ambient members. -/
 theorem reindexed_domainAt_subset (e : ℕ) :
     A.reindexed.domainAt e ⊆ A.domainAt (memberIndex e).1 :=

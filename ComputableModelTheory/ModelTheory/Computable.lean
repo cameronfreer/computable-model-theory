@@ -20,6 +20,7 @@ import ComputableModelTheory.ModelTheory.Computable.InitialSegmentPresentation
 import ComputableModelTheory.ModelTheory.Computable.PartialAge
 import ComputableModelTheory.ModelTheory.Computable.PartialAgeSemantics
 import ComputableModelTheory.ModelTheory.Computable.PartialAgeSteps
+import ComputableModelTheory.ModelTheory.Computable.PartialCHP
 import ComputableModelTheory.ModelTheory.Computable.PartialCePresentation
 import ComputableModelTheory.ModelTheory.Computable.PartialTermEvaluation
 import ComputableModelTheory.ModelTheory.Computable.PartialSameClass
