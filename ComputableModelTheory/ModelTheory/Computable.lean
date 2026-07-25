@@ -24,6 +24,7 @@ import ComputableModelTheory.ModelTheory.Computable.PartialCHP
 import ComputableModelTheory.ModelTheory.Computable.PartialCePresentation
 import ComputableModelTheory.ModelTheory.Computable.PartialTermEvaluation
 import ComputableModelTheory.ModelTheory.Computable.PartialSameClass
+import ComputableModelTheory.ModelTheory.Computable.PartialTheorem28
 import ComputableModelTheory.ModelTheory.Computable.PartialTupleReindex
 import ComputableModelTheory.ModelTheory.Computable.QFSatisfaction
 import ComputableModelTheory.ModelTheory.Computable.RankPresentation
