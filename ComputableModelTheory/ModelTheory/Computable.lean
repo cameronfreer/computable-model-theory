@@ -23,6 +23,7 @@ import ComputableModelTheory.ModelTheory.Computable.PartialAgeSteps
 import ComputableModelTheory.ModelTheory.Computable.PartialAllUniv
 import ComputableModelTheory.ModelTheory.Computable.PartialCHP
 import ComputableModelTheory.ModelTheory.Computable.PartialCHPReconciliation
+import ComputableModelTheory.ModelTheory.Computable.PartialCJEP
 import ComputableModelTheory.ModelTheory.Computable.PartialCePresentation
 import ComputableModelTheory.ModelTheory.Computable.PartialTermEvaluation
 import ComputableModelTheory.ModelTheory.Computable.PartialSameClass
