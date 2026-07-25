@@ -48,6 +48,42 @@ private def pjeEquiv : PartialJointEmbeddingData ≃ ℕ × List ℕ × List ℕ
 instance : Primcodable PartialJointEmbeddingData :=
   Primcodable.ofEquiv _ pjeEquiv
 
+theorem PartialJointEmbeddingData.primrec_apexIdx :
+    Primrec PartialJointEmbeddingData.apexIdx :=
+  (Primrec.fst.comp (Primrec.of_equiv (e := pjeEquiv))).of_eq fun _ ↦ rfl
+
+theorem PartialJointEmbeddingData.primrec_leftImage :
+    Primrec PartialJointEmbeddingData.leftImage :=
+  (Primrec.fst.comp (Primrec.snd.comp (Primrec.of_equiv (e := pjeEquiv)))).of_eq fun _ ↦ rfl
+
+theorem PartialJointEmbeddingData.primrec_rightImage :
+    Primrec PartialJointEmbeddingData.rightImage :=
+  (Primrec.snd.comp (Primrec.snd.comp (Primrec.of_equiv (e := pjeEquiv)))).of_eq fun _ ↦ rfl
+
+/-- The named triple → data factory, mirroring `PotentialEmbeddingData.ofTriple`. -/
+def PartialJointEmbeddingData.ofTriple (p : ℕ × Tuple ℕ × Tuple ℕ) :
+    PartialJointEmbeddingData :=
+  pjeEquiv.symm p
+
+@[simp]
+theorem PartialJointEmbeddingData.ofTriple_apexIdx (p : ℕ × Tuple ℕ × Tuple ℕ) :
+    (PartialJointEmbeddingData.ofTriple p).apexIdx = p.1 :=
+  rfl
+
+@[simp]
+theorem PartialJointEmbeddingData.ofTriple_leftImage (p : ℕ × Tuple ℕ × Tuple ℕ) :
+    (PartialJointEmbeddingData.ofTriple p).leftImage = p.2.1 :=
+  rfl
+
+@[simp]
+theorem PartialJointEmbeddingData.ofTriple_rightImage (p : ℕ × Tuple ℕ × Tuple ℕ) :
+    (PartialJointEmbeddingData.ofTriple p).rightImage = p.2.2 :=
+  rfl
+
+theorem PartialJointEmbeddingData.primrec_ofTriple :
+    Primrec PartialJointEmbeddingData.ofTriple :=
+  Primrec.of_equiv_symm
+
 namespace PartialAgeIn
 
 /-- The **computable joint embedding property**: a selector, *total* and computable in the
