@@ -77,15 +77,20 @@ embedding. `MappedPartialCHP` is that weaker, paper-exact interface. Keeping the
 avoids both weakening the proved theorem and padding it with a redundant clause; the
 implication runs one way and unconditionally. -/
 
-/-- The **paper-exact** computable hereditary property: a uniformly partial recursive
-selector which, on a tuple `s` drawn from member `e`, halts and returns a member whose
-recorded generators map coordinatewise onto `s` via an embedding of its carrier into member
-`e`'s.
+/-- The **paper-exact** computable hereditary property, relativized: a selector partial
+recursive in a **witness oracle** `E` which, on a tuple `s` drawn from member `e`, halts and
+returns a member whose recorded generators map coordinatewise onto `s` via an embedding of
+its carrier into member `e`'s.
 
-Weaker than `PartialCHP`: the generators need not *equal* `s`, only map onto it in order. -/
-def MappedPartialCHP (B : PartialAgeIn O L) : Prop :=
+Weaker than `PartialCHP`: the generators need not *equal* `s`, only map onto it in order.
+
+The presentation oracle `O` (carried by `B`) and the witness oracle `E` are **independent**,
+exactly as they already are for `HPWitnessIn E K`: the interface stores an `E`-recursive
+selector, while the soundness clause is semantic and merely mentions the presentation. No
+`O ⊆ E` is needed to state or to use this. -/
+def MappedPartialCHPIn (E : Set (ℕ →. ℕ)) (B : PartialAgeIn O L) : Prop :=
   ∃ sel : ℕ → List ℕ →. ℕ,
-    RecursiveIn O (fun p : ℕ × List ℕ ↦ sel p.1 p.2) ∧
+    RecursiveIn E (fun p : ℕ × List ℕ ↦ sel p.1 p.2) ∧
       ∀ (e : ℕ) (s : List ℕ), (∀ x ∈ s, x ∈ B.domainAt e) →
         ∃ c ∈ sel e s, ∃ hlen : (B.gens c).length = s.length,
           ∃ F : (B.memberAt c).domain ↪[L] (B.memberAt e).domain,
@@ -93,9 +98,21 @@ def MappedPartialCHP (B : PartialAgeIn O L) : Prop :=
               ((F ⟨(B.gens c).get k, B.gens_mem_domainAt k⟩ : (B.memberAt e).domain) : ℕ) =
                 s.get (Fin.cast hlen k)
 
-/-- The theorem-facing contract implies the paper-facing one, **unconditionally**: exact
-generator equality gives the coordinatewise map as the identity, and the carrier inclusion
-gives the embedding. The converse is not part of this reconciliation — recovering exact
+/-- The base-oracle case: the witness oracle is the presentation oracle. -/
+abbrev MappedPartialCHP (B : PartialAgeIn O L) : Prop :=
+  MappedPartialCHPIn O B
+
+/-- A stronger witness oracle still witnesses: only the selector's effectivity mentions the
+oracle, and the soundness clause is semantic. -/
+theorem MappedPartialCHPIn.mono {E E' : Set (ℕ →. ℕ)} {B : PartialAgeIn O L}
+    (h : MappedPartialCHPIn E B) (hEE' : E ⊆ E') : MappedPartialCHPIn E' B := by
+  obtain ⟨sel, hsel, hspec⟩ := h
+  exact ⟨sel, RecursiveIn.mono hEE' hsel, hspec⟩
+
+/-- The theorem-facing contract implies the paper-facing one at the **base oracle**,
+unconditionally: exact generator equality gives the coordinatewise map as the identity, and
+the carrier inclusion gives the embedding. Lift to any stronger witness oracle with
+`MappedPartialCHPIn.mono`. The converse is not part of this reconciliation — recovering exact
 generator equality from a coordinatewise map would need an explicit strictification or
 re-indexing hypothesis. -/
 theorem PartialCHP.mappedPartialCHP {B : PartialAgeIn O L} (h : B.PartialCHP) :
