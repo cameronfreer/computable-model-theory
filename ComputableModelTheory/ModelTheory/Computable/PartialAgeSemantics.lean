@@ -211,6 +211,66 @@ noncomputable def toPartialAge_memberEquiv (i : ℕ) :
     map_fun' := fun {_} _ _ ↦ rfl
     map_rel' := fun {_} _ _ ↦ Iff.rfl }
 
+/-! ### Carrier change between the stored structure and the member subtype
+
+An all-ℕ member's carrier subtype and the ambient structure are the same thing, but they are
+*different types*, and the ambient `K.structureAt i` is not an instance — so an embedding
+between two ambient structures at different indices needs **two distinct `L.Structure ℕ`
+instances at once**, which ordinary synthesis cannot supply and `letI` cannot fix.
+
+The mechanism the library already provides is `GeneratedPresentationIn.toBundled`, whose
+structure instance is *registered* (`instStructureToBundled`) precisely so it is found
+"without an ambient structure on the raw carrier". Conjugating through it therefore removes
+the verbosity rather than centralizing it: the two operations below are ordinary
+compositions, and downstream bridges consume only them and their application lemmas. -/
+
+/-- The bundled form of the all-ℕ member equivalence: member `i`'s carrier subtype is the
+presentation at `i`, on a carrier whose structure instance is registered. -/
+noncomputable def toPartialAge_memberEquivBundled (i : ℕ) :
+    (K.toPartialAge.memberAt i).domain ≃[L] (K.presentationAt i).toBundled where
+  toFun x := x.1
+  invFun x := ⟨x, ⟨x, rfl⟩⟩
+  left_inv _ := Subtype.ext rfl
+  right_inv _ := rfl
+  map_fun' _ _ := rfl
+  map_rel' _ _ := Iff.rfl
+
+/-- Carrier change, presentation → member: an embedding of the stored structures at two
+indices, conjugated to the corresponding all-ℕ members' carrier subtypes. -/
+noncomputable def embeddingToPartial {c e : ℕ}
+    (g : (K.presentationAt c).toBundled ↪[L] (K.presentationAt e).toBundled) :
+    (K.toPartialAge.memberAt c).domain ↪[L] (K.toPartialAge.memberAt e).domain :=
+  (K.toPartialAge_memberEquivBundled e).symm.toEmbedding.comp
+    (g.comp (K.toPartialAge_memberEquivBundled c).toEmbedding)
+
+/-- Carrier change, member → presentation: the inverse conjugation. -/
+noncomputable def embeddingOfPartial {c e : ℕ}
+    (F : (K.toPartialAge.memberAt c).domain ↪[L] (K.toPartialAge.memberAt e).domain) :
+    (K.presentationAt c).toBundled ↪[L] (K.presentationAt e).toBundled :=
+  (K.toPartialAge_memberEquivBundled e).toEmbedding.comp
+    (F.comp (K.toPartialAge_memberEquivBundled c).symm.toEmbedding)
+
+/-- Every natural lies in an all-ℕ member's carrier. -/
+theorem mem_toPartialAge_memberAt_domain (i x : ℕ) :
+    x ∈ (K.toPartialAge.memberAt i).domain :=
+  ⟨x, rfl⟩
+
+@[simp]
+theorem embeddingToPartial_coe {c e : ℕ}
+    (g : (K.presentationAt c).toBundled ↪[L] (K.presentationAt e).toBundled)
+    (x : (K.toPartialAge.memberAt c).domain) :
+    ((K.embeddingToPartial g x : (K.toPartialAge.memberAt e).domain) : ℕ) = g x.1 :=
+  rfl
+
+@[simp]
+theorem embeddingOfPartial_apply {c e : ℕ}
+    (F : (K.toPartialAge.memberAt c).domain ↪[L] (K.toPartialAge.memberAt e).domain)
+    (x : (K.presentationAt c).toBundled) :
+    K.embeddingOfPartial F x =
+      ((F ⟨x, K.mem_toPartialAge_memberAt_domain c x⟩ :
+        (K.toPartialAge.memberAt e).domain) : ℕ) :=
+  rfl
+
 end ComputableAgeIn
 
 end FirstOrder.Language
