@@ -49,6 +49,21 @@ def AtomicEquivalent (L : Language) {M N : Type*} [L.Structure M] [L.Structure N
     {k : ℕ} (a : Fin k → M) (b : Fin k → N) : Prop :=
   TermEqualitiesAgree L a b ∧ RelationsAgree L a b
 
+/-- **An embedding preserves atomic equivalence of tuples.** A tuple and its image under an
+embedding are atomically equivalent: term equalities transfer by injectivity, relation atoms
+by the embedding's preservation *and reflection* of relations. Both halves need the full
+embedding — a mere homomorphism gives only one direction of each. -/
+theorem Embedding.atomicEquivalent_map (F : M ↪[L] N) (a : Fin k → M) :
+    AtomicEquivalent L a fun i ↦ F (a i) := by
+  have hreal : ∀ t : L.Term (Fin k), t.realize (fun i ↦ F (a i)) = F (t.realize a) :=
+    fun t ↦ HomClass.realize_term (L := L) F
+  refine ⟨fun t₁ t₂ ↦ ?_, fun {n} R ts ↦ ?_⟩
+  · rw [hreal, hreal]
+    exact ⟨fun h ↦ congrArg F h, fun h ↦ F.injective h⟩
+  · rw [show (fun i ↦ (ts i).realize fun j ↦ F (a j)) = fun i ↦ F ((ts i).realize a) from
+      funext fun i ↦ hreal (ts i)]
+    exact (StrongHomClass.map_rel F R fun i ↦ (ts i).realize a).symm
+
 namespace AtomicEquivalent
 
 theorem refl (a : Fin k → M) : AtomicEquivalent L a a :=
