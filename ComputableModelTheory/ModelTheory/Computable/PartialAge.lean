@@ -7,14 +7,23 @@ import ComputableModelTheory.ModelTheory.Computable.ComputableAge
 import ComputableModelTheory.ModelTheory.Computable.PartialCePresentation
 
 /-!
-# Empty-capable uniform representations
+# Empty-capable uniform representations — CHMM Definition 2.1
 
-The general representation notion CHMM Theorem 2.8 requires as **input**: a uniformly
-computable indexed family of finitely generated structures whose members may be finite
-or empty. `ComputableAgeIn` cannot serve — it fixes every carrier to ℕ, so it can hold
-neither a finite member nor (in a constant-free relational language) an empty one.
+`PartialAgeIn` is the formalization of **CHMM Definition 2.1**: an indexed sequence of
+finitely generated structures whose domains are subsets of `ℕ`, with uniformly computable
+generators and operations. The domains are consequently **uniformly c.e.**, not computable
+— `domainAt_uniformly_ce` exhibits the single computable certificate that witnesses this,
+and that c.e.-ness is the whole reason downstream selectors must stay partial.
 
-A `PartialAgeIn` is that family:
+Definition 2.1 has two halves, kept apart here on purpose: this file is the *computational*
+family data, and the *semantic* claim about which isomorphism classes the family enumerates
+lives in `PartialAgeSemantics` (`SameClass`, `HasHP`). `PartialCePresentationIn` is only the
+per-member component, and `ComputableAgeIn` is the all-carrier-`ℕ` **fragment** of
+Definition 2.1, not Definition 2.1 itself: it fixes every carrier to `ℕ`, so it can hold
+neither a finite member nor (in a constant-free relational language) an empty one — which is
+exactly why Theorem 2.8 needs the notion here as its input.
+
+The family:
 
 * a uniform `Option`-valued enumeration `enum? i m` (the member's carrier is the set of
   enumerated values, possibly empty);
@@ -35,8 +44,9 @@ namespace FirstOrder.Language
 
 variable {O : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
 
-/-- An empty-capable uniformly computable representation: an indexed family of
-finitely generated, possibly-empty c.e. presentations, uniform in the index. -/
+/-- **CHMM Definition 2.1** (computational half): an indexed family of finitely generated,
+possibly-empty c.e. presentations, uniform in the index. Carriers are subsets of `ℕ`, given
+by a uniform enumeration, so they are uniformly c.e. rather than computable. -/
 structure PartialAgeIn (O : Set (ℕ →. ℕ)) (L : Language) [L.EffectiveLanguage] where
   /-- The structure data at each index, total on codes; only its on-domain behavior is
   meaningful. -/

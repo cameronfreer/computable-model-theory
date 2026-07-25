@@ -757,6 +757,15 @@ theorem RecursiveIn.option_casesOn_right {o : α → Option β} {f : α → σ} 
 
 end FoldPartRec
 
+/-- An **everywhere-defined** oracle-partial-recursive function is oracle-computable: read
+the value off the totality proof. The bridge every "the search provably always halts, so it
+is an algorithm" argument needs, and the reason a partial construction can present a total
+computable interface without any step-bounded approximation. -/
+theorem RecursiveIn.computableIn_get {α σ : Type*} [Primcodable α] [Primcodable σ]
+    {O : Set (ℕ →. ℕ)} {f : α →. σ} (hf : RecursiveIn O f) (htot : ∀ a, (f a).Dom) :
+    ComputableIn O fun a ↦ (f a).get (htot a) :=
+  hf.of_eq fun a ↦ (Part.some_get (htot a)).symm
+
 /-- Total unbounded search: the least witness of a total oracle-computable predicate is
 computable in the oracle. The oracle analogue of mathlib's `Computable.find`; extracted
 from the canonical-transport layer to the computability substrate, next to

@@ -136,22 +136,41 @@ than a case split. Composing the oracle-computable `enum?` with plain projection
 fine at any product depth; it is `Nat.unpair` (whose `ℕ × ℕ` output reopens the
 Primcodable machinery) that must be avoided. -/
 
+/-- The **c.e. certificate** of the carriers: "step `m` enumerates `x` in member `i`" is a
+single oracle-computable predicate. This is what makes each `domainAt i` c.e. uniformly in
+`i` (`domainAt_uniformly_ce`), and it is the decidable core of the witness search below.
+
+Public and stated at exactly the product nesting the search consumes: the `Option`-equality
+crossing goes through `encode` and `Nat`-equality, since `Primrec.eq (α := Option ℕ)`
+diverges at `whnf` here. -/
+theorem enumEq_computableIn :
+    ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦
+      decide (A.enum? q.1.1 q.2 = Option.some q.1.2) := by
+  have he : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦ A.enum? q.1.1 q.2 :=
+    A.enum?_computableIn.comp
+      ((ComputableIn.fst.comp ComputableIn.fst).pair ComputableIn.snd)
+  have hs : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦ (Option.some q.1.2 : Option ℕ) :=
+    ComputableIn.option_some.comp (ComputableIn.snd.comp ComputableIn.fst)
+  exact (((Primrec.eq (α := ℕ)).decide.to_comp.computableIn₂ (O := O)).comp
+    (ComputableIn.encode.comp he) (ComputableIn.encode.comp hs)).of_eq
+    fun _ ↦ (decide_eq_decide).2 Encodable.encode_inj
+
+/-- The carriers of a Definition 2.1 family are **uniformly c.e.**: membership is the
+projection of one oracle-computable predicate over index, element and enumeration step. Not
+computable — this is the c.e.-ness that forces the Level-1 boundary, so no cardinality or
+bound may be read off an index (see `PartialCHP`, which stays partial for this reason). -/
+theorem domainAt_uniformly_ce :
+    ∃ p : (ℕ × ℕ) × ℕ → Bool, ComputableIn O p ∧
+      ∀ i x : ℕ, x ∈ A.domainAt i ↔ ∃ m, p ((i, x), m) = true :=
+  ⟨_, A.enumEq_computableIn, fun _ _ ↦
+    ⟨fun ⟨m, hm⟩ ↦ ⟨m, decide_eq_true hm⟩, fun ⟨m, hm⟩ ↦ ⟨m, of_decide_eq_true hm⟩⟩⟩
+
 /-- The witness search is partial recursive uniformly in the member and element. -/
 theorem firstStepFor_recursiveIn :
     RecursiveIn O fun p : ℕ × ℕ ↦ A.firstStepFor p.1 p.2 := by
-  have hpred : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦
-      decide (A.enum? q.1.1 q.2 = Option.some q.1.2) := by
-    have he : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦ A.enum? q.1.1 q.2 :=
-      A.enum?_computableIn.comp
-        ((ComputableIn.fst.comp ComputableIn.fst).pair ComputableIn.snd)
-    have hs : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦ (Option.some q.1.2 : Option ℕ) :=
-      ComputableIn.option_some.comp (ComputableIn.snd.comp ComputableIn.fst)
-    exact (((Primrec.eq (α := ℕ)).decide.to_comp.computableIn₂ (O := O)).comp
-      (ComputableIn.encode.comp he) (ComputableIn.encode.comp hs)).of_eq
-      fun _ ↦ (decide_eq_decide).2 Encodable.encode_inj
   unfold firstStepFor
   exact RecursiveIn.rfind_total (f := fun (p : ℕ × ℕ) (m : ℕ) ↦
-    decide (A.enum? p.1 m = Option.some p.2)) hpred
+    decide (A.enum? p.1 m = Option.some p.2)) A.enumEq_computableIn
 
 /-- The step search is partial recursive uniformly in the member and tuple. Its exact
 domain theorem is `stepsForTuple_dom_iff`; it is never totalized. -/

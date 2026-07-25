@@ -31,7 +31,12 @@ variable {O : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
 
 /-- A uniform computable age: an indexed family of structures on `ℕ` with generator
 tuples, whose generators and symbol interpretations are computable uniformly in the
-index, and whose generators generate. -/
+index, and whose generators generate.
+
+This is the **all-carrier-`ℕ` fragment** of CHMM Definition 2.1, not Definition 2.1 itself:
+every carrier here is all of `ℕ`, hence computable rather than merely c.e., so no finite and
+no empty member can be represented. `PartialAgeIn` is Definition 2.1, and
+`ComputableAgeIn.toPartialAge` embeds this fragment into it. -/
 structure ComputableAgeIn (O : Set (ℕ →. ℕ)) (L : Language) [L.EffectiveLanguage] where
   /-- The structure at each index. -/
   structureAt : ℕ → L.Structure ℕ
