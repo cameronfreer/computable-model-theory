@@ -262,6 +262,28 @@ theorem embeddingToPartial_coe {c e : ℕ}
     ((K.embeddingToPartial g x : (K.toPartialAge.memberAt e).domain) : ℕ) = g x.1 :=
   rfl
 
+/-- **Carrier conjugation respects composite equality.** Two composites of conjugated
+embeddings are equal exactly when the underlying embeddings agree pointwise on `ℕ`. The
+bundled-versus-pointwise crossing every commuting-square argument needs, proved without
+rewriting through any structure instance: outward by applying both sides at the carrier
+element over `x`, inward by `DFunLike.ext` and `Subtype.ext`. -/
+theorem embeddingToPartial_comp_eq_iff_pointwise {d m₁ m₂ a : ℕ}
+    (fl : (K.presentationAt d).toBundled ↪[L] (K.presentationAt m₁).toBundled)
+    (gl : (K.presentationAt m₁).toBundled ↪[L] (K.presentationAt a).toBundled)
+    (fr : (K.presentationAt d).toBundled ↪[L] (K.presentationAt m₂).toBundled)
+    (gr : (K.presentationAt m₂).toBundled ↪[L] (K.presentationAt a).toBundled) :
+    (K.embeddingToPartial gl).comp (K.embeddingToPartial fl) =
+        (K.embeddingToPartial gr).comp (K.embeddingToPartial fr) ↔
+      ∀ x : ℕ, gl (fl x) = gr (fr x) := by
+  constructor
+  · intro h x
+    have hx := DFunLike.congr_fun h
+      (⟨x, K.mem_toPartialAge_memberAt_domain d x⟩ : (K.toPartialAge.memberAt d).domain)
+    exact congrArg Subtype.val hx
+  · intro h
+    refine DFunLike.ext _ _ fun y ↦ Subtype.ext ?_
+    exact h (y : ℕ)
+
 @[simp]
 theorem embeddingOfPartial_apply {c e : ℕ}
     (F : (K.toPartialAge.memberAt c).domain ↪[L] (K.toPartialAge.memberAt e).domain)
