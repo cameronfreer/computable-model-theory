@@ -89,6 +89,113 @@ theorem partialRealizesAt_embeddingToPartial {F : PotentialEmbeddingData} {d a :
     PotentialEmbeddingData.exists_memberEmbedding_of_isEmbedding' hF hd ha
   exact ⟨G, hd, ha, hlen, hG⟩
 
+/-! ### Semantic commutativity is coded commutativity
+
+The chain is
+
+```
+PartialCommutes S D
+  ↔ crossed realizer composites are equal        (partialCommutes_iff_of_realizers)
+  ↔ raw embeddings agree pointwise on ℕ          (embeddingToPartial_comp_eq_iff_pointwise)
+  ↔ D.IsAmalgamationOf K S                       (isAmalgamationOf_iff_toEmbedding_comm)
+```
+
+`PartialCommutes` uses a **single** index per middle object, which is the mathematically correct
+shape for a square. The coded representation instead carries a separate index on each side of
+every middle object, related only by `WellShapedFor` — equations between *projections*, so no
+`subst` is available at the use site. The mismatch is therefore representational, and it is
+repaired here rather than in the semantic API: `reindexPresentationEmbedding` transports the
+**raw presentation** embedding along an index equation *before* conjugation, in a context where
+the indices are genuine variables. `PartialCommutes` stays transport-free.
+
+The helper is private on purpose. It is glue for this coded boundary; promote it only when a
+second consumer (witness transport) actually needs it. -/
+
+/-- Transport a presentation embedding along equations naming its two indices. Stated so the
+equations can be eliminated by `subst`, which is what the use site cannot do. -/
+private noncomputable def reindexPE (K : ComputableAgeIn O L) {c e d a : ℕ}
+    (hc : c = d) (he : e = a)
+    (f : (K.presentationAt c).toBundled ↪[L] (K.presentationAt e).toBundled) :
+    (K.presentationAt d).toBundled ↪[L] (K.presentationAt a).toBundled := by
+  subst hc
+  subst he
+  exact f
+
+/-- The transport does not move any value: its underlying map on `ℕ` is the original's. Used
+explicitly; the transport is never unfolded or `simp`ed away. -/
+private theorem reindexPE_apply (K : ComputableAgeIn O L) {c e d a : ℕ}
+    (hc : c = d) (he : e = a)
+    (f : (K.presentationAt c).toBundled ↪[L] (K.presentationAt e).toBundled) (x : ℕ) :
+    reindexPE K hc he f x = f x := by
+  subst hc
+  subst he
+  rfl
+
+/-- The reindexed realized embedding, conjugated into the member carriers, realizes its data at
+the named indices. Proved inside the named-variable helper by `subst`, so the CAP use site never
+transports this fact. -/
+private theorem partialRealizesAt_reindexPE (K : ComputableAgeIn O L)
+    {F : PotentialEmbeddingData} {d a : ℕ} (hwf : F.WellFormed K)
+    (hAE : @AtomicEquivalent L ℕ ℕ (K.structureAt F.domIdx) (K.structureAt F.codIdx) _
+      (K.gens F.domIdx).view (F.targetView hwf))
+    (hd : F.domIdx = d) (ha : F.codIdx = a) :
+    K.toPartialAge.PartialRealizesAt F d a
+      (K.embeddingToPartial (reindexPE K hd ha (F.toEmbedding hwf hAE))) := by
+  subst hd
+  subst ha
+  refine ⟨rfl, rfl, PotentialEmbeddingData.wellFormed_iff_gens_length.1 hwf, fun k ↦ ?_⟩
+  rw [K.embeddingToPartial_coe]
+  exact F.toEmbedding_apply_gens hwf hAE k
+
+/-- The first two links: semantic commutativity is pointwise agreement on `ℕ` of any raw
+embeddings whose conjugations realize the four legs. -/
+theorem partialCommutes_iff_pointwise {S : PotentialSpanData}
+    {D : AmalgamationDiagramData} {d m₁ m₂ a : ℕ}
+    {fl : (K.presentationAt d).toBundled ↪[L] (K.presentationAt m₁).toBundled}
+    {gl : (K.presentationAt m₁).toBundled ↪[L] (K.presentationAt a).toBundled}
+    {fr : (K.presentationAt d).toBundled ↪[L] (K.presentationAt m₂).toBundled}
+    {gr : (K.presentationAt m₂).toBundled ↪[L] (K.presentationAt a).toBundled}
+    (hfl : K.toPartialAge.PartialRealizesAt S.left d m₁ (K.embeddingToPartial fl))
+    (hfr : K.toPartialAge.PartialRealizesAt S.right d m₂ (K.embeddingToPartial fr))
+    (hgl : K.toPartialAge.PartialRealizesAt D.leftToApex m₁ a (K.embeddingToPartial gl))
+    (hgr : K.toPartialAge.PartialRealizesAt D.rightToApex m₂ a (K.embeddingToPartial gr)) :
+    K.toPartialAge.PartialCommutes S D ↔ ∀ x : ℕ, gl (fl x) = gr (fr x) :=
+  (partialCommutes_iff_of_realizers hfl hfr hgl hgr).trans
+    (K.embeddingToPartial_comp_eq_iff_pointwise fl gl fr gr)
+
+/-- **Semantic commutativity matches the coded amalgamation predicate.** On an actual span with
+actual, well-shaped output maps, the square of `PartialCommutes` commutes exactly when the
+diagram amalgamates in the coded sense. -/
+theorem partialCommutes_iff_isAmalgamationOf {S : PotentialSpanData}
+    {D : AmalgamationDiagramData} (hSd : S.WellShaped) (hshape : D.WellShapedFor S)
+    (hSlwf : S.left.WellFormed K)
+    (hSlAE : @AtomicEquivalent L ℕ ℕ (K.structureAt S.left.domIdx)
+      (K.structureAt S.left.codIdx) _ (K.gens S.left.domIdx).view (S.left.targetView hSlwf))
+    (hSrwf : S.right.WellFormed K)
+    (hSrAE : @AtomicEquivalent L ℕ ℕ (K.structureAt S.right.domIdx)
+      (K.structureAt S.right.codIdx) _ (K.gens S.right.domIdx).view
+      (S.right.targetView hSrwf))
+    (hlwf : D.leftToApex.WellFormed K)
+    (hlAE : @AtomicEquivalent L ℕ ℕ (K.structureAt D.leftToApex.domIdx)
+      (K.structureAt D.leftToApex.codIdx) _ (K.gens D.leftToApex.domIdx).view
+      (D.leftToApex.targetView hlwf))
+    (hrwf : D.rightToApex.WellFormed K)
+    (hrAE : @AtomicEquivalent L ℕ ℕ (K.structureAt D.rightToApex.domIdx)
+      (K.structureAt D.rightToApex.codIdx) _ (K.gens D.rightToApex.domIdx).view
+      (D.rightToApex.targetView hrwf)) :
+    K.toPartialAge.PartialCommutes S D ↔ D.IsAmalgamationOf K S := by
+  refine Iff.trans ?_ (D.isAmalgamationOf_iff_toEmbedding_comm hSd hshape hSlwf hSlAE hSrwf
+    hSrAE hlwf hlAE hrwf hrAE).symm
+  refine (partialCommutes_iff_pointwise
+    (partialRealizesAt_reindexPE K hSlwf hSlAE rfl rfl)
+    (partialRealizesAt_reindexPE K hSrwf hSrAE (Eq.symm hSd) rfl)
+    (partialRealizesAt_reindexPE K hlwf hlAE hshape.1 rfl)
+    (partialRealizesAt_reindexPE K hrwf hrAE hshape.2.1
+      (Eq.symm hshape.2.2))).trans ?_
+  refine forall_congr' fun x ↦ ?_
+  rw [reindexPE_apply, reindexPE_apply, reindexPE_apply, reindexPE_apply]
+  exact Iff.rfl
+
 end PartialAgeIn
 
 end FirstOrder.Language
