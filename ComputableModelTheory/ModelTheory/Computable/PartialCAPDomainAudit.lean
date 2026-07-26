@@ -22,7 +22,14 @@ recorded generators `[0, 1]`, and the single binary relation is interpreted asym
 the non-embedding row below would not be a non-embedding. (This is why the path-graph fixture of
 `GraphExample` is unsuitable here.) Everything is audit-local; none of it is production API.
 
-This file establishes the fixture and its rigidity. The selector and the four-row matrix follow.
+This file establishes the fixture, its rigidity, and the selector. Two audit-local facts make
+the matrix immediate: `rigidGuard_eq_true_iff_carrierValidSpan` and
+`rigidSelector_dom_iff_carrierValidSpan`. The latter is *stronger* than `PartialCAPIn` demands —
+the contract only requires halting on carrier-valid input, not divergence elsewhere — but it is
+a harmless and useful theorem about this particular fixture, and it is what makes the
+off-carrier row a genuine divergence rather than an absence of promise.
+
+The `PartialCAPIn` witness itself and the four rows follow.
 -/
 
 open Encodable Part FirstOrder Language
@@ -179,10 +186,113 @@ theorem test_rigidFamily_asymmetric :
   intro h
   exact absurd (h : (1 : ℕ) = 0) Nat.one_ne_zero
 
+/-! ### The identity output data
+
+Every member's carrier is `{0,1}` with the same structure, so the identity on values is an
+embedding between any two members, and the data `⟨d, a, [0,1]⟩` is realized by it. This makes
+the canonical diagram's unconditional clauses uniform in the input indices. -/
+
+/-- The identity embedding between any two members. -/
+def rigidIdentityEmb (d a : ℕ) :
+    ((rigidFamily (O := O)).memberAt d).domain ↪[Language.graph]
+      ((rigidFamily (O := O)).memberAt a).domain where
+  toFun x := ⟨x.1, x.2⟩
+  inj' _ _ h := Subtype.ext (congrArg Subtype.val h : (_ : ℕ) = _)
+  map_fun' f _ := isEmptyElim f
+  map_rel' _ _ := Iff.rfl
+
+/-- The identity data between any two members is realized. -/
+theorem rigidIdentityData_partialIsEmbedding (d a : ℕ) :
+    (rigidFamily (O := O)).PartialIsEmbedding ⟨d, a, [0, 1]⟩ :=
+  ⟨rigidIdentityEmb d a, rfl, fun _ ↦ rfl⟩
+
+/-! ### The selector
+
+The guard is built up in stages so that no fused `Primrec` chain ever runs over the encoded
+span structure: the list predicate is proved once, composed separately with each range-tuple
+projection, and the two booleans combined only afterwards. -/
+
+private theorem all_le_one_computableIn :
+    ComputableIn O fun l : List ℕ ↦ l.all fun x ↦ decide (x ≤ 1) := by
+  have hstep : ComputableIn₂ O fun (_ : List ℕ) (p : ℕ × Bool) ↦
+      (decide (p.1 ≤ 1) && p.2) :=
+    ((Primrec.and.comp
+      ((Primrec.nat_le.comp (Primrec.fst.comp Primrec.snd) (Primrec.const 1)).decide)
+      (Primrec.snd.comp Primrec.snd)).to_comp.computableIn).to₂
+  have h : ComputableIn O fun l : List ℕ ↦
+      l.foldr (fun b s ↦ decide (b ≤ 1) && s) true :=
+    ComputableIn.list_foldr ComputableIn.id (ComputableIn.const true) hstep
+  refine h.of_eq fun l ↦ ?_
+  induction l with
+  | nil => rfl
+  | cons a t ih => rw [List.foldr_cons, ih, List.all_cons]
+
+/-- The selector's guard: every entry of both range tuples is at most `1`. -/
+def rigidGuard (S : PotentialSpanData) : Bool :=
+  (S.left.rangeTuple.all fun x ↦ decide (x ≤ 1)) &&
+    (S.right.rangeTuple.all fun x ↦ decide (x ≤ 1))
+
+private theorem all_le_one_iff_carrierValid (F : PotentialEmbeddingData) :
+    (F.rangeTuple.all fun x ↦ decide (x ≤ 1)) = true ↔
+      (rigidFamily (O := O)).CarrierValid F := by
+  rw [List.all_eq_true]
+  constructor
+  · intro h x hx
+    rw [rigidFamily_domainAt]
+    have hle : x ≤ 1 := of_decide_eq_true (h x hx)
+    have : x = 0 ∨ x = 1 := by omega
+    rcases this with h' | h'
+    · exact Or.inl h'
+    · exact Or.inr h'
+  · intro h x hx
+    have hmem := h x hx
+    rw [rigidFamily_domainAt] at hmem
+    rcases hmem with h' | h'
+    · exact decide_eq_true (by rw [h']; exact Nat.zero_le 1)
+    · exact decide_eq_true (by rw [show x = 1 from h'])
+
+/-- The guard decides carrier validity of the span. -/
+theorem rigidGuard_eq_true_iff_carrierValidSpan (S : PotentialSpanData) :
+    rigidGuard S = true ↔ (rigidFamily (O := O)).CarrierValidSpan S := by
+  rw [rigidGuard, Bool.and_eq_true]
+  exact and_congr (all_le_one_iff_carrierValid _) (all_le_one_iff_carrierValid _)
+
+/-- The canonical output: both codomains mapped identically into the member at index `0`. -/
+def rigidDiagram (S : PotentialSpanData) : AmalgamationDiagramData :=
+  ⟨⟨S.left.codIdx, 0, [0, 1]⟩, ⟨S.right.codIdx, 0, [0, 1]⟩⟩
+
+/-- The selector, as a total computable `Option` before crossing to `Part`, so that its
+divergence off-carrier is a literal `none` branch. -/
+def rigidSelectorOption (S : PotentialSpanData) : Option AmalgamationDiagramData :=
+  bif rigidGuard S then Option.some (rigidDiagram S) else Option.none
+
+/-- The amalgamation selector of the rigid fixture. -/
+def rigidSelector (S : PotentialSpanData) : Part AmalgamationDiagramData :=
+  (rigidSelectorOption S : Option AmalgamationDiagramData)
+
+private theorem rigidSelector_eq (S : PotentialSpanData) :
+    rigidSelector S =
+      bif rigidGuard S then Part.some (rigidDiagram S) else Part.none := by
+  rw [rigidSelector, rigidSelectorOption]
+  cases rigidGuard S <;> rfl
+
+/-- **The selector converges exactly on carrier-valid spans.** Stronger than `PartialCAPIn`
+requires — the contract only demands halting on carrier-valid input — but true of this
+fixture, and it makes both the halting obligation and the off-carrier divergence immediate. -/
+theorem rigidSelector_dom_iff_carrierValidSpan (S : PotentialSpanData) :
+    (rigidSelector S).Dom ↔ (rigidFamily (O := O)).CarrierValidSpan S := by
+  rw [← rigidGuard_eq_true_iff_carrierValidSpan (O := O), rigidSelector_eq]
+  cases h : rigidGuard S with
+  | false => simp
+  | true => simp
+
 end
 
 end FirstOrder.Language
 
 #assert_standard_axioms FirstOrder.Language.rigid_memberEmbedding_eq_identity
+#assert_standard_axioms FirstOrder.Language.rigidGuard_eq_true_iff_carrierValidSpan
+#assert_standard_axioms FirstOrder.Language.rigidSelector_dom_iff_carrierValidSpan
+#assert_standard_axioms FirstOrder.Language.rigidIdentityData_partialIsEmbedding
 #assert_standard_axioms FirstOrder.Language.test_rigidFamily_carrier
 #assert_standard_axioms FirstOrder.Language.test_rigidFamily_asymmetric
