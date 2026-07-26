@@ -127,6 +127,48 @@ theorem test_rigidFamily_carrier (i : ℕ) :
   rw [rigidFamily_domainAt]
   simp
 
+/-! ### Rigidity, semantically
+
+The asymmetry gate says the swap is not an automorphism. What the amalgamation rows actually
+need is stronger and is proved here: *every* embedding between two members is the identity on
+underlying values. `0` is pinned by preservation of `R 0 0`, and `1` follows from injectivity
+together with carrier membership. Consequently every leg of an actual span is the identity, so
+the canonical output square commutes. -/
+
+private theorem rigid_mem_zero (i : ℕ) :
+    (0 : ℕ) ∈ ((rigidFamily (O := O)).memberAt i).domain :=
+  ⟨0, rfl⟩
+
+private theorem rigid_mem_one (i : ℕ) :
+    (1 : ℕ) ∈ ((rigidFamily (O := O)).memberAt i).domain :=
+  ⟨1, rfl⟩
+
+/-- Carrier membership, read off the computed carrier without rewriting under a subtype. -/
+private theorem rigid_eq_zero_or_one {i : ℕ}
+    (y : ((rigidFamily (O := O)).memberAt i).domain) : (y : ℕ) = 0 ∨ (y : ℕ) = 1 :=
+  (Set.ext_iff.1 (rigidFamily_domainAt (O := O) i) (y : ℕ)).1 y.2
+
+/-- **Every member embedding of the rigid family is the identity on values.** -/
+theorem rigid_memberEmbedding_eq_identity {i j : ℕ}
+    (f : ((rigidFamily (O := O)).memberAt i).domain ↪[Language.graph]
+      ((rigidFamily (O := O)).memberAt j).domain)
+    (x : ((rigidFamily (O := O)).memberAt i).domain) : ((f x : _) : ℕ) = (x : ℕ) := by
+  -- `0` is pinned by preservation of `R 0 0`.
+  have hzero : ((f ⟨0, rigid_mem_zero i⟩ : _) : ℕ) = 0 :=
+    (f.map_rel' .adj ![⟨0, rigid_mem_zero i⟩, ⟨0, rigid_mem_zero i⟩]).2 rfl
+  -- `1` then follows from injectivity: it cannot also go to `0`.
+  have hone : ((f ⟨1, rigid_mem_one i⟩ : _) : ℕ) = 1 := by
+    rcases rigid_eq_zero_or_one (f ⟨1, rigid_mem_one i⟩) with h | h
+    · exfalso
+      have : f ⟨1, rigid_mem_one i⟩ = f ⟨0, rigid_mem_zero i⟩ :=
+        Subtype.ext (h.trans hzero.symm)
+      exact absurd (congrArg Subtype.val (f.injective this) : (1 : ℕ) = 0) Nat.one_ne_zero
+    · exact h
+  -- every carrier element is `0` or `1`
+  rcases rigid_eq_zero_or_one x with h | h
+  · rw [show x = ⟨0, rigid_mem_zero i⟩ from Subtype.ext h, hzero]
+  · rw [show x = ⟨1, rigid_mem_one i⟩ from Subtype.ext h, hone]
+
 /-- Gate: the fixture is **rigid** — the transposition of `{0,1}` does not preserve the
 relation, so the swap is not an embedding and the non-embedding row of the matrix is genuinely
 a non-embedding. -/
@@ -141,5 +183,6 @@ end
 
 end FirstOrder.Language
 
+#assert_standard_axioms FirstOrder.Language.rigid_memberEmbedding_eq_identity
 #assert_standard_axioms FirstOrder.Language.test_rigidFamily_carrier
 #assert_standard_axioms FirstOrder.Language.test_rigidFamily_asymmetric
