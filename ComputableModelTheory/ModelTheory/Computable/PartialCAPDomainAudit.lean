@@ -286,6 +286,74 @@ theorem rigidSelector_dom_iff_carrierValidSpan (S : PotentialSpanData) :
   | false => simp
   | true => simp
 
+/-! ### The witness -/
+
+private theorem rigidIdentityData_computableIn (g : PotentialSpanData → PotentialEmbeddingData)
+    (hg : ComputableIn O g) :
+    ComputableIn O fun S ↦
+      (PotentialEmbeddingData.ofTriple ((g S).codIdx, 0, [0, 1])) :=
+  (PotentialEmbeddingData.ofTriple_computableIn).comp
+    ((PotentialEmbeddingData.codIdx_computable.comp hg).pair
+      ((ComputableIn.const 0).pair (ComputableIn.const [0, 1])))
+
+theorem rigidSelector_recursiveIn : RecursiveIn O rigidSelector := by
+  have hguard : ComputableIn O rigidGuard :=
+    (Primrec.and.to_comp.computableIn₂).comp
+      (all_le_one_computableIn.comp
+        (PotentialEmbeddingData.rangeTuple_computable.comp
+          PotentialSpanData.left_computable))
+      (all_le_one_computableIn.comp
+        (PotentialEmbeddingData.rangeTuple_computable.comp
+          PotentialSpanData.right_computable))
+  have hleft := rigidIdentityData_computableIn (O := O) PotentialSpanData.left
+    PotentialSpanData.left_computable
+  have hright := rigidIdentityData_computableIn (O := O) PotentialSpanData.right
+    PotentialSpanData.right_computable
+  -- The diagram-valued composition trips the `ofEquiv` whnf problem, so cross through
+  -- `encode_iff` on the pair rather than unfolding `ofPair`.
+  have hdiag : ComputableIn O fun S ↦ rigidDiagram S :=
+    ComputableIn.encode_iff.1
+      ((ComputableIn.encode.comp (hleft.pair hright)).of_eq fun _ ↦ rfl)
+  have hopt : ComputableIn O rigidSelectorOption :=
+    ComputableIn.cond hguard (ComputableIn.option_some.comp hdiag)
+      (ComputableIn.const Option.none)
+  exact ComputableIn.ofOption hopt
+
+private theorem eq_rigidDiagram_of_mem {S : PotentialSpanData}
+    {D : AmalgamationDiagramData} (h : D ∈ rigidSelector S) : D = rigidDiagram S := by
+  rw [rigidSelector_eq] at h
+  cases hg : rigidGuard S with
+  | false => rw [hg] at h; exact absurd h (by simp)
+  | true => rw [hg] at h; exact Part.mem_some_iff.1 h
+
+/-- **The fixture is a legitimate `PartialCAPIn` witness.** Every clause is discharged from the
+lemmas above; nothing is assumed about the selector off its domain. -/
+theorem rigidFamily_partialCAPIn :
+    PartialAgeIn.PartialCAPIn O (rigidFamily (O := O)) := by
+  refine ⟨rigidSelector, rigidSelector_recursiveIn,
+    fun S hS ↦ (rigidSelector_dom_iff_carrierValidSpan S).2 hS, ?_, ?_⟩
+  · intro S D hD
+    obtain rfl := eq_rigidDiagram_of_mem hD
+    exact ⟨⟨rfl, rfl, rfl⟩, rigidIdentityData_partialIsEmbedding _ 0,
+      (rigidIdentityData_partialIsEmbedding _ 0).partialWellFormed⟩
+  · intro S D hD hS
+    obtain rfl := eq_rigidDiagram_of_mem hD
+    refine ⟨rigidIdentityData_partialIsEmbedding _ 0, ?_⟩
+    obtain ⟨hSd, ⟨fl, hfl⟩, ⟨fr, hfr⟩⟩ := hS
+    refine (PartialAgeIn.partialCommutes_iff_of_realizers
+      (d := S.left.domIdx) (m₁ := S.left.codIdx) (m₂ := S.right.codIdx) (apex := 0)
+      (fl := fl) (fr := fr)
+      (gl := rigidIdentityEmb S.left.codIdx 0) (gr := rigidIdentityEmb S.right.codIdx 0)
+      ⟨rfl, rfl, hfl⟩ ⟨Eq.symm hSd, rfl, hfr⟩ ⟨rfl, rfl, rfl, fun _ ↦ rfl⟩
+      ⟨rfl, rfl, rfl, fun _ ↦ rfl⟩).2 ?_
+    refine DFunLike.ext _ _ fun x ↦ Subtype.ext ?_
+    show ((rigidIdentityEmb S.left.codIdx 0) (fl x) : ℕ) = _
+    rw [rigid_memberEmbedding_eq_identity (rigidIdentityEmb S.left.codIdx 0) (fl x),
+      rigid_memberEmbedding_eq_identity fl x]
+    show _ = ((rigidIdentityEmb S.right.codIdx 0) (fr x) : ℕ)
+    rw [rigid_memberEmbedding_eq_identity (rigidIdentityEmb S.right.codIdx 0) (fr x),
+      rigid_memberEmbedding_eq_identity fr x]
+
 end
 
 end FirstOrder.Language
@@ -294,5 +362,7 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.rigidGuard_eq_true_iff_carrierValidSpan
 #assert_standard_axioms FirstOrder.Language.rigidSelector_dom_iff_carrierValidSpan
 #assert_standard_axioms FirstOrder.Language.rigidIdentityData_partialIsEmbedding
+#assert_standard_axioms FirstOrder.Language.rigidSelector_recursiveIn
+#assert_standard_axioms FirstOrder.Language.rigidFamily_partialCAPIn
 #assert_standard_axioms FirstOrder.Language.test_rigidFamily_carrier
 #assert_standard_axioms FirstOrder.Language.test_rigidFamily_asymmetric
