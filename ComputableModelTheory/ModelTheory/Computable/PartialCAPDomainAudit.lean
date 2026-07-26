@@ -29,7 +29,14 @@ the contract only requires halting on carrier-valid input, not divergence elsewh
 a harmless and useful theorem about this particular fixture, and it is what makes the
 off-carrier row a genuine divergence rather than an absence of promise.
 
-The `PartialCAPIn` witness itself and the four rows follow.
+`rigidFamily_partialCAPIn` is the witness; the four rows then exercise its clauses:
+
+| input `t` | row | behaviour |
+| --------- | --- | --------- |
+| `[0]`     | wrong length  | carrier-valid, selector halts, unconditional clauses hold |
+| `[1,0]`   | non-embedding | carrier-valid and well-formed, breaks `R`, still halts |
+| `[2,0]`   | off-carrier   | selector reduces to `Part.none`, hence genuinely not `Dom` |
+| `[0,1]`   | actual        | identity span; selected diagram actual and commuting |
 -/
 
 open Encodable Part FirstOrder Language
@@ -326,33 +333,118 @@ private theorem eq_rigidDiagram_of_mem {S : PotentialSpanData}
   | false => rw [hg] at h; exact absurd h (by simp)
   | true => rw [hg] at h; exact Part.mem_some_iff.1 h
 
-/-- **The fixture is a legitimate `PartialCAPIn` witness.** Every clause is discharged from the
-lemmas above; nothing is assumed about the selector off its domain. -/
+/-- The unconditional clauses, on any returned diagram, with no hypothesis on the input. -/
+theorem rigidSelector_unconditional (S : PotentialSpanData) (D : AmalgamationDiagramData)
+    (hD : D ∈ rigidSelector S) :
+    D.WellShapedFor S ∧ (rigidFamily (O := O)).PartialIsEmbedding D.leftToApex ∧
+      (rigidFamily (O := O)).PartialWellFormed D.rightToApex := by
+  obtain rfl := eq_rigidDiagram_of_mem hD
+  exact ⟨⟨rfl, rfl, rfl⟩, rigidIdentityData_partialIsEmbedding _ 0,
+    (rigidIdentityData_partialIsEmbedding _ 0).partialWellFormed⟩
+
+/-- Conditional soundness, on an actual input span. -/
+theorem rigidSelector_sound (S : PotentialSpanData) (D : AmalgamationDiagramData)
+    (hD : D ∈ rigidSelector S) (hS : (rigidFamily (O := O)).PartialSpanActual S) :
+    (rigidFamily (O := O)).PartialIsEmbedding D.rightToApex ∧
+      (rigidFamily (O := O)).PartialCommutes S D := by
+  obtain rfl := eq_rigidDiagram_of_mem hD
+  refine ⟨rigidIdentityData_partialIsEmbedding _ 0, ?_⟩
+  obtain ⟨hSd, ⟨fl, hfl⟩, ⟨fr, hfr⟩⟩ := hS
+  refine (PartialAgeIn.partialCommutes_iff_of_realizers
+    (d := S.left.domIdx) (m₁ := S.left.codIdx) (m₂ := S.right.codIdx) (apex := 0)
+    (fl := fl) (fr := fr)
+    (gl := rigidIdentityEmb S.left.codIdx 0) (gr := rigidIdentityEmb S.right.codIdx 0)
+    ⟨rfl, rfl, hfl⟩ ⟨Eq.symm hSd, rfl, hfr⟩ ⟨rfl, rfl, rfl, fun _ ↦ rfl⟩
+    ⟨rfl, rfl, rfl, fun _ ↦ rfl⟩).2 ?_
+  refine DFunLike.ext _ _ fun x ↦ Subtype.ext ?_
+  show ((rigidIdentityEmb S.left.codIdx 0) (fl x) : ℕ) = _
+  rw [rigid_memberEmbedding_eq_identity (rigidIdentityEmb S.left.codIdx 0) (fl x),
+    rigid_memberEmbedding_eq_identity fl x]
+  show _ = ((rigidIdentityEmb S.right.codIdx 0) (fr x) : ℕ)
+  rw [rigid_memberEmbedding_eq_identity (rigidIdentityEmb S.right.codIdx 0) (fr x),
+    rigid_memberEmbedding_eq_identity fr x]
+
+/-- **The fixture is a legitimate `PartialCAPIn` witness.** -/
 theorem rigidFamily_partialCAPIn :
-    PartialAgeIn.PartialCAPIn O (rigidFamily (O := O)) := by
-  refine ⟨rigidSelector, rigidSelector_recursiveIn,
-    fun S hS ↦ (rigidSelector_dom_iff_carrierValidSpan S).2 hS, ?_, ?_⟩
-  · intro S D hD
-    obtain rfl := eq_rigidDiagram_of_mem hD
-    exact ⟨⟨rfl, rfl, rfl⟩, rigidIdentityData_partialIsEmbedding _ 0,
-      (rigidIdentityData_partialIsEmbedding _ 0).partialWellFormed⟩
-  · intro S D hD hS
-    obtain rfl := eq_rigidDiagram_of_mem hD
-    refine ⟨rigidIdentityData_partialIsEmbedding _ 0, ?_⟩
-    obtain ⟨hSd, ⟨fl, hfl⟩, ⟨fr, hfr⟩⟩ := hS
-    refine (PartialAgeIn.partialCommutes_iff_of_realizers
-      (d := S.left.domIdx) (m₁ := S.left.codIdx) (m₂ := S.right.codIdx) (apex := 0)
-      (fl := fl) (fr := fr)
-      (gl := rigidIdentityEmb S.left.codIdx 0) (gr := rigidIdentityEmb S.right.codIdx 0)
-      ⟨rfl, rfl, hfl⟩ ⟨Eq.symm hSd, rfl, hfr⟩ ⟨rfl, rfl, rfl, fun _ ↦ rfl⟩
-      ⟨rfl, rfl, rfl, fun _ ↦ rfl⟩).2 ?_
-    refine DFunLike.ext _ _ fun x ↦ Subtype.ext ?_
-    show ((rigidIdentityEmb S.left.codIdx 0) (fl x) : ℕ) = _
-    rw [rigid_memberEmbedding_eq_identity (rigidIdentityEmb S.left.codIdx 0) (fl x),
-      rigid_memberEmbedding_eq_identity fl x]
-    show _ = ((rigidIdentityEmb S.right.codIdx 0) (fr x) : ℕ)
-    rw [rigid_memberEmbedding_eq_identity (rigidIdentityEmb S.right.codIdx 0) (fr x),
-      rigid_memberEmbedding_eq_identity fr x]
+    PartialAgeIn.PartialCAPIn O (rigidFamily (O := O)) :=
+  ⟨rigidSelector, rigidSelector_recursiveIn,
+    fun S hS ↦ (rigidSelector_dom_iff_carrierValidSpan S).2 hS,
+    rigidSelector_unconditional, rigidSelector_sound⟩
+
+/-! ### The four-row matrix
+
+All four inputs are spans with both legs `⟨0, 0, t⟩`, differing only in the range tuple `t`.
+The rows exercise the constructed witness's clauses, not merely the predicates. -/
+
+/-- The matrix's input spans. -/
+def rigidSpan (t : Tuple ℕ) : PotentialSpanData := ⟨⟨0, 0, t⟩, ⟨0, 0, t⟩⟩
+
+/-- **Row 1 — carrier-valid but wrong length.** The selector halts and the unconditional
+clauses hold of its output, even though the input leg is not well-formed. -/
+theorem test_row_wrongLength :
+    (rigidFamily (O := O)).CarrierValidSpan (rigidSpan [0]) ∧
+      (rigidSelector (rigidSpan [0])).Dom ∧
+      (∀ D ∈ rigidSelector (rigidSpan [0]),
+        D.WellShapedFor (rigidSpan [0]) ∧
+          (rigidFamily (O := O)).PartialIsEmbedding D.leftToApex) ∧
+      ¬(rigidFamily (O := O)).PartialWellFormed (rigidSpan [0]).left := by
+  have hcv : (rigidFamily (O := O)).CarrierValidSpan (rigidSpan [0]) :=
+    (rigidGuard_eq_true_iff_carrierValidSpan (O := O) _).1 rfl
+  refine ⟨hcv, (rigidSelector_dom_iff_carrierValidSpan _).2 hcv,
+    fun D hD ↦ ⟨(rigidSelector_unconditional (O := O) _ D hD).1,
+      (rigidSelector_unconditional (O := O) _ D hD).2.1⟩, ?_⟩
+  intro hwf
+  have h : (2 : ℕ) = 1 := hwf.length
+  omega
+
+/-- **Row 2 — carrier-valid and well-formed, but not an embedding.** The selector still
+halts; rigidity is what makes `[1,0]` fail. -/
+theorem test_row_nonEmbedding :
+    (rigidFamily (O := O)).CarrierValidSpan (rigidSpan [1, 0]) ∧
+      (rigidFamily (O := O)).PartialWellFormed (rigidSpan [1, 0]).left ∧
+      (rigidSelector (rigidSpan [1, 0])).Dom ∧
+      ¬(rigidFamily (O := O)).PartialIsEmbedding (rigidSpan [1, 0]).left := by
+  have hcv : (rigidFamily (O := O)).CarrierValidSpan (rigidSpan [1, 0]) :=
+    (rigidGuard_eq_true_iff_carrierValidSpan (O := O) _).1 rfl
+  refine ⟨hcv, ⟨hcv.1, rfl⟩, (rigidSelector_dom_iff_carrierValidSpan _).2 hcv, ?_⟩
+  rintro ⟨f, hlen, hcoord⟩
+  have hidx : 0 < ((rigidFamily (O := O)).gens (rigidSpan [1, 0]).left.domIdx).length := by
+    show 0 < 2
+    omega
+  have h0 := hcoord ⟨0, hidx⟩
+  rw [rigid_memberEmbedding_eq_identity f _] at h0
+  have h1 : (0 : ℕ) = 1 := h0
+  omega
+
+/-- **Row 3 — off-carrier: the selector genuinely diverges.** Proved by reduction to the
+selector's own `Part.none` branch, not from an absence of promise. -/
+theorem test_row_offCarrier :
+    rigidSelector (rigidSpan [2, 0]) = Part.none ∧
+      ¬(rigidSelector (rigidSpan [2, 0])).Dom ∧
+      ¬(rigidFamily (O := O)).CarrierValidSpan (rigidSpan [2, 0]) := by
+  have hnone : rigidSelector (rigidSpan [2, 0]) = Part.none := by
+    rw [rigidSelector_eq]
+    rfl
+  refine ⟨hnone, by rw [hnone]; simp, ?_⟩
+  intro hcv
+  have h2 : (2 : ℕ) ∈ (rigidFamily (O := O)).domainAt 0 := hcv.1 2 (by exact List.mem_cons_self)
+  rw [rigidFamily_domainAt] at h2
+  rcases h2 with h | h
+  · have : (2 : ℕ) = 0 := h
+    omega
+  · have : (2 : ℕ) = 1 := h
+    omega
+
+/-- **Row 4 — actual input: full soundness.** The selected diagram's right map is realized
+and the square commutes. -/
+theorem test_row_actual :
+    (rigidFamily (O := O)).PartialSpanActual (rigidSpan [0, 1]) ∧
+      ∀ D ∈ rigidSelector (rigidSpan [0, 1]),
+        (rigidFamily (O := O)).PartialIsEmbedding D.rightToApex ∧
+          (rigidFamily (O := O)).PartialCommutes (rigidSpan [0, 1]) D := by
+  have hact : (rigidFamily (O := O)).PartialSpanActual (rigidSpan [0, 1]) :=
+    ⟨rfl, rigidIdentityData_partialIsEmbedding 0 0, rigidIdentityData_partialIsEmbedding 0 0⟩
+  exact ⟨hact, fun D hD ↦ rigidSelector_sound (O := O) _ D hD hact⟩
 
 end
 
@@ -364,5 +456,9 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.rigidIdentityData_partialIsEmbedding
 #assert_standard_axioms FirstOrder.Language.rigidSelector_recursiveIn
 #assert_standard_axioms FirstOrder.Language.rigidFamily_partialCAPIn
+#assert_standard_axioms FirstOrder.Language.test_row_wrongLength
+#assert_standard_axioms FirstOrder.Language.test_row_nonEmbedding
+#assert_standard_axioms FirstOrder.Language.test_row_offCarrier
+#assert_standard_axioms FirstOrder.Language.test_row_actual
 #assert_standard_axioms FirstOrder.Language.test_rigidFamily_carrier
 #assert_standard_axioms FirstOrder.Language.test_rigidFamily_asymmetric
