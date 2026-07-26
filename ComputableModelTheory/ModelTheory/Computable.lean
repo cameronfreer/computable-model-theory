@@ -24,6 +24,7 @@ import ComputableModelTheory.ModelTheory.Computable.PartialAllUniv
 import ComputableModelTheory.ModelTheory.Computable.PartialCHP
 import ComputableModelTheory.ModelTheory.Computable.PartialCHPReconciliation
 import ComputableModelTheory.ModelTheory.Computable.PartialCAP
+import ComputableModelTheory.ModelTheory.Computable.PartialCAPBridge
 import ComputableModelTheory.ModelTheory.Computable.PartialCJEP
 import ComputableModelTheory.ModelTheory.Computable.PartialCJEPReconciliation
 import ComputableModelTheory.ModelTheory.Computable.PartialCePresentation
