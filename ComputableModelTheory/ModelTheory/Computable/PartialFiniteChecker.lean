@@ -59,15 +59,16 @@ theorem validCode_eq_true_iff (i j : ℕ) (f : List ℕ) :
 
 /-! ### The generator check
 
-The length comparison is a **separate conjunct evaluated first**. Comparing the zipped pairs
-alone would silently accept a generator tuple shorter than the range tuple, since `zip`
-truncates to the shorter list. -/
+The length comparison is a **separate conjunct evaluated first**. A zipped scan would silently
+accept a generator tuple shorter than the range tuple, since `zip` truncates to the shorter
+list; scanning positions and comparing the two `getElem?` lookups cannot, because a position
+past the end of either list produces `none` on that side. -/
 
 /-- Generator images agree with the intended range tuple. -/
 def generatorCheck (F : PotentialEmbeddingData) (f : List ℕ) : Bool :=
   ((B.gens F.domIdx).length == F.rangeTuple.length) &&
-    ((B.gens F.domIdx).zip F.rangeTuple).all fun p ↦
-      C.applyMap F.domIdx f p.1 == Option.some p.2
+    (List.range (B.gens F.domIdx).length).all fun n ↦
+      ((B.gens F.domIdx)[n]?.bind fun x ↦ C.applyMap F.domIdx f x) == F.rangeTuple[n]?
 
 /-- The generator check says exactly what a realizer's coordinate equations say, read through
 the code. -/
@@ -81,23 +82,16 @@ theorem generatorCheck_eq_true_iff (F : PotentialEmbeddingData) (f : List ℕ) :
   constructor
   · rintro ⟨hlen, hall⟩
     refine ⟨hlen, fun k ↦ ?_⟩
-    have hmem : ((B.gens F.domIdx).get k, F.rangeTuple.get (Fin.cast hlen k)) ∈
-        (B.gens F.domIdx).zip F.rangeTuple := by
-      have hk : k.1 < ((B.gens F.domIdx).zip F.rangeTuple).length := by
-        rw [List.length_zip]
-        have h2 := k.isLt
-        omega
-      have := List.getElem_mem hk
-      rwa [List.getElem_zip] at this
-    simpa using hall _ hmem
+    have hk := hall k.1 (List.mem_range.2 k.isLt)
+    have h2 : (k : ℕ) < F.rangeTuple.length := by have := k.isLt; omega
+    rw [beq_iff_eq, List.getElem?_eq_getElem k.isLt, List.getElem?_eq_getElem h2] at hk
+    simpa [List.get_eq_getElem] using hk
   · rintro ⟨hlen, hk⟩
-    refine ⟨hlen, fun p hp ↦ ?_⟩
-    obtain ⟨n, hn, hp⟩ := List.mem_iff_getElem.1 hp
-    rw [List.length_zip] at hn
-    have hn1 : n < (B.gens F.domIdx).length := lt_of_lt_of_le hn (min_le_left _ _)
-    have := hk ⟨n, hn1⟩
-    rw [← hp, List.getElem_zip]
-    simpa [List.get_eq_getElem] using this
+    refine ⟨hlen, fun n hn ↦ ?_⟩
+    have hn1 : n < (B.gens F.domIdx).length := List.mem_range.1 hn
+    have hn2 : n < F.rangeTuple.length := by omega
+    rw [beq_iff_eq, List.getElem?_eq_getElem hn1, List.getElem?_eq_getElem hn2]
+    simpa [List.get_eq_getElem] using hk ⟨n, hn1⟩
 
 /-! ### Mapping an argument list through the code
 
