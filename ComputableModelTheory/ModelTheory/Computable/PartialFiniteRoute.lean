@@ -173,6 +173,55 @@ theorem imageList_mem_finiteMaps {i j : ℕ} {g : ℕ → ℕ}
   obtain ⟨x, hx, rfl⟩ := List.mem_map.1 hy
   exact (C.mem_support_iff_domainAt j _).2 (hg x ((C.mem_support_iff_domainAt i x).1 hx))
 
+/-- **Codes read back genuine maps.** The code of a genuine map applies to exactly that map on
+the carrier — the bridge making the embedding-to-code direction immediate. -/
+theorem applyMap_imageList {i : ℕ} {g : ℕ → ℕ} {x : ℕ} (hx : x ∈ B.domainAt i) :
+    C.applyMap i (C.imageList i g) x = Option.some (g x) := by
+  have hxs : x ∈ C.support i := (C.mem_support_iff_domainAt i x).2 hx
+  have hlt : (C.support i).findIdx (fun y ↦ y == x) < (C.support i).length :=
+    List.findIdx_lt_length.2 ⟨x, hxs, by simp⟩
+  have hval : (C.support i)[(C.support i).findIdx (fun y ↦ y == x)] = x := by
+    have := List.findIdx_getElem (p := fun y ↦ y == x) (xs := C.support i) (w := hlt)
+    simpa using this
+  rw [applyMap]
+  show ((C.support i).map g)[(C.support i).findIdx (fun y ↦ y == x)]? = Option.some (g x)
+  rw [List.getElem?_map, List.getElem?_eq_getElem hlt, hval]
+  rfl
+
+/-- **A duplicate-free code is injective.** Successful lookups agreeing on carrier elements
+force the inputs equal — the main ingredient for turning a successful code back into an actual
+embedding. -/
+theorem applyMap_injective_of_nodup {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j)
+    (hn : f.Nodup) {x y : ℕ} (hx : x ∈ B.domainAt i) (hy : y ∈ B.domainAt i)
+    (hxy : C.applyMap i f x = C.applyMap i f y) : x = y := by
+  obtain ⟨hlen, -⟩ := (C.mem_finiteMaps_iff i j f).1 hf
+  have hxs : x ∈ C.support i := (C.mem_support_iff_domainAt i x).2 hx
+  have hys : y ∈ C.support i := (C.mem_support_iff_domainAt i y).2 hy
+  have hltx : (C.support i).findIdx (fun z ↦ z == x) < (C.support i).length :=
+    List.findIdx_lt_length.2 ⟨x, hxs, by simp⟩
+  have hlty : (C.support i).findIdx (fun z ↦ z == y) < (C.support i).length :=
+    List.findIdx_lt_length.2 ⟨y, hys, by simp⟩
+  have hltx' : (C.support i).findIdx (fun z ↦ z == x) < f.length := by rw [hlen]; exact hltx
+  have hlty' : (C.support i).findIdx (fun z ↦ z == y) < f.length := by rw [hlen]; exact hlty
+  rw [applyMap, applyMap, List.getElem?_eq_getElem hltx', List.getElem?_eq_getElem hlty',
+    Option.some_inj] at hxy
+  have hidx := (hn.getElem_inj_iff (hi := hltx') (hj := hlty')).1 hxy
+  have hvx : (C.support i)[(C.support i).findIdx (fun z ↦ z == x)] = x := by
+    have := List.findIdx_getElem (p := fun z ↦ z == x) (xs := C.support i) (w := hltx)
+    simpa using this
+  have hvy : (C.support i)[(C.support i).findIdx (fun z ↦ z == y)] = y := by
+    have := List.findIdx_getElem (p := fun z ↦ z == y) (xs := C.support i) (w := hlty)
+    simpa using this
+  rw [← hvx, ← hvy]
+  simp [hidx]
+
+/-- Arity zero survives: there is exactly one nullary tuple, so constants and nullary relations
+are checked **once** rather than accidentally skipped. -/
+@[simp]
+theorem finiteMaps_zero_arity_tuples (l : List ℕ) :
+    (List.replicate 0 l).sections = [([] : List ℕ)] :=
+  rfl
+
 /-- The image list is duplicate-free exactly when the map is injective on the carrier. -/
 theorem imageList_nodup_iff (i : ℕ) (g : ℕ → ℕ) :
     (C.imageList i g).Nodup ↔
