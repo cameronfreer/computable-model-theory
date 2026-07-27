@@ -235,6 +235,65 @@ theorem imageList_nodup_iff (i : ℕ) (g : ℕ → ℕ) :
     exact h x ((C.mem_support_iff_domainAt i x).1 hx) y
       ((C.mem_support_iff_domainAt i y).1 hy) hxy
 
+/-! ### What a code realizes
+
+The semantic layer of the checker. `FiniteMapRealizes` carries **code validity as a conjunct**,
+so nothing downstream can accidentally assert anything about a malformed image list, and it says
+the code computes a genuine member embedding realizing the data.
+
+The executable checker and its `iff` come next; keeping the semantic statement separate is what
+lets the Boolean-fold plumbing stay out of the theorem that constructs the bundled embedding. -/
+
+/-- A code **realizes** potential embedding data: it is a well-formed image list, and it computes
+a member embedding that realizes the data. -/
+def FiniteMapRealizes (F : PotentialEmbeddingData) (f : List ℕ) : Prop :=
+  f ∈ C.finiteMaps F.domIdx F.codIdx ∧
+    ∃ G : (B.memberAt F.domIdx).domain ↪[L] (B.memberAt F.codIdx).domain,
+      B.PartialRealizes F G ∧
+        ∀ x : (B.memberAt F.domIdx).domain,
+          C.applyMap F.domIdx f (x : ℕ) =
+            Option.some ((G x : (B.memberAt F.codIdx).domain) : ℕ)
+
+variable {C}
+
+theorem FiniteMapRealizes.mem_finiteMaps {F : PotentialEmbeddingData} {f : List ℕ}
+    (h : C.FiniteMapRealizes F f) : f ∈ C.finiteMaps F.domIdx F.codIdx :=
+  h.1
+
+/-- A realized code exhibits the data as realizable. -/
+theorem FiniteMapRealizes.partialIsEmbedding {F : PotentialEmbeddingData} {f : List ℕ}
+    (h : C.FiniteMapRealizes F f) : B.PartialIsEmbedding F :=
+  ⟨h.2.choose, h.2.choose_spec.1⟩
+
+/-- **The semantic bridge.** Some code realizes the data exactly when the data is realizable.
+
+The forward direction is immediate. The reverse takes the realizer's image list: it is enumerated
+by `imageList_mem_finiteMaps`, and `applyMap_imageList` reads it back as the realizer itself. -/
+theorem exists_finiteMapRealizes_iff_partialIsEmbedding (F : PotentialEmbeddingData) :
+    (∃ f, C.FiniteMapRealizes F f) ↔ B.PartialIsEmbedding F := by
+  refine ⟨fun ⟨f, hf⟩ ↦ hf.partialIsEmbedding, fun ⟨G, hG⟩ ↦ ?_⟩
+  classical
+  -- extend the member embedding to a total map on ℕ; the value off the carrier is never read
+  set g : ℕ → ℕ := fun x ↦
+    if h : x ∈ B.domainAt F.domIdx then ((G ⟨x, h⟩ : (B.memberAt F.codIdx).domain) : ℕ) else 0
+    with hg
+  have hgmem : ∀ x ∈ B.domainAt F.domIdx, g x ∈ B.domainAt F.codIdx := by
+    intro x hx
+    rw [hg]
+    simp only [dif_pos hx]
+    exact (G ⟨x, hx⟩).2
+  have hgx : ∀ y : (B.memberAt F.domIdx).domain,
+      g (y : ℕ) = ((G y : (B.memberAt F.codIdx).domain) : ℕ) := by
+    intro y
+    have hy : (y : ℕ) ∈ B.domainAt F.domIdx := y.2
+    show (if h : (y : ℕ) ∈ B.domainAt F.domIdx then
+        ((G ⟨(y : ℕ), h⟩ : (B.memberAt F.codIdx).domain) : ℕ) else 0) = _
+    rw [dif_pos hy]
+  refine ⟨C.imageList F.domIdx g, C.imageList_mem_finiteMaps hgmem, G, hG, fun x ↦ ?_⟩
+  rw [C.applyMap_imageList x.2, hgx x]
+
+variable (C)
+
 end ExactFiniteCarriers
 
 /-- **An effectively finite language.** Computable exhaustive lists of all function and all
