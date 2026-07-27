@@ -360,6 +360,88 @@ theorem finiteMapCheckPart_dom (C : ExactFiniteCarriers B) (F : PotentialEmbeddi
         exact hg.1.1)
     exact ⟨functionScanPart_dom hf, relationScanPart_dom hf⟩
 
+/-! ### What the scans say
+
+Each scan accepts exactly when every enumerated instance does. The per-instance statements are
+read off the stored evaluators: a `Part` holds at most one value, so the evaluator's own
+correctness clause identifies the value the check compared. -/
+
+/-- A conjunctive partial fold accepts exactly when every step accepts. No definedness
+hypothesis is needed: a rejecting or divergent step blocks acceptance either way. -/
+private theorem mem_foldrPart_and {β : Type*} {g : β →. Bool} :
+    ∀ {l : List β},
+      true ∈ foldrPart (fun b acc ↦ (g b).map (· && acc)) true l ↔ ∀ b ∈ l, true ∈ g b := by
+  intro l
+  induction l with
+  | nil => rw [foldrPart_nil]; simp
+  | cons b t ih =>
+    rw [foldrPart_cons]
+    constructor
+    · intro h
+      obtain ⟨acc, hacc, h⟩ := Part.mem_bind_iff.1 h
+      obtain ⟨v, hv, h⟩ := (Part.mem_map_iff _).1 h
+      obtain ⟨rfl, rfl⟩ := Bool.and_eq_true .. ▸ h
+      intro x hx
+      rcases List.mem_cons.1 hx with rfl | hx
+      · exact hv
+      · exact ih.1 hacc x hx
+    · intro h
+      exact Part.mem_bind_iff.2 ⟨true, ih.2 fun x hx ↦ h x (List.mem_cons_of_mem b hx),
+        (Part.mem_map_iff _).2 ⟨true, h b List.mem_cons_self, rfl⟩⟩
+
+omit [EffectivelyFiniteLanguage L] in
+/-- **One function instance is preserved.** The check accepts exactly when the code sends the
+source value of the application to the value of the image application. -/
+theorem mem_funCheckOne_iff {i j : ℕ} {f : List ℕ} {p : L.FunctionSymbol × List ℕ}
+    {d e : FunctionApplicationData L ℕ} (hde : C.funInstance? i f p = Option.some (d, e))
+    (hd : ∀ k, d.args k ∈ B.domainAt i) (he : ∀ k, e.args k ∈ B.domainAt j) :
+    true ∈ C.funCheckOne i j f p ↔
+      C.applyMap i f (@FunctionApplicationData.funMap L ℕ (B.structureAt i) d) =
+        Option.some (@FunctionApplicationData.funMap L ℕ (B.structureAt j) e) := by
+  have hv := B.funEval_correct i d fun k ↦ B.mem_domainAt_iff.1 (hd k)
+  have hu := B.funEval_correct j e fun k ↦ B.mem_domainAt_iff.1 (he k)
+  rw [funCheckOne, hde]
+  constructor
+  · intro h
+    obtain ⟨v, hvmem, h⟩ := Part.mem_bind_iff.1 h
+    obtain ⟨u, humem, h⟩ := (Part.mem_map_iff _).1 h
+    rw [Part.mem_unique hvmem hv, Part.mem_unique humem hu] at h
+    exact beq_iff_eq.1 h
+  · intro h
+    exact Part.mem_bind_iff.2 ⟨_, hv, (Part.mem_map_iff _).2 ⟨_, hu, beq_iff_eq.2 h⟩⟩
+
+omit [EffectivelyFiniteLanguage L] in
+/-- **One relation instance is preserved and reflected.** The two truth values are compared, so
+the check accepts exactly when the relation holds on one side iff it holds on the other. -/
+theorem mem_relCheckOne_iff {i j : ℕ} {f : List ℕ} {p : L.RelationSymbol × List ℕ}
+    {d e : RelationApplicationData L ℕ} (hde : C.relInstance? i f p = Option.some (d, e))
+    (hd : ∀ k, d.args k ∈ B.domainAt i) (he : ∀ k, e.args k ∈ B.domainAt j) :
+    true ∈ C.relCheckOne i j f p ↔
+      (@RelationApplicationData.relMap L ℕ (B.structureAt i) d ↔
+        @RelationApplicationData.relMap L ℕ (B.structureAt j) e) := by
+  obtain ⟨b₁, hb₁, hb₁spec⟩ := B.relEval_correct i d fun k ↦ B.mem_domainAt_iff.1 (hd k)
+  obtain ⟨b₂, hb₂, hb₂spec⟩ := B.relEval_correct j e fun k ↦ B.mem_domainAt_iff.1 (he k)
+  rw [relCheckOne, hde]
+  constructor
+  · intro h
+    obtain ⟨v₁, hv₁, h⟩ := Part.mem_bind_iff.1 h
+    obtain ⟨v₂, hv₂, h⟩ := (Part.mem_map_iff _).1 h
+    rw [Part.mem_unique hv₁ hb₁, Part.mem_unique hv₂ hb₂] at h
+    exact hb₁spec.symm.trans ((Bool.eq_iff_iff.1 (beq_iff_eq.1 h)).trans hb₂spec)
+  · intro h
+    refine Part.mem_bind_iff.2 ⟨b₁, hb₁, (Part.mem_map_iff _).2 ⟨b₂, hb₂, beq_iff_eq.2 ?_⟩⟩
+    exact Bool.eq_iff_iff.2 (hb₁spec.trans (h.trans hb₂spec.symm))
+
+theorem mem_functionScanPart_iff (F : PotentialEmbeddingData) (f : List ℕ) :
+    true ∈ C.functionScanPart F f ↔
+      ∀ p ∈ C.funInstances F.domIdx, true ∈ C.funCheckOne F.domIdx F.codIdx f p :=
+  mem_foldrPart_and
+
+theorem mem_relationScanPart_iff (F : PotentialEmbeddingData) (f : List ℕ) :
+    true ∈ C.relationScanPart F f ↔
+      ∀ p ∈ C.relInstances F.domIdx, true ∈ C.relCheckOne F.domIdx F.codIdx f p :=
+  mem_foldrPart_and
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
