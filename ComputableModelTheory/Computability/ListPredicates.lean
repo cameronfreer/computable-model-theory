@@ -65,6 +65,14 @@ theorem List.foldr_cond_any_encode_eq_dedup {β : Type*} [Encodable β] [Decidab
     · rw [decide_eq_true hb, Bool.cond_true, List.dedup_cons_of_mem' hb]
     · rw [decide_eq_false hb, Bool.cond_false, List.dedup_cons_of_notMem' hb]
 
+/-- `List.findIdx` as a right fold. The base case `0 = [].length` is why a failed search
+returns the length rather than a sentinel: the fold simply never stops incrementing. -/
+theorem List.foldr_cond_eq_findIdx {β : Type*} (p : β → Bool) (l : List β) :
+    l.foldr (fun b n ↦ cond (p b) 0 (n + 1)) 0 = l.findIdx p := by
+  induction l with
+  | nil => rfl
+  | cons b l ih => rw [List.foldr_cons, ih, List.findIdx_cons]
+
 namespace Primrec
 
 variable {α β : Type*} [Primcodable α] [Primcodable β]
@@ -161,6 +169,28 @@ theorem list_any {f : α → List β} {p : α → β → Bool} (hf : ComputableI
   induction f a with
   | nil => rfl
   | cons b l ih => rw [List.foldr_cons, ih, List.any_cons]
+
+/-- `List.findIdx`, relative to an oracle. -/
+theorem list_findIdx {f : α → List β} {p : α → β → Bool} (hf : ComputableIn O f)
+    (hp : ComputableIn₂ O p) : ComputableIn O fun a ↦ (f a).findIdx (p a) := by
+  have h : ComputableIn O fun a ↦
+      (f a).foldr (fun b n ↦ _root_.cond (p a b) 0 (n + 1)) 0 :=
+    ComputableIn.list_foldr hf (ComputableIn.const 0)
+      ((ComputableIn.cond (hp.comp ComputableIn.fst (ComputableIn.fst.comp ComputableIn.snd))
+        (ComputableIn.const 0)
+        ((Primrec.succ.to_comp.computableIn (O := O)).comp
+          (ComputableIn.snd.comp ComputableIn.snd))).to₂)
+  exact h.of_eq fun a ↦ List.foldr_cond_eq_findIdx _ _
+
+/-- `List.dedup`, relative to an oracle: the absolute fold composed with a computable list. -/
+theorem list_dedup [DecidableEq β] {f : α → List β} (hf : ComputableIn O f) :
+    ComputableIn O fun a ↦ (f a).dedup :=
+  (Primrec.list_dedup.to_comp.computableIn (O := O)).comp hf
+
+/-- The `List.Nodup` test, relative to an oracle. -/
+theorem list_nodup [DecidableEq β] {f : α → List β} (hf : ComputableIn O f) :
+    ComputableIn O fun a ↦ decide (f a).Nodup :=
+  (Primrec.list_nodup.to_comp.computableIn (O := O)).comp hf
 
 /-- List membership, decided through the **canonical** `Primrec.eq` decision rather than an
 ambient `DecidableEq` instance, then transported to ordinary `∈`. -/

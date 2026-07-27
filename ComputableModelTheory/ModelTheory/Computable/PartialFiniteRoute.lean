@@ -3,6 +3,7 @@ Copyright (c) 2026 Cameron Freer. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
+import ComputableModelTheory.Computability.ListPredicates
 import ComputableModelTheory.Computability.ListSections
 import ComputableModelTheory.ModelTheory.Computable.PartialMemberEmbedding
 
@@ -234,6 +235,33 @@ theorem imageList_nodup_iff (i : ℕ) (g : ℕ → ℕ) :
   · intro h x hx y hy hxy
     exact h x ((C.mem_support_iff_domainAt i x).1 hx) y
       ((C.mem_support_iff_domainAt i y).1 hy) hxy
+
+/-! ### Computability of the enumeration
+
+The three finite objects the checker manipulates are `O`-computable, uniformly in the member
+indices. Deduplication goes through the canonical encoded equality of `ListPredicates`, and the
+index search through mathlib's `Primrec.beq`, which is itself `Primrec.eq.decide`; the ambient
+`DecidableEq ℕ` instance is used only to *state* these, never to compute them. The oracle enters
+exactly once, in `carrier_computableIn` — everything above it is primitive recursive. -/
+
+theorem support_computableIn : ComputableIn O C.support :=
+  ComputableIn.list_dedup C.carrier_computableIn
+
+theorem finiteMaps_computableIn :
+    ComputableIn O fun p : ℕ × ℕ ↦ C.finiteMaps p.1 p.2 :=
+  (Primrec.list_sections_replicate.to_comp.computableIn₂ (O := O)).comp
+    ((Primrec.list_length.to_comp.computableIn (O := O)).comp
+      (C.support_computableIn.comp ComputableIn.fst))
+    (C.support_computableIn.comp ComputableIn.snd)
+
+theorem applyMap_computableIn :
+    ComputableIn O fun p : (ℕ × List ℕ) × ℕ ↦ C.applyMap p.1.1 p.1.2 p.2 :=
+  (Computable.list_getElem?.computableIn₂ (O := O)).comp
+    (ComputableIn.snd.comp ComputableIn.fst)
+    (ComputableIn.list_findIdx
+      (C.support_computableIn.comp (ComputableIn.fst.comp ComputableIn.fst))
+      ((Primrec.beq.to_comp.computableIn₂ (O := O)).comp ComputableIn.snd
+        (ComputableIn.snd.comp ComputableIn.fst)).to₂)
 
 /-! ### What a code realizes
 
