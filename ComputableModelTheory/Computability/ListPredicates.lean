@@ -12,8 +12,16 @@ The scan combinators this library has been writing by hand: `List.all` / `List.a
 absolutely and relative to an oracle, plus list membership. These replace the repeated typed-`foldr`
 constructions that have appeared at four separate call sites.
 
-The `ComputablePredIn.forall_mem_computableList` / `exists_mem_computableList` endpoints built on
-top of these are **not** here yet — see the note at the end of the file.
+On top of them sit the public endpoints
+
+```
+ComputablePredIn.forall_mem_computableList
+ComputablePredIn.exists_mem_computableList
+```
+
+which take a uniformly `O`-computable list together with an `O`-computable predicate on
+input/element pairs and decide the bounded quantifier — covering carrier tuples, symbol scans and
+bounded searches uniformly.
 
 **On equality.** List membership is decided through the *canonical* `Primrec.eq` decision, and
 the resulting statement is then transported to ordinary `∈` — not through whatever `DecidableEq`
@@ -105,19 +113,53 @@ theorem list_mem [DecidableEq β] {f : α → List β} {g : α → β} (hf : Com
 
 end ComputableIn
 
-/-! ### Not yet: the bounded-quantifier endpoints
+namespace ComputablePredIn
 
-`ComputablePredIn.forall_mem_computableList` and `exists_mem_computableList` — taking a uniformly
-`O`-computable list and an `O`-computable predicate on input/element pairs and deciding the bounded
-quantifier — are the intended public face of this file, and the scans above are exactly what they
-need.
+variable {α β : Type*} [Primcodable α] [Primcodable β] {O : Set (ℕ →. ℕ)}
 
-What is not yet resolved is the **decidability plumbing**, not the computability. `ComputablePredIn`
-bundles a `DecidablePred` witness, and three instances have to be made to agree definitionally: the
-one bundled in the hypothesis (at the *paired* type `α × β`), the one bundled in the conclusion (at
-`α`), and whichever one `decide` synthesizes inside the `List.all` argument. Supplying the
-conclusion's instance as `List.decidableBAll` and the hypothesis's as `hdec (a, x)` leaves a
-mismatch against a locally introduced `∀ a x, Decidable (p a x)`; `Decidable` is a subsingleton, so
-this is bookkeeping rather than mathematics, but it wants a deliberate pass rather than a hurried
-one.
--/
+/-! ### Bounded quantification over a computable list
+
+The public endpoints. The decidability is handled by **not** trying to align three instances.
+The paired witness is chosen once, the Boolean scan is defined using exactly the point decider
+derived from it, and the conclusion's `DecidablePred` is then *defined from the scan's semantic
+specification* — so agreement is built into its construction rather than recovered by a
+subsingleton transport. No ambient synthesis and no `List.decidableBAll` is involved. -/
+
+/-- **Bounded universal quantification over a computable list.** -/
+theorem forall_mem_computableList {l : α → List β} {p : α → β → Prop}
+    (hl : ComputableIn O l) (hp : ComputablePredIn O fun q : α × β ↦ p q.1 q.2) :
+    ComputablePredIn O fun a ↦ ∀ x ∈ l a, p a x := by
+  obtain ⟨Dpair, hcomp⟩ := hp
+  let Dpoint : ∀ a b, Decidable (p a b) := fun a b ↦ Dpair (a, b)
+  let scan : α → Bool := fun a ↦ (l a).all fun b ↦ @decide (p a b) (Dpoint a b)
+  have hspec : ∀ a, scan a = true ↔ ∀ b ∈ l a, p a b := by
+    intro a
+    show ((l a).all fun b ↦ @decide (p a b) (Dpoint a b)) = true ↔ _
+    rw [List.all_eq_true]
+    exact ⟨fun h b hb ↦ of_decide_eq_true (h b hb), fun h b hb ↦ decide_eq_true (h b hb)⟩
+  have hscan : ComputableIn O scan :=
+    ComputableIn.list_all hl ((hcomp.comp (ComputableIn.fst.pair ComputableIn.snd)).to₂)
+  exact ⟨fun a ↦ decidable_of_iff (scan a = true) (hspec a),
+    hscan.of_eq fun a ↦ Bool.eq_iff_iff.2 ((hspec a).trans
+      (@decide_eq_true_iff _ (decidable_of_iff (scan a = true) (hspec a))).symm)⟩
+
+/-- **Bounded existential quantification over a computable list.** -/
+theorem exists_mem_computableList {l : α → List β} {p : α → β → Prop}
+    (hl : ComputableIn O l) (hp : ComputablePredIn O fun q : α × β ↦ p q.1 q.2) :
+    ComputablePredIn O fun a ↦ ∃ x ∈ l a, p a x := by
+  obtain ⟨Dpair, hcomp⟩ := hp
+  let Dpoint : ∀ a b, Decidable (p a b) := fun a b ↦ Dpair (a, b)
+  let scan : α → Bool := fun a ↦ (l a).any fun b ↦ @decide (p a b) (Dpoint a b)
+  have hspec : ∀ a, scan a = true ↔ ∃ b ∈ l a, p a b := by
+    intro a
+    show ((l a).any fun b ↦ @decide (p a b) (Dpoint a b)) = true ↔ _
+    rw [List.any_eq_true]
+    exact ⟨fun ⟨b, hb, h⟩ ↦ ⟨b, hb, of_decide_eq_true h⟩,
+      fun ⟨b, hb, h⟩ ↦ ⟨b, hb, decide_eq_true h⟩⟩
+  have hscan : ComputableIn O scan :=
+    ComputableIn.list_any hl ((hcomp.comp (ComputableIn.fst.pair ComputableIn.snd)).to₂)
+  exact ⟨fun a ↦ decidable_of_iff (scan a = true) (hspec a),
+    hscan.of_eq fun a ↦ Bool.eq_iff_iff.2 ((hspec a).trans
+      (@decide_eq_true_iff _ (decidable_of_iff (scan a = true) (hspec a))).symm)⟩
+
+end ComputablePredIn
