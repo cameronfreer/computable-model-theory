@@ -148,6 +148,21 @@ theorem exists_applyMapList {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps 
       · exact hbj
       · exact hbsj y hy
 
+/-- **The crossing.** A pointwise-known map on an `ofFn` argument tuple lists as an `ofFn`
+image tuple. Stated on bare `ℕ`-valued families so that generator agreement, `map_fun'` and
+`map_rel'` can each consume this one lemma instead of separately reconciling
+`equivSubtype.symm`, the carrier coercion and `List.ofFn`. -/
+theorem applyMapList_ofFn {i : ℕ} {f : List ℕ} :
+    ∀ {n : ℕ} {a b : Fin n → ℕ}, (∀ k, C.applyMap i f (a k) = Option.some (b k)) →
+      C.applyMapList i f (List.ofFn a) = Option.some (List.ofFn b) := by
+  intro n
+  induction n with
+  | zero => intro a b _; simp
+  | succ m ih =>
+    intro a b h
+    rw [List.ofFn_succ, List.ofFn_succ, applyMapList_cons, h 0, Option.bind_some,
+      ih fun k ↦ h k.succ, Option.map_some]
+
 variable (C)
 
 /-! ### The instance enumerations
@@ -250,14 +265,45 @@ def relationScanPart (F : PotentialEmbeddingData) (f : List ℕ) : Part Bool :=
   foldrPart (fun p acc ↦ (C.relCheckOne F.domIdx F.codIdx f p).map (· && acc)) true
     (C.relInstances F.domIdx)
 
+/-- The three total checks, as a token: `some ()` exactly when the input is worth running the
+scans on. Naming it keeps the guard a separately typed intermediate, which is what lets the
+guarded program be an `Option.casesOn` rather than a `Part`-level conditional. -/
+def validToken (F : PotentialEmbeddingData) (f : List ℕ) : Option Unit :=
+  bif C.validCode F.domIdx F.codIdx f && C.generatorCheck F f && decide f.Nodup then
+    Option.some () else Option.none
+
+omit [EffectivelyFiniteLanguage L] in
+theorem validToken_eq_some_iff (F : PotentialEmbeddingData) (f : List ℕ) :
+    C.validToken F f = Option.some () ↔
+      f ∈ C.finiteMaps F.domIdx F.codIdx ∧ C.generatorCheck F f = true ∧ f.Nodup := by
+  rw [validToken]
+  cases hv : C.validCode F.domIdx F.codIdx f && C.generatorCheck F f && decide f.Nodup with
+  | false =>
+    rw [Bool.cond_false]
+    refine ⟨fun h ↦ absurd h (by simp), fun h ↦ ?_⟩
+    have htrue : (C.validCode F.domIdx F.codIdx f && C.generatorCheck F f &&
+        decide f.Nodup) = true := by
+      rw [Bool.and_eq_true, Bool.and_eq_true]
+      exact ⟨⟨(C.validCode_eq_true_iff _ _ f).2 h.1, h.2.1⟩, decide_eq_true h.2.2⟩
+    rw [hv] at htrue
+    exact absurd htrue (by simp)
+  | true =>
+    rw [Bool.and_eq_true, Bool.and_eq_true] at hv
+    exact ⟨fun _ ↦ ⟨(C.validCode_eq_true_iff _ _ f).1 hv.1.1, hv.1.2,
+      of_decide_eq_true hv.2⟩, fun _ ↦ rfl⟩
+
 /-- **The checker, as a partial program.** Code validity is a guard *inside* the program: an
 invalid code is defined and rejected, and only a valid one reaches the partial scans. This is
 what makes the totalized checker a proof-free `Bool` on arbitrary inputs, rather than a
-function of a membership hypothesis. -/
+function of a membership hypothesis.
+
+Written as an `Option.casesOn` on the token so that it is already in the shape
+`RecursiveIn.option_casesOn_right` consumes — the rejecting branch stays oracle-free, and the
+scans are never entered on an invalid code. -/
 def finiteMapCheckPart (F : PotentialEmbeddingData) (f : List ℕ) : Part Bool :=
-  bif C.validCode F.domIdx F.codIdx f && C.generatorCheck F f && decide f.Nodup then
-    (C.functionScanPart F f).bind fun b₁ ↦ (C.relationScanPart F f).map fun b₂ ↦ b₁ && b₂
-  else Part.some false
+  Option.casesOn (motive := fun _ ↦ Part Bool) (C.validToken F f) (Part.some false)
+    fun _ ↦ (C.functionScanPart F f).bind fun b₁ ↦
+      (C.relationScanPart F f).map fun b₂ ↦ b₁ && b₂
 
 /-! ### Everywhere defined
 
@@ -351,13 +397,11 @@ arguments. -/
 theorem finiteMapCheckPart_dom (C : ExactFiniteCarriers B) (F : PotentialEmbeddingData)
     (f : List ℕ) : (C.finiteMapCheckPart F f).Dom := by
   rw [finiteMapCheckPart]
-  cases hg : C.validCode F.domIdx F.codIdx f && C.generatorCheck F f && decide f.Nodup with
-  | false => exact trivial
-  | true =>
+  cases hg : C.validToken F f with
+  | none => exact trivial
+  | some u =>
     have hf : f ∈ C.finiteMaps F.domIdx F.codIdx :=
-      (C.validCode_eq_true_iff _ _ f).1 (by
-        rw [Bool.and_eq_true, Bool.and_eq_true] at hg
-        exact hg.1.1)
+      ((C.validToken_eq_some_iff F f).1 (by rwa [Unit.ext u ()] at hg)).1
     exact ⟨functionScanPart_dom hf, relationScanPart_dom hf⟩
 
 /-! ### What the scans say
