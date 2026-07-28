@@ -486,6 +486,43 @@ theorem mem_relationScanPart_iff (F : PotentialEmbeddingData) (f : List ℕ) :
       ∀ p ∈ C.relInstances F.domIdx, true ∈ C.relCheckOne F.domIdx F.codIdx f p :=
   mem_foldrPart_and
 
+/-! ### The map a valid code determines
+
+On a valid code every carrier element has an image in the target carrier, so the code names an
+actual function between the member carriers. Everything the headline needs about it — the
+lookup equation, injectivity from `Nodup`, and the `ofFn` crossing — is recorded here, before
+any structure preservation is discussed. -/
+
+omit [EffectivelyFiniteLanguage L]
+
+/-- The function on carriers named by a valid code. -/
+noncomputable def codeFun {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j)
+    (x : (B.memberAt i).domain) : (B.memberAt j).domain :=
+  ⟨(C.exists_applyMap_eq_some hf x.2).choose, (C.exists_applyMap_eq_some hf x.2).choose_spec.2⟩
+
+/-- The defining equation: the code looks up exactly this value. -/
+@[simp]
+theorem applyMap_codeFun {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j)
+    (x : (B.memberAt i).domain) :
+    C.applyMap i f (x : ℕ) = Option.some ((codeFun hf x : (B.memberAt j).domain) : ℕ) :=
+  (C.exists_applyMap_eq_some hf x.2).choose_spec.1
+
+/-- **`Nodup` is injectivity.** On a normalized source a duplicate-free image list forces the
+named function to be injective. -/
+theorem codeFun_injective {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j) (hn : f.Nodup) :
+    Function.Injective (codeFun hf) := by
+  intro x y hxy
+  refine Subtype.ext (C.applyMap_injective_of_nodup hf hn x.2 y.2 ?_)
+  rw [applyMap_codeFun hf x, applyMap_codeFun hf y, hxy]
+
+/-- The `ofFn` crossing at the named function: an argument tuple over the source carrier lists
+as the tuple of its images. This is the single fact `map_fun'` and `map_rel'` consume. -/
+theorem applyMapList_ofFn_codeFun {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j) {n : ℕ}
+    (v : Fin n → (B.memberAt i).domain) :
+    C.applyMapList i f (List.ofFn fun k ↦ ((v k : ℕ))) =
+      Option.some (List.ofFn fun k ↦ ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)) :=
+  applyMapList_ofFn fun k ↦ applyMap_codeFun hf (v k)
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
