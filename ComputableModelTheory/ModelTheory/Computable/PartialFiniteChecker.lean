@@ -493,13 +493,13 @@ actual function between the member carriers. Everything the headline needs about
 lookup equation, injectivity from `Nodup`, and the `ofFn` crossing — is recorded here, before
 any structure preservation is discussed. -/
 
-omit [EffectivelyFiniteLanguage L]
-
+omit [EffectivelyFiniteLanguage L] in
 /-- The function on carriers named by a valid code. -/
 noncomputable def codeFun {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j)
     (x : (B.memberAt i).domain) : (B.memberAt j).domain :=
   ⟨(C.exists_applyMap_eq_some hf x.2).choose, (C.exists_applyMap_eq_some hf x.2).choose_spec.2⟩
 
+omit [EffectivelyFiniteLanguage L] in
 /-- The defining equation: the code looks up exactly this value. -/
 @[simp]
 theorem applyMap_codeFun {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j)
@@ -507,6 +507,7 @@ theorem applyMap_codeFun {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j
     C.applyMap i f (x : ℕ) = Option.some ((codeFun hf x : (B.memberAt j).domain) : ℕ) :=
   (C.exists_applyMap_eq_some hf x.2).choose_spec.1
 
+omit [EffectivelyFiniteLanguage L] in
 /-- **`Nodup` is injectivity.** On a normalized source a duplicate-free image list forces the
 named function to be injective. -/
 theorem codeFun_injective {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j) (hn : f.Nodup) :
@@ -515,6 +516,7 @@ theorem codeFun_injective {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i 
   refine Subtype.ext (C.applyMap_injective_of_nodup hf hn x.2 y.2 ?_)
   rw [applyMap_codeFun hf x, applyMap_codeFun hf y, hxy]
 
+omit [EffectivelyFiniteLanguage L] in
 /-- The `ofFn` crossing at the named function: an argument tuple over the source carrier lists
 as the tuple of its images. This is the single fact `map_fun'` and `map_rel'` consume. -/
 theorem applyMapList_ofFn_codeFun {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j) {n : ℕ}
@@ -531,6 +533,7 @@ identifications, so `map_fun'` and `map_rel'` never see a cast. Stated for arbit
 including `0`: at arity zero `List.ofFn` is `[]` and the lemma still produces the single
 instance the enumeration contains. -/
 
+omit [EffectivelyFiniteLanguage L] in
 /-- The function instance determined by a symbol and a carrier tuple. -/
 theorem funInstance?_ofFn {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j) {n : ℕ}
     (s : L.Functions n) (v : Fin n → (B.memberAt i).domain) :
@@ -578,6 +581,7 @@ theorem funInstance?_ofFn {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i 
     rw [FunctionApplicationData.funMap_equivSubtype_symm]
     exact congrArg _ (funext fun k ↦ by simp)
 
+omit [EffectivelyFiniteLanguage L] in
 /-- The relation instance determined by a symbol and a carrier tuple. -/
 theorem relInstance?_ofFn {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j) {n : ℕ}
     (r : L.Relations n) (v : Fin n → (B.memberAt i).domain) :
@@ -624,6 +628,66 @@ theorem relInstance?_ofFn {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i 
   · letI : L.Structure ℕ := B.structureAt j
     rw [RelationApplicationData.relMap_equivSubtype_symm]
     exact iff_of_eq (congrArg _ (funext fun k ↦ by simp))
+
+/-! ### The embedding an accepted code names
+
+With the instance boundary closed this is assembly: the two scan specifications supply
+`map_fun'` and `map_rel'` directly, and the subtype structure being definitional means each
+obligation reduces to its `ℕ`-level counterpart by `Subtype.ext` / `Iff.rfl`. -/
+
+/-- Every enumerated symbol instance arising from a carrier tuple is in the enumeration. -/
+theorem funInstances_ofFn {i : ℕ} {n : ℕ} (s : L.Functions n)
+    (v : Fin n → (B.memberAt i).domain) :
+    ((⟨n, s⟩ : L.FunctionSymbol), List.ofFn fun k ↦ ((v k : ℕ))) ∈ C.funInstances i := by
+  refine (C.mem_funInstances_iff i _).2 ⟨by simp [FunctionSymbol.arity], fun x hx ↦ ?_⟩
+  obtain ⟨m, hm⟩ := List.mem_ofFn.1 hx
+  exact hm ▸ (v m).2
+
+theorem relInstances_ofFn {i : ℕ} {n : ℕ} (r : L.Relations n)
+    (v : Fin n → (B.memberAt i).domain) :
+    ((⟨n, r⟩ : L.RelationSymbol), List.ofFn fun k ↦ ((v k : ℕ))) ∈ C.relInstances i := by
+  refine (C.mem_relInstances_iff i _).2 ⟨by simp [RelationSymbol.arity], fun x hx ↦ ?_⟩
+  obtain ⟨m, hm⟩ := List.mem_ofFn.1 hx
+  exact hm ▸ (v m).2
+
+/-- **The embedding an accepted code names.** -/
+noncomputable def codeEmbedding {F : PotentialEmbeddingData} {f : List ℕ}
+    (hf : f ∈ C.finiteMaps F.domIdx F.codIdx) (hn : f.Nodup)
+    (hfun : true ∈ C.functionScanPart F f) (hrel : true ∈ C.relationScanPart F f) :
+    (B.memberAt F.domIdx).domain ↪[L] (B.memberAt F.codIdx).domain where
+  toFun := codeFun hf
+  inj' := codeFun_injective hf hn
+  map_fun' {n} s v := by
+    obtain ⟨d, e, hde, hd, he, hdmap, hemap⟩ := funInstance?_ofFn hf s v
+    have hcheck := (mem_funCheckOne_iff hde hd he).1
+      ((C.mem_functionScanPart_iff F f).1 hfun _ (funInstances_ofFn s v))
+    rw [hdmap, hemap] at hcheck
+    exact Subtype.ext (Option.some.inj ((applyMap_codeFun hf _).symm.trans hcheck))
+  map_rel' {n} r v := by
+    obtain ⟨d, e, hde, hd, he, hdmap, hemap⟩ := relInstance?_ofFn hf r v
+    have hcheck := (mem_relCheckOne_iff hde hd he).1
+      ((C.mem_relationScanPart_iff F f).1 hrel _ (relInstances_ofFn r v))
+    rw [hdmap, hemap] at hcheck
+    exact hcheck.symm
+
+@[simp]
+theorem codeEmbedding_apply {F : PotentialEmbeddingData} {f : List ℕ}
+    (hf : f ∈ C.finiteMaps F.domIdx F.codIdx) (hn : f.Nodup)
+    (hfun : true ∈ C.functionScanPart F f) (hrel : true ∈ C.relationScanPart F f)
+    (x : (B.memberAt F.domIdx).domain) : codeEmbedding hf hn hfun hrel x = codeFun hf x :=
+  rfl
+
+omit [EffectivelyFiniteLanguage L] in
+/-- **The code names the realizer.** Pointwise, so no equality of embeddings — and hence no
+second structure-instance obligation — is ever needed. -/
+theorem codeFun_eq_realizer {F : PotentialEmbeddingData} {f : List ℕ}
+    (hf : f ∈ C.finiteMaps F.domIdx F.codIdx)
+    {G : (B.memberAt F.domIdx).domain ↪[L] (B.memberAt F.codIdx).domain}
+    (hcode : ∀ x : (B.memberAt F.domIdx).domain,
+      C.applyMap F.domIdx f (x : ℕ) =
+        Option.some ((G x : (B.memberAt F.codIdx).domain) : ℕ))
+    (x : (B.memberAt F.domIdx).domain) : codeFun hf x = G x :=
+  Subtype.ext (Option.some.inj ((applyMap_codeFun hf x).symm.trans (hcode x)))
 
 end ExactFiniteCarriers
 
