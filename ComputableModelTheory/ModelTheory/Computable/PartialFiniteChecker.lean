@@ -523,6 +523,108 @@ theorem applyMapList_ofFn_codeFun {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finit
       Option.some (List.ofFn fun k ↦ ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)) :=
   applyMapList_ofFn fun k ↦ applyMap_codeFun hf (v k)
 
+/-! ### The instance boundary
+
+The only place `equivSubtype`, `Fin.cast` and application-data reassembly are allowed to
+appear. Each lemma hands back the assembled instance together with **both** evaluator
+identifications, so `map_fun'` and `map_rel'` never see a cast. Stated for arbitrary `n`,
+including `0`: at arity zero `List.ofFn` is `[]` and the lemma still produces the single
+instance the enumeration contains. -/
+
+/-- The function instance determined by a symbol and a carrier tuple. -/
+theorem funInstance?_ofFn {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j) {n : ℕ}
+    (s : L.Functions n) (v : Fin n → (B.memberAt i).domain) :
+    ∃ d e, C.funInstance? i f ((⟨n, s⟩ : L.FunctionSymbol), List.ofFn fun k ↦ ((v k : ℕ))) =
+        Option.some (d, e) ∧
+      (∀ k, d.args k ∈ B.domainAt i) ∧ (∀ k, e.args k ∈ B.domainAt j) ∧
+      @FunctionApplicationData.funMap L ℕ (B.structureAt i) d =
+        @Structure.funMap L ℕ (B.structureAt i) n s (fun k ↦ ((v k : ℕ))) ∧
+      @FunctionApplicationData.funMap L ℕ (B.structureAt j) e =
+        @Structure.funMap L ℕ (B.structureAt j) n s
+          (fun k ↦ ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)) := by
+  have hlen : (List.ofFn fun k ↦ ((v k : ℕ))).length =
+      FunctionSymbol.arity (⟨n, s⟩ : L.FunctionSymbol) := by simp [FunctionSymbol.arity]
+  have hblen : (List.ofFn fun k ↦
+      ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)).length =
+      FunctionSymbol.arity (⟨n, s⟩ : L.FunctionSymbol) := by simp [FunctionSymbol.arity]
+  refine ⟨FunctionApplicationData.equivSubtype.symm
+      ⟨((⟨n, s⟩ : L.FunctionSymbol), List.ofFn fun k ↦ ((v k : ℕ))), hlen⟩,
+    FunctionApplicationData.equivSubtype.symm
+      ⟨((⟨n, s⟩ : L.FunctionSymbol), List.ofFn fun k ↦
+        ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)), hblen⟩, ?_, ?_, ?_, ?_, ?_⟩
+  · simp only [funInstance?, FunctionApplicationData.ofSymbolArgs?_of_length_eq
+        ((⟨n, s⟩ : L.FunctionSymbol), List.ofFn fun k ↦ ((v k : ℕ))) hlen,
+      applyMapList_ofFn_codeFun hf v]
+    show Option.map _ (FunctionApplicationData.ofSymbolArgs?
+      ((⟨n, s⟩ : L.FunctionSymbol), List.ofFn fun k ↦
+        ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ))) = _
+    rw [FunctionApplicationData.ofSymbolArgs?_of_length_eq
+      ((⟨n, s⟩ : L.FunctionSymbol), List.ofFn fun k ↦
+        ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)) hblen]
+    rfl
+  · intro k
+    obtain ⟨m, hm⟩ := List.mem_ofFn.1 (List.get_mem _ (Fin.cast hlen.symm k))
+    show (List.ofFn fun k ↦ ((v k : ℕ))).get (Fin.cast hlen.symm k) ∈ B.domainAt i
+    exact hm ▸ (v m).2
+  · intro k
+    obtain ⟨m, hm⟩ := List.mem_ofFn.1 (List.get_mem _ (Fin.cast hblen.symm k))
+    show (List.ofFn fun k ↦ ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)).get
+      (Fin.cast hblen.symm k) ∈ B.domainAt j
+    exact hm ▸ (codeFun hf (v m)).2
+  · letI : L.Structure ℕ := B.structureAt i
+    rw [FunctionApplicationData.funMap_equivSubtype_symm]
+    exact congrArg _ (funext fun k ↦ by simp)
+  · letI : L.Structure ℕ := B.structureAt j
+    rw [FunctionApplicationData.funMap_equivSubtype_symm]
+    exact congrArg _ (funext fun k ↦ by simp)
+
+/-- The relation instance determined by a symbol and a carrier tuple. -/
+theorem relInstance?_ofFn {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j) {n : ℕ}
+    (r : L.Relations n) (v : Fin n → (B.memberAt i).domain) :
+    ∃ d e, C.relInstance? i f ((⟨n, r⟩ : L.RelationSymbol), List.ofFn fun k ↦ ((v k : ℕ))) =
+        Option.some (d, e) ∧
+      (∀ k, d.args k ∈ B.domainAt i) ∧ (∀ k, e.args k ∈ B.domainAt j) ∧
+      (@RelationApplicationData.relMap L ℕ (B.structureAt i) d ↔
+        @Structure.RelMap L ℕ (B.structureAt i) n r (fun k ↦ ((v k : ℕ)))) ∧
+      (@RelationApplicationData.relMap L ℕ (B.structureAt j) e ↔
+        @Structure.RelMap L ℕ (B.structureAt j) n r
+          (fun k ↦ ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ))) := by
+  have hlen : (List.ofFn fun k ↦ ((v k : ℕ))).length =
+      RelationSymbol.arity (⟨n, r⟩ : L.RelationSymbol) := by simp [RelationSymbol.arity]
+  have hblen : (List.ofFn fun k ↦
+      ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)).length =
+      RelationSymbol.arity (⟨n, r⟩ : L.RelationSymbol) := by simp [RelationSymbol.arity]
+  refine ⟨RelationApplicationData.equivSubtype.symm
+      ⟨((⟨n, r⟩ : L.RelationSymbol), List.ofFn fun k ↦ ((v k : ℕ))), hlen⟩,
+    RelationApplicationData.equivSubtype.symm
+      ⟨((⟨n, r⟩ : L.RelationSymbol), List.ofFn fun k ↦
+        ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)), hblen⟩, ?_, ?_, ?_, ?_, ?_⟩
+  · simp only [relInstance?, RelationApplicationData.ofSymbolArgs?_of_length_eq
+        ((⟨n, r⟩ : L.RelationSymbol), List.ofFn fun k ↦ ((v k : ℕ))) hlen,
+      applyMapList_ofFn_codeFun hf v]
+    show Option.map _ (RelationApplicationData.ofSymbolArgs?
+      ((⟨n, r⟩ : L.RelationSymbol), List.ofFn fun k ↦
+        ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ))) = _
+    rw [RelationApplicationData.ofSymbolArgs?_of_length_eq
+      ((⟨n, r⟩ : L.RelationSymbol), List.ofFn fun k ↦
+        ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)) hblen]
+    rfl
+  · intro k
+    obtain ⟨m, hm⟩ := List.mem_ofFn.1 (List.get_mem _ (Fin.cast hlen.symm k))
+    show (List.ofFn fun k ↦ ((v k : ℕ))).get (Fin.cast hlen.symm k) ∈ B.domainAt i
+    exact hm ▸ (v m).2
+  · intro k
+    obtain ⟨m, hm⟩ := List.mem_ofFn.1 (List.get_mem _ (Fin.cast hblen.symm k))
+    show (List.ofFn fun k ↦ ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)).get
+      (Fin.cast hblen.symm k) ∈ B.domainAt j
+    exact hm ▸ (codeFun hf (v m)).2
+  · letI : L.Structure ℕ := B.structureAt i
+    rw [RelationApplicationData.relMap_equivSubtype_symm]
+    exact iff_of_eq (congrArg _ (funext fun k ↦ by simp))
+  · letI : L.Structure ℕ := B.structureAt j
+    rw [RelationApplicationData.relMap_equivSubtype_symm]
+    exact iff_of_eq (congrArg _ (funext fun k ↦ by simp))
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
