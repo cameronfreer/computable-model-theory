@@ -804,6 +804,60 @@ theorem validToken_of_finiteMapRealizes {F : PotentialEmbeddingData} {f : List �
     rw [hcode ⟨x, hx'⟩, hcode ⟨y, hy'⟩] at hxy
     exact congrArg Subtype.val (G.injective (Subtype.ext (Option.some.inj hxy)))
 
+/-- **The semantic endpoint.** The partial checker accepts exactly the codes that realize the
+data.
+
+Membership-based throughout: it case-splits only on `validToken`, uses the two scan
+specifications as they stand, and never mentions `Part.get`, a definedness proof, or either
+fold's internals — so it is independent of how the program is totalized below. -/
+theorem mem_finiteMapCheckPart_iff (F : PotentialEmbeddingData) (f : List ℕ) :
+    true ∈ C.finiteMapCheckPart F f ↔ C.FiniteMapRealizes F f := by
+  rw [finiteMapCheckPart]
+  cases hv : C.validToken F f with
+  | none =>
+    refine ⟨fun h ↦ absurd (Part.mem_unique h (Part.mem_some false)) (by simp), fun hr ↦ ?_⟩
+    rw [C.validToken_of_finiteMapRealizes hr] at hv
+    exact absurd hv (by simp)
+  | some u =>
+    obtain ⟨hf, hgen, hn⟩ := (C.validToken_eq_some_iff F f).1 (by rwa [Unit.ext u ()] at hv)
+    show true ∈ ((C.functionScanPart F f).bind fun b₁ ↦
+      (C.relationScanPart F f).map fun b₂ ↦ b₁ && b₂) ↔ _
+    rw [mem_bind_and]
+    constructor
+    · rintro ⟨hfun, hrel⟩
+      refine ⟨hf, codeEmbedding hf hn hfun hrel, ?_, fun x ↦ applyMap_codeFun hf x⟩
+      obtain ⟨hlen, hk⟩ := (C.generatorCheck_eq_true_iff F f).1 hgen
+      exact ⟨hlen, fun k ↦
+        Option.some.inj ((applyMap_codeFun hf (B.gensView F.domIdx k)).symm.trans (hk k))⟩
+    · rintro ⟨-, G, hG, hcode⟩
+      have hmap : ∀ y : (B.memberAt F.domIdx).domain, codeFun hf y = G y :=
+        fun y ↦ codeFun_eq_realizer hf hcode y
+      constructor
+      · rw [C.mem_functionScanPart_iff]
+        intro p hp
+        obtain ⟨n, s, v, rfl⟩ := C.exists_ofFn_of_mem_funInstances hp
+        obtain ⟨d, e, hde, hd, he, hdmap, hemap⟩ := funInstance?_ofFn hf s v
+        refine (mem_funCheckOne_iff hde hd he).2 ?_
+        rw [hdmap, hemap]
+        show C.applyMap F.domIdx f
+            ((Structure.funMap s v : (B.memberAt F.domIdx).domain) : ℕ) =
+          Option.some ((Structure.funMap s fun k ↦ codeFun hf (v k) :
+            (B.memberAt F.codIdx).domain) : ℕ)
+        rw [applyMap_codeFun hf]
+        simp only [hmap]
+        rw [G.map_fun]
+        rfl
+      · rw [C.mem_relationScanPart_iff]
+        intro p hp
+        obtain ⟨n, r, v, rfl⟩ := C.exists_ofFn_of_mem_relInstances hp
+        obtain ⟨d, e, hde, hd, he, hdmap, hemap⟩ := relInstance?_ofFn hf r v
+        refine (mem_relCheckOne_iff hde hd he).2 ?_
+        rw [hdmap, hemap]
+        show @Structure.RelMap L (B.memberAt F.domIdx).domain _ n r v ↔
+          @Structure.RelMap L (B.memberAt F.codIdx).domain _ n r fun k ↦ codeFun hf (v k)
+        simp only [hmap]
+        exact (G.map_rel r v).symm
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
