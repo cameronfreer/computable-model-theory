@@ -897,6 +897,40 @@ theorem exists_mem_finiteMaps_finiteMapCheck_iff (F : PotentialEmbeddingData) :
   exact ⟨fun ⟨f, _, h⟩ ↦ ⟨f, (C.finiteMapCheck_eq_true_iff F f).1 h⟩,
     fun ⟨f, h⟩ ↦ ⟨f, h.mem_finiteMaps, (C.finiteMapCheck_eq_true_iff F f).2 h⟩⟩
 
+/-! ### Computability, rung 1: the total helpers
+
+`finiteMapCheck` is a `noncomputable` Lean definition — it descends from `memberAt`, and its
+`Part.get` reads a definedness proof. That is a statement about Lean's definitional evaluator,
+not about effectivity: the computational content is carried by the `ComputableIn` theorems
+below, which is the same arrangement as every other selector in this library.
+
+The ladder is climbed in order — total helpers, then the per-instance partial checks, then the
+scans, then the guard, then one `computableIn_get` — with a typed intermediate `have` for each
+step so nothing fuses. -/
+
+omit [EffectivelyFiniteLanguage L] in
+theorem validCode_computableIn :
+    ComputableIn O fun q : (ℕ × ℕ) × List ℕ ↦ C.validCode q.1.1 q.1.2 q.2 := by
+  have hcode : ComputableIn O fun q : (ℕ × ℕ) × List ℕ ↦ q.2 := ComputableIn.snd
+  have hsrc : ComputableIn O fun q : (ℕ × ℕ) × List ℕ ↦ C.support q.1.1 :=
+    C.support_computableIn.comp (ComputableIn.fst.comp ComputableIn.fst)
+  have htgt : ComputableIn O fun q : (ℕ × ℕ) × List ℕ ↦ C.support q.1.2 :=
+    C.support_computableIn.comp (ComputableIn.snd.comp ComputableIn.fst)
+  have hlen : ComputableIn O fun q : (ℕ × ℕ) × List ℕ ↦
+      decide (q.2.length = (C.support q.1.1).length) :=
+    ((Primrec.eq (α := ℕ)).decide.to_comp.computableIn₂ (O := O)).comp
+      ((Primrec.list_length.to_comp.computableIn (O := O)).comp hcode)
+      ((Primrec.list_length.to_comp.computableIn (O := O)).comp hsrc)
+  have hall : ComputableIn O fun q : (ℕ × ℕ) × List ℕ ↦
+      q.2.all fun y ↦ decide (y ∈ C.support q.1.2) :=
+    ComputableIn.list_all hcode
+      ((ComputableIn.list_mem (htgt.comp ComputableIn.fst) ComputableIn.snd).to₂)
+  have h : ComputableIn O fun q : (ℕ × ℕ) × List ℕ ↦
+      (decide (q.2.length = (C.support q.1.1).length) &&
+        q.2.all fun y ↦ decide (y ∈ C.support q.1.2)) :=
+    (Primrec.and.to_comp.computableIn₂ (O := O)).comp hlen hall
+  exact h.of_eq fun q ↦ by rw [validCode]; rfl
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
