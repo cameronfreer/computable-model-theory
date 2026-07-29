@@ -670,6 +670,44 @@ theorem nodup_of_applyMap_injective {i j : ℕ} {f : List ℕ} (hf : f ∈ C.fin
   exact Fin.ext (((C.support_nodup i).getElem_inj_iff (hi := (Fin.cast hlen m).isLt)
     (hj := (Fin.cast hlen n).isLt)).1 hval)
 
+/-! ### Completeness of the enumeration
+
+The converse direction of the boundary: the forward lemmas say instances built from carrier
+tuples are enumerated; these say every enumerated instance *is* one. The cast-heavy core is
+factored once, generically, so neither converse handles `Fin.cast` itself. -/
+
+/-- A list of the right length whose entries all satisfy `P` is an `ofFn` of subtype values.
+Constructive, and `n = 0` is the `[]` case with the empty tuple. -/
+private theorem exists_ofFn_subtype {α : Type*} {P : α → Prop} {xs : List α} {n : ℕ}
+    (hlen : xs.length = n) (hmem : ∀ x ∈ xs, P x) :
+    ∃ v : Fin n → {x // P x}, xs = List.ofFn fun k ↦ (v k).1 := by
+  subst hlen
+  exact ⟨fun k ↦ ⟨xs.get k, hmem _ (List.get_mem _ _)⟩, (List.ofFn_get xs).symm⟩
+
+/-- Every enumerated function instance comes from a carrier tuple. -/
+theorem exists_ofFn_of_mem_funInstances {i : ℕ} {p : L.FunctionSymbol × List ℕ}
+    (hp : p ∈ C.funInstances i) :
+    ∃ (n : ℕ) (s : L.Functions n) (v : Fin n → (B.memberAt i).domain),
+      p = ((⟨n, s⟩ : L.FunctionSymbol), List.ofFn fun k ↦ ((v k : ℕ))) := by
+  obtain ⟨s, as⟩ := p
+  obtain ⟨hlen, hmem⟩ := (C.mem_funInstances_iff i _).1 hp
+  obtain ⟨n, sf⟩ := s
+  obtain ⟨v, hv⟩ := exists_ofFn_subtype (P := fun x ↦ x ∈ (B.memberAt i).domain)
+    (n := n) hlen hmem
+  exact ⟨n, sf, v, Prod.ext rfl hv⟩
+
+/-- Every enumerated relation instance comes from a carrier tuple. -/
+theorem exists_ofFn_of_mem_relInstances {i : ℕ} {p : L.RelationSymbol × List ℕ}
+    (hp : p ∈ C.relInstances i) :
+    ∃ (n : ℕ) (r : L.Relations n) (v : Fin n → (B.memberAt i).domain),
+      p = ((⟨n, r⟩ : L.RelationSymbol), List.ofFn fun k ↦ ((v k : ℕ))) := by
+  obtain ⟨r, as⟩ := p
+  obtain ⟨hlen, hmem⟩ := (C.mem_relInstances_iff i _).1 hp
+  obtain ⟨n, rr⟩ := r
+  obtain ⟨v, hv⟩ := exists_ofFn_subtype (P := fun x ↦ x ∈ (B.memberAt i).domain)
+    (n := n) hlen hmem
+  exact ⟨n, rr, v, Prod.ext rfl hv⟩
+
 /-! ### The embedding an accepted code names
 
 With the instance boundary closed this is assembly: the two scan specifications supply
