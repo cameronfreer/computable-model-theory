@@ -730,6 +730,42 @@ theorem codeFun_eq_realizer {F : PotentialEmbeddingData} {f : List ℕ}
     (x : (B.memberAt F.domIdx).domain) : codeFun hf x = G x :=
   Subtype.ext (Option.some.inj ((applyMap_codeFun hf x).symm.trans (hcode x)))
 
+/-! ### Towards the semantic endpoint
+
+Everything here is membership-based: no `Part.get`, no definedness proof, and neither fold is
+unfolded. That keeps the endpoint independent of how the program is later totalized. -/
+
+/-- The `Part`-valued Boolean conjunction, in membership form. -/
+private theorem mem_bind_and {x y : Part Bool} :
+    true ∈ (x.bind fun b₁ ↦ y.map fun b₂ ↦ b₁ && b₂) ↔ true ∈ x ∧ true ∈ y := by
+  constructor
+  · intro h
+    obtain ⟨b₁, hb₁, h⟩ := Part.mem_bind_iff.1 h
+    obtain ⟨b₂, hb₂, h⟩ := (Part.mem_map_iff _).1 h
+    obtain ⟨rfl, rfl⟩ := Bool.and_eq_true .. ▸ h
+    exact ⟨hb₁, hb₂⟩
+  · rintro ⟨hx, hy⟩
+    exact Part.mem_bind_iff.2 ⟨true, hx, (Part.mem_map_iff _).2 ⟨true, hy, rfl⟩⟩
+
+omit [EffectivelyFiniteLanguage L] in
+/-- **A realized code passes the three total checks.** Generator agreement is the realizer's
+own coordinate equations read through the coding clause, and `Nodup` comes from the realizer's
+injectivity via `nodup_of_applyMap_injective`. -/
+theorem validToken_of_finiteMapRealizes {F : PotentialEmbeddingData} {f : List ℕ}
+    (h : C.FiniteMapRealizes F f) : C.validToken F f = Option.some () := by
+  obtain ⟨hf, G, hG, hcode⟩ := h
+  refine (C.validToken_eq_some_iff F f).2 ⟨hf, ?_, ?_⟩
+  · obtain ⟨hlen, hcoord⟩ := hG
+    refine (C.generatorCheck_eq_true_iff F f).2 ⟨hlen, fun k ↦ ?_⟩
+    rw [show ((B.gens F.domIdx).get k) =
+      ((B.gensView F.domIdx k : (B.memberAt F.domIdx).domain) : ℕ) from rfl,
+      hcode (B.gensView F.domIdx k), hcoord k]
+  · refine C.nodup_of_applyMap_injective hf fun x hx y hy hxy ↦ ?_
+    have hx' : x ∈ B.domainAt F.domIdx := (C.mem_support_iff_domainAt F.domIdx x).1 hx
+    have hy' : y ∈ B.domainAt F.domIdx := (C.mem_support_iff_domainAt F.domIdx y).1 hy
+    rw [hcode ⟨x, hx'⟩, hcode ⟨y, hy'⟩] at hxy
+    exact congrArg Subtype.val (G.injective (Subtype.ext (Option.some.inj hxy)))
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
