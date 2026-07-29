@@ -858,6 +858,45 @@ theorem mem_finiteMapCheckPart_iff (F : PotentialEmbeddingData) (f : List ℕ) :
         simp only [hmap]
         exact (G.map_rel r v).symm
 
+/-! ### The total checker
+
+Totalization is thin, and deliberately so: the bridge to `Part` membership is the *only* place
+the definedness proof appears, so the Boolean characterization is `mem_finiteMapCheckPart_iff`
+composed with a one-line lemma, and later audits reason through stable public statements rather
+than through `Part.get`. -/
+
+/-- **The checker.** A total `Bool` of the data and the code, with no membership hypothesis. -/
+noncomputable def finiteMapCheck (F : PotentialEmbeddingData) (f : List ℕ) : Bool :=
+  (C.finiteMapCheckPart F f).get (C.finiteMapCheckPart_dom F f)
+
+/-- The bridge. Everything downstream goes through this rather than unfolding `Part.get`. -/
+theorem finiteMapCheck_eq_true_iff_mem (F : PotentialEmbeddingData) (f : List ℕ) :
+    C.finiteMapCheck F f = true ↔ true ∈ C.finiteMapCheckPart F f :=
+  ⟨fun h ↦ h ▸ Part.get_mem _, fun h ↦ Part.mem_unique (Part.get_mem _) h⟩
+
+/-- **The headline.** The checker decides, on arbitrary input, whether a code realizes the
+data. No validity hypothesis: `FiniteMapRealizes` carries code validity itself, and an invalid
+code is rejected. -/
+theorem finiteMapCheck_eq_true_iff (F : PotentialEmbeddingData) (f : List ℕ) :
+    C.finiteMapCheck F f = true ↔ C.FiniteMapRealizes F f :=
+  (C.finiteMapCheck_eq_true_iff_mem F f).trans (C.mem_finiteMapCheckPart_iff F f)
+
+/-- **Observation 2.7's finite search, semantically.** Some code passes the checker exactly when
+the potential embedding data is realizable — so searching the finite candidate list decides
+realizability. -/
+theorem exists_finiteMapCheck_iff_partialIsEmbedding (F : PotentialEmbeddingData) :
+    (∃ f, C.finiteMapCheck F f = true) ↔ B.PartialIsEmbedding F := by
+  rw [← C.exists_finiteMapRealizes_iff_partialIsEmbedding F]
+  exact exists_congr fun f ↦ C.finiteMapCheck_eq_true_iff F f
+
+/-- And the search may be confined to the enumerated candidates. -/
+theorem exists_mem_finiteMaps_finiteMapCheck_iff (F : PotentialEmbeddingData) :
+    (∃ f ∈ C.finiteMaps F.domIdx F.codIdx, C.finiteMapCheck F f = true) ↔
+      B.PartialIsEmbedding F := by
+  rw [← C.exists_finiteMapRealizes_iff_partialIsEmbedding F]
+  exact ⟨fun ⟨f, _, h⟩ ↦ ⟨f, (C.finiteMapCheck_eq_true_iff F f).1 h⟩,
+    fun ⟨f, h⟩ ↦ ⟨f, h.mem_finiteMaps, (C.finiteMapCheck_eq_true_iff F f).2 h⟩⟩
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
