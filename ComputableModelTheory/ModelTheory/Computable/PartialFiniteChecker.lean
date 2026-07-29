@@ -629,6 +629,47 @@ theorem relInstance?_ofFn {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i 
     rw [RelationApplicationData.relMap_equivSubtype_symm]
     exact iff_of_eq (congrArg _ (funext fun k ↦ by simp))
 
+omit [EffectivelyFiniteLanguage L] in
+/-- **The converse of `applyMap_injective_of_nodup`.** A code injective on the normalized
+source is duplicate-free.
+
+This is what lets the reverse direction of the headline recover `Nodup` from the realizer's
+injectivity: no off-domain extension of the realizer, and no `f = imageList …` identity. It
+uses only the positional facts already in play — on a `Nodup` source, `findIdx` inverts
+`getElem`, so equal entries of `f` are `applyMap` values at correspondingly equal source
+elements. -/
+theorem nodup_of_applyMap_injective {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j)
+    (hinj : ∀ x ∈ C.support i, ∀ y ∈ C.support i,
+      C.applyMap i f x = C.applyMap i f y → x = y) : f.Nodup := by
+  obtain ⟨hlen, -⟩ := (C.mem_finiteMaps_iff i j f).1 hf
+  have key : ∀ m : Fin f.length,
+      C.applyMap i f ((C.support i).get (Fin.cast hlen m)) = Option.some (f.get m) := by
+    intro m
+    have hx : (C.support i).get (Fin.cast hlen m) ∈ C.support i := List.get_mem _ _
+    have hlt : (C.support i).findIdx
+        (fun z ↦ z == (C.support i).get (Fin.cast hlen m)) < (C.support i).length :=
+      List.findIdx_lt_length.2 ⟨_, hx, by simp⟩
+    have hval : (C.support i)[(C.support i).findIdx
+        (fun z ↦ z == (C.support i).get (Fin.cast hlen m))] =
+        (C.support i)[((Fin.cast hlen m : Fin (C.support i).length) : ℕ)] := by
+      have := List.findIdx_getElem
+        (p := fun z ↦ z == (C.support i).get (Fin.cast hlen m)) (xs := C.support i) (w := hlt)
+      simpa [List.get_eq_getElem] using this
+    have hidx := ((C.support_nodup i).getElem_inj_iff (hi := hlt)
+      (hj := (Fin.cast hlen m).isLt)).1 hval
+    have hmlt : (m : ℕ) < f.length := m.isLt
+    rw [applyMap, hidx]
+    simp [List.get_eq_getElem, hmlt]
+  rw [List.nodup_iff_injective_get]
+  intro m n hmn
+  have hxy := hinj ((C.support i).get (Fin.cast hlen m)) (List.get_mem _ _)
+    ((C.support i).get (Fin.cast hlen n)) (List.get_mem _ _) (by rw [key m, key n, hmn])
+  have hval : (C.support i)[((Fin.cast hlen m : Fin (C.support i).length) : ℕ)] =
+      (C.support i)[((Fin.cast hlen n : Fin (C.support i).length) : ℕ)] := by
+    simpa [List.get_eq_getElem] using hxy
+  exact Fin.ext (((C.support_nodup i).getElem_inj_iff (hi := (Fin.cast hlen m).isLt)
+    (hj := (Fin.cast hlen n).isLt)).1 hval)
+
 /-! ### The embedding an accepted code names
 
 With the instance boundary closed this is assembly: the two scan specifications supply
