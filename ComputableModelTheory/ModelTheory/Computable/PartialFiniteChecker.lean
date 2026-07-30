@@ -954,6 +954,71 @@ theorem validCode_computableIn :
     (Primrec.and.to_comp.computableIn₂ (O := O)).comp hlen hall
   exact h.of_eq fun q ↦ by rw [validCode]; rfl
 
+/-- The repacking the generator scan's `applyMap` call needs, named with its exact type so a
+mistake surfaces as a local type mismatch rather than a downstream `whnf` stall. -/
+private def generatorApplyInput
+    (r : ((PotentialEmbeddingData × List ℕ) × ℕ) × ℕ) : (ℕ × List ℕ) × ℕ :=
+  ((r.1.1.1.domIdx, r.1.1.2), r.2)
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem generatorApplyInput_computableIn :
+    ComputableIn O generatorApplyInput :=
+  (((PotentialEmbeddingData.domIdx_computable.comp
+        (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst))).pair
+      (ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst))).pair
+    ComputableIn.snd).of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+theorem generatorCheck_computableIn :
+    ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦ C.generatorCheck q.1 q.2 := by
+  have hgens : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦ B.gens q.1.domIdx :=
+    B.gens_computableIn.comp
+      (PotentialEmbeddingData.domIdx_computable.comp ComputableIn.fst)
+  have hrange : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦ q.1.rangeTuple :=
+    PotentialEmbeddingData.rangeTuple_computable.comp ComputableIn.fst
+  have hlen : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦
+      decide ((B.gens q.1.domIdx).length = q.1.rangeTuple.length) :=
+    ((Primrec.eq (α := ℕ)).decide.to_comp.computableIn₂ (O := O)).comp
+      ((Primrec.list_length.to_comp.computableIn (O := O)).comp hgens)
+      ((Primrec.list_length.to_comp.computableIn (O := O)).comp hrange)
+  have hrng : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦
+      List.range (B.gens q.1.domIdx).length :=
+    (Primrec.list_range.to_comp.computableIn (O := O)).comp
+      ((Primrec.list_length.to_comp.computableIn (O := O)).comp hgens)
+  have hsrc : ComputableIn O fun r : (PotentialEmbeddingData × List ℕ) × ℕ ↦
+      (B.gens r.1.1.domIdx)[r.2]? :=
+    (Computable.list_getElem?.computableIn₂ (O := O)).comp
+      (hgens.comp ComputableIn.fst) ComputableIn.snd
+  have htgt : ComputableIn O fun r : (PotentialEmbeddingData × List ℕ) × ℕ ↦
+      r.1.1.rangeTuple[r.2]? :=
+    (Computable.list_getElem?.computableIn₂ (O := O)).comp
+      (hrange.comp ComputableIn.fst) ComputableIn.snd
+  have happly : ComputableIn₂ O fun (r : (PotentialEmbeddingData × List ℕ) × ℕ) (x : ℕ) ↦
+      C.applyMap r.1.1.domIdx r.1.2 x :=
+    (C.applyMap_computableIn.comp generatorApplyInput_computableIn).to₂
+  have hbind : ComputableIn O fun r : (PotentialEmbeddingData × List ℕ) × ℕ ↦
+      ((B.gens r.1.1.domIdx)[r.2]?.bind fun x ↦ C.applyMap r.1.1.domIdx r.1.2 x) :=
+    ComputableIn.option_bind hsrc happly
+  have hstep : ComputableIn O fun r : (PotentialEmbeddingData × List ℕ) × ℕ ↦
+      optionNatEq ((B.gens r.1.1.domIdx)[r.2]?.bind fun x ↦
+        C.applyMap r.1.1.domIdx r.1.2 x) r.1.1.rangeTuple[r.2]? :=
+    (optionNatEq_primrec.to_comp.computableIn₂ (O := O)).comp hbind htgt
+  have hall : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦
+      (List.range (B.gens q.1.domIdx).length).all fun n ↦
+        optionNatEq ((B.gens q.1.domIdx)[n]?.bind fun x ↦
+          C.applyMap q.1.domIdx q.2 x) q.1.rangeTuple[n]? :=
+    ComputableIn.list_all hrng hstep.to₂
+  have h : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦
+      (decide ((B.gens q.1.domIdx).length = q.1.rangeTuple.length) &&
+        (List.range (B.gens q.1.domIdx).length).all fun n ↦
+          optionNatEq ((B.gens q.1.domIdx)[n]?.bind fun x ↦
+            C.applyMap q.1.domIdx q.2 x) q.1.rangeTuple[n]?) :=
+    (Primrec.and.to_comp.computableIn₂ (O := O)).comp hlen hall
+  refine h.of_eq fun q ↦ ?_
+  rw [generatorCheck]
+  simp only [beq_eq_optionNatEq]
+  rfl
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
