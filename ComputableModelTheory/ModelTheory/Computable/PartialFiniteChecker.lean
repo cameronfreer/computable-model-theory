@@ -296,6 +296,15 @@ def validToken (F : PotentialEmbeddingData) (f : List ℕ) : Option Unit :=
     Option.some () else Option.none
 
 omit [EffectivelyFiniteLanguage L] in
+/-- The token *is* the guarded constant. A one-delta-step bridge, stated on opaque `F` and `f`
+so that consumers never have to reduce the three component checks. -/
+theorem validToken_eq_cond (F : PotentialEmbeddingData) (f : List ℕ) :
+    C.validToken F f =
+      bif (C.validCode F.domIdx F.codIdx f && C.generatorCheck F f && decide f.Nodup) then
+        Option.some () else Option.none :=
+  rfl
+
+omit [EffectivelyFiniteLanguage L] in
 theorem validToken_eq_some_iff (F : PotentialEmbeddingData) (f : List ℕ) :
     C.validToken F f = Option.some () ↔
       f ∈ C.finiteMaps F.domIdx F.codIdx ∧ C.generatorCheck F f = true ∧ f.Nodup := by
