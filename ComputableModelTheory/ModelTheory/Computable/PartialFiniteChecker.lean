@@ -34,6 +34,29 @@ the comparison `false`, which rejects, rather than substituting a value.
 
 open Encodable Part FirstOrder Language
 
+/-! ### Equality of `Option ℕ`, isolated
+
+`generatorCheck` compares two `Option ℕ` lookups. Deciding that through `Primrec.eq` at
+`Option ℕ` is a known elaboration hazard in this library — the polymorphic `Primcodable`
+eliminator on `Option` is exactly what diverges at `whnf`. So the crossing is done once here,
+through encodings, and every later proof consumes `optionNatEq` and its two lemmas without ever
+mentioning an encoded option value or `encode_inj`. -/
+
+/-- Equality of `Option ℕ`, computed through encodings. -/
+def optionNatEq (x y : Option ℕ) : Bool := decide (encode x = encode y)
+
+@[simp]
+theorem optionNatEq_eq_true_iff {x y : Option ℕ} : optionNatEq x y = true ↔ x = y :=
+  (decide_eq_true_iff).trans Encodable.encode_inj
+
+theorem optionNatEq_primrec : Primrec₂ optionNatEq :=
+  (((Primrec.eq (α := ℕ)).decide.comp (Primrec.encode.comp Primrec.fst)
+    (Primrec.encode.comp Primrec.snd))).to₂
+
+/-- The ambient `BEq` agrees with the canonical decision — the one place the two meet. -/
+theorem beq_eq_optionNatEq (x y : Option ℕ) : (x == y) = optionNatEq x y :=
+  Bool.eq_iff_iff.2 (beq_iff_eq.trans optionNatEq_eq_true_iff.symm)
+
 namespace FirstOrder.Language
 
 variable {O : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
