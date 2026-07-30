@@ -1028,6 +1028,74 @@ theorem generatorCheck_computableIn :
   simp only [beq_eq_optionNatEq]
   rfl
 
+/-- The repacking `validCode_computableIn` expects, named with its exact type. -/
+private def validCodeInput (q : PotentialEmbeddingData × List ℕ) : (ℕ × ℕ) × List ℕ :=
+  ((q.1.domIdx, q.1.codIdx), q.2)
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem validCodeInput_computableIn : ComputableIn O validCodeInput :=
+  (((PotentialEmbeddingData.domIdx_computable.comp ComputableIn.fst).pair
+      (PotentialEmbeddingData.codIdx_computable.comp ComputableIn.fst)).pair
+    ComputableIn.snd).of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+/-- `validCode` at `PotentialEmbeddingData` indices, as a **standalone adapter**.
+
+Deliberately its own declaration rather than a `have` inside `validToken_computableIn`. Done
+inline, `ComputableIn.comp` has to reconcile the ascribed type against the composed one inside
+the larger declaration's expected-type context, and stalls at `whnf`. Pulled out and fully
+pinned — every implicit type *and* both function parameters — it elaborates immediately, and
+callers consume it opaquely. Naming the repacking alone was not enough; the composition itself
+had to leave the enclosing context. -/
+private theorem validCodePE_computableIn :
+    ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦
+      C.validCode q.1.domIdx q.1.codIdx q.2 := by
+  have hbase : ComputableIn O fun r : (ℕ × ℕ) × List ℕ ↦ C.validCode r.1.1 r.1.2 r.2 :=
+    C.validCode_computableIn
+  have hcomposed : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦
+      C.validCode (validCodeInput q).1.1 (validCodeInput q).1.2 (validCodeInput q).2 :=
+    ComputableIn.comp
+      (α := PotentialEmbeddingData × List ℕ)
+      (β := (ℕ × ℕ) × List ℕ)
+      (σ := Bool)
+      (f := fun r ↦ C.validCode r.1.1 r.1.2 r.2)
+      (g := validCodeInput)
+      hbase validCodeInput_computableIn
+  exact hcomposed.of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+/-- The guard is `ComputableIn`; the token then crosses through `encode_iff`.
+
+The crossing matters: proving this by `of_eq` against the `Option Unit`-valued function makes
+`of_eq` compare structure-valued functions. Composing the `ℕ`-valued form and letting
+`ComputableIn.encode_iff` take the final step keeps `Option Unit` underneath `encode`, where
+nothing has to unfold it. -/
+theorem validToken_computableIn :
+    ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦ C.validToken q.1 q.2 := by
+  have hnodup : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦ decide q.2.Nodup :=
+    ComputableIn.list_nodup ComputableIn.snd
+  have hguard : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦
+      (C.validCode q.1.domIdx q.1.codIdx q.2 && C.generatorCheck q.1 q.2 &&
+        decide q.2.Nodup) :=
+    (Primrec.and.to_comp.computableIn₂ (O := O)).comp
+      ((Primrec.and.to_comp.computableIn₂ (O := O)).comp
+        C.validCodePE_computableIn C.generatorCheck_computableIn)
+      hnodup
+  have hcode : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦
+      (bif (C.validCode q.1.domIdx q.1.codIdx q.2 && C.generatorCheck q.1 q.2 &&
+        decide q.2.Nodup) then encode (Option.some () : Option Unit)
+        else encode (Option.none : Option Unit)) :=
+    ComputableIn.cond hguard
+      (ComputableIn.const (encode (Option.some () : Option Unit)))
+      (ComputableIn.const (encode (Option.none : Option Unit)))
+  have henc : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦
+      encode (C.validToken q.1 q.2) :=
+    hcode.of_eq fun q ↦ by
+      rw [C.validToken_eq_cond]
+      cases (C.validCode q.1.domIdx q.1.codIdx q.2 && C.generatorCheck q.1 q.2 &&
+        decide q.2.Nodup) <;> rfl
+  exact ComputableIn.encode_iff.mp henc
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
