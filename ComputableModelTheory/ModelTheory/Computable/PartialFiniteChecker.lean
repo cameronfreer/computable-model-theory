@@ -1475,6 +1475,45 @@ private theorem funCompare_computableIn :
   exact (((optionNatEq_primrec.to_comp.computableIn₂ (O := O)).comp happly hsome).to₂).of_eq
     fun _ ↦ rfl
 
+omit [EffectivelyFiniteLanguage L] in
+/-- The decoded branch, as a standalone `RecursiveIn₂`: source evaluation, then target
+evaluation, then the comparison. Assembled without the outer `Option` case in its expected
+type. -/
+private theorem funCheckSome_recursiveIn :
+    RecursiveIn₂ O fun (q : ((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ))
+      (de : FunctionApplicationData L ℕ × FunctionApplicationData L ℕ) ↦
+      (B.funEval q.1.1.1 de.1).bind fun v ↦
+        (B.funEval q.1.1.2 de.2).map fun u ↦
+          optionNatEq (C.applyMap q.1.1.1 q.1.2 v) (Option.some u) := by
+  have hmap := RecursiveIn.map (funTgtEval_recursiveIn (B := B)) C.funCompare_computableIn
+  have hbind := RecursiveIn.bind (funSrcEval_recursiveIn (B := B)) hmap.to₂
+  exact hbind.to₂
+
+omit [EffectivelyFiniteLanguage L] in
+/-- The extensional identification of the check's `==` with the canonical `optionNatEq`, done
+once at the top rather than inside the bind chain. -/
+private theorem funCheckOne_eq_optionNatEq (i j : ℕ) (f : List ℕ)
+    (p : L.FunctionSymbol × List ℕ) :
+    C.funCheckOne i j f p =
+      Option.casesOn (motive := fun _ ↦ Part Bool) (C.funInstance? i f p) (Part.some false)
+        fun de ↦ (B.funEval i de.1).bind fun v ↦
+          (B.funEval j de.2).map fun u ↦
+            optionNatEq (C.applyMap i f v) (Option.some u) := by
+  rw [funCheckOne]
+  cases C.funInstance? i f p with
+  | none => rfl
+  | some de => simp only [beq_eq_optionNatEq]
+
+omit [EffectivelyFiniteLanguage L] in
+/-- **The per-instance function check is partial recursive.** Decoder failure returns a constant
+`false`; only a decoded instance reaches the evaluators. -/
+theorem funCheckOne_recursiveIn :
+    RecursiveIn O fun q : ((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ) ↦
+      C.funCheckOne q.1.1.1 q.1.1.2 q.1.2 q.2 := by
+  have h := RecursiveIn.option_casesOn_right C.funCheckInstance_computableIn
+    (ComputableIn.const false) (C.funCheckSome_recursiveIn (B := B))
+  exact h.of_eq fun q ↦ (C.funCheckOne_eq_optionNatEq q.1.1.1 q.1.1.2 q.1.2 q.2).symm
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
