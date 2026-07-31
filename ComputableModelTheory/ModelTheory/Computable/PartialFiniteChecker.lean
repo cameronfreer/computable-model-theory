@@ -1603,6 +1603,86 @@ theorem relCheckOne_recursiveIn :
     (ComputableIn.const false) (relCheckSome_recursiveIn (B := B))
   exact h.of_eq fun q ↦ rfl
 
+/-! ### Computability, rung 4a: the scans
+
+One typed fold-step declaration per scan, in exactly the order `foldrPart₂` expects, calling the
+rung-3 theorem unchanged. No totality hypothesis appears: divergence on an arbitrary instance
+remains legitimate here, and halting is the separate scan-domain argument. -/
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem funScanStep_recursiveIn :
+    RecursiveIn₂ O
+      fun (db : ((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) (acc : Bool) ↦
+        (C.funCheckOne db.1.1.1 db.1.1.2 db.1.2 db.2).map (· && acc) := by
+  have hcheck : RecursiveIn O
+      fun x : (((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) × Bool ↦
+        C.funCheckOne x.1.1.1.1 x.1.1.1.2 x.1.1.2 x.1.2 :=
+    RecursiveIn.comp
+      (f := fun q : ((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ) ↦
+        C.funCheckOne q.1.1.1 q.1.1.2 q.1.2 q.2)
+      C.funCheckOne_recursiveIn ComputableIn.fst
+  have hand : ComputableIn₂ O
+      fun (x : (((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) × Bool) (v : Bool) ↦
+        (v && x.2) :=
+    ((Primrec.and.to_comp.computableIn₂ (O := O)).comp ComputableIn.snd
+      (ComputableIn.snd.comp ComputableIn.fst)).to₂
+  exact (RecursiveIn.map hcheck hand).to₂
+
+theorem functionScanPart_recursiveIn :
+    RecursiveIn O fun q : PotentialEmbeddingData × List ℕ ↦ C.functionScanPart q.1 q.2 := by
+  have hfold := RecursiveIn.foldrPart₂
+    (δ := (ℕ × ℕ) × List ℕ) (β := L.FunctionSymbol × List ℕ) (σ := Bool)
+    (g := fun d p acc ↦ (C.funCheckOne d.1.1 d.1.2 d.2 p).map (· && acc))
+    (init := fun _ ↦ true)
+    (C.funScanStep_recursiveIn (B := B)) (ComputableIn.const true)
+  have hin : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦
+      ((((q.1.domIdx, q.1.codIdx), q.2), C.funInstances q.1.domIdx) :
+        (((ℕ × ℕ) × List ℕ) × List (L.FunctionSymbol × List ℕ))) := by
+    have hi : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦ q.1.domIdx :=
+      PotentialEmbeddingData.domIdx_computable.comp ComputableIn.fst
+    have hj : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦ q.1.codIdx :=
+      PotentialEmbeddingData.codIdx_computable.comp ComputableIn.fst
+    exact (((hi.pair hj).pair ComputableIn.snd).pair
+      (C.funInstances_computableIn.comp hi))
+  exact (RecursiveIn.comp hfold hin).of_eq fun q ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem relScanStep_recursiveIn :
+    RecursiveIn₂ O
+      fun (db : ((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ)) (acc : Bool) ↦
+        (C.relCheckOne db.1.1.1 db.1.1.2 db.1.2 db.2).map (· && acc) := by
+  have hcheck : RecursiveIn O
+      fun x : (((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ)) × Bool ↦
+        C.relCheckOne x.1.1.1.1 x.1.1.1.2 x.1.1.2 x.1.2 :=
+    RecursiveIn.comp
+      (f := fun q : ((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ) ↦
+        C.relCheckOne q.1.1.1 q.1.1.2 q.1.2 q.2)
+      C.relCheckOne_recursiveIn ComputableIn.fst
+  have hand : ComputableIn₂ O
+      fun (x : (((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ)) × Bool) (v : Bool) ↦
+        (v && x.2) :=
+    ((Primrec.and.to_comp.computableIn₂ (O := O)).comp ComputableIn.snd
+      (ComputableIn.snd.comp ComputableIn.fst)).to₂
+  exact (RecursiveIn.map hcheck hand).to₂
+
+theorem relationScanPart_recursiveIn :
+    RecursiveIn O fun q : PotentialEmbeddingData × List ℕ ↦ C.relationScanPart q.1 q.2 := by
+  have hfold := RecursiveIn.foldrPart₂
+    (δ := (ℕ × ℕ) × List ℕ) (β := L.RelationSymbol × List ℕ) (σ := Bool)
+    (g := fun d p acc ↦ (C.relCheckOne d.1.1 d.1.2 d.2 p).map (· && acc))
+    (init := fun _ ↦ true)
+    (C.relScanStep_recursiveIn (B := B)) (ComputableIn.const true)
+  have hin : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦
+      ((((q.1.domIdx, q.1.codIdx), q.2), C.relInstances q.1.domIdx) :
+        (((ℕ × ℕ) × List ℕ) × List (L.RelationSymbol × List ℕ))) := by
+    have hi : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦ q.1.domIdx :=
+      PotentialEmbeddingData.domIdx_computable.comp ComputableIn.fst
+    have hj : ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦ q.1.codIdx :=
+      PotentialEmbeddingData.codIdx_computable.comp ComputableIn.fst
+    exact (((hi.pair hj).pair ComputableIn.snd).pair
+      (C.relInstances_computableIn.comp hi))
+  exact (RecursiveIn.comp hfold hin).of_eq fun q ↦ rfl
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
