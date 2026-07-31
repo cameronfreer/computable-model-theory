@@ -1273,6 +1273,77 @@ theorem funInstance?_computableIn :
     (ComputableIn.encode.comp hbig).of_eq fun q ↦ rfl
   exact ComputableIn.encode_iff.mp henc
 
+/-- The relation decoder's repacking for `applyMapList`. -/
+private def relInstanceMapInput (q : (ℕ × List ℕ) × (L.RelationSymbol × List ℕ)) :
+    (ℕ × List ℕ) × List ℕ := (q.1, q.2.2)
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem relInstanceMapInput_computableIn :
+    ComputableIn O (relInstanceMapInput (L := L)) :=
+  (ComputableIn.fst.pair (ComputableIn.snd.comp ComputableIn.snd)).of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem relInstanceMapped_computableIn :
+    ComputableIn O fun q : (ℕ × List ℕ) × (L.RelationSymbol × List ℕ) ↦
+      C.applyMapList q.1.1 q.1.2 q.2.2 := by
+  have hbase : ComputableIn O fun r : (ℕ × List ℕ) × List ℕ ↦
+      C.applyMapList r.1.1 r.1.2 r.2 := C.applyMapList_computableIn
+  have hcomposed : ComputableIn O fun q : (ℕ × List ℕ) × (L.RelationSymbol × List ℕ) ↦
+      C.applyMapList (relInstanceMapInput (L := L) q).1.1
+        (relInstanceMapInput (L := L) q).1.2 (relInstanceMapInput (L := L) q).2 :=
+    ComputableIn.comp
+      (α := (ℕ × List ℕ) × (L.RelationSymbol × List ℕ))
+      (β := (ℕ × List ℕ) × List ℕ)
+      (σ := Option (List ℕ))
+      (f := fun r ↦ C.applyMapList r.1.1 r.1.2 r.2)
+      (g := relInstanceMapInput (L := L))
+      hbase relInstanceMapInput_computableIn
+  exact hcomposed.of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+theorem relInstance?_computableIn :
+    ComputableIn O fun q : (ℕ × List ℕ) × (L.RelationSymbol × List ℕ) ↦
+      C.relInstance? q.1.1 q.1.2 q.2 := by
+  have hsrcData : ComputableIn O fun q : (ℕ × List ℕ) × (L.RelationSymbol × List ℕ) ↦
+      RelationApplicationData.ofSymbolArgs? q.2 :=
+    (RelationApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn (O := O)).comp
+      ComputableIn.snd
+  have hpair : ComputableIn₂ O
+      fun (z : (((ℕ × List ℕ) × (L.RelationSymbol × List ℕ)) ×
+        RelationApplicationData L ℕ) × List ℕ) (e : RelationApplicationData L ℕ) ↦
+        (z.1.2, e) :=
+    ((ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst)).pair
+      ComputableIn.snd).to₂
+  have htgtData : ComputableIn O
+      fun z : (((ℕ × List ℕ) × (L.RelationSymbol × List ℕ)) ×
+        RelationApplicationData L ℕ) × List ℕ ↦
+        RelationApplicationData.ofSymbolArgs? (z.1.1.2.1, z.2) :=
+    (RelationApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn (O := O)).comp
+      ((ComputableIn.fst.comp
+        (ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst))).pair
+        ComputableIn.snd)
+  have hinner : ComputableIn₂ O
+      fun (y : ((ℕ × List ℕ) × (L.RelationSymbol × List ℕ)) ×
+        RelationApplicationData L ℕ) (bs : List ℕ) ↦
+        (RelationApplicationData.ofSymbolArgs? (y.1.2.1, bs)).map fun e ↦ (y.2, e) :=
+    (ComputableIn.option_map htgtData hpair).to₂
+  have houter : ComputableIn₂ O
+      fun (q : (ℕ × List ℕ) × (L.RelationSymbol × List ℕ))
+        (d : RelationApplicationData L ℕ) ↦
+        (C.applyMapList q.1.1 q.1.2 q.2.2).bind fun bs ↦
+          (RelationApplicationData.ofSymbolArgs? (q.2.1, bs)).map fun e ↦ (d, e) :=
+    (ComputableIn.option_bind (C.relInstanceMapped_computableIn.comp ComputableIn.fst)
+      hinner).to₂
+  have hbig : ComputableIn O fun q : (ℕ × List ℕ) × (L.RelationSymbol × List ℕ) ↦
+      (RelationApplicationData.ofSymbolArgs? q.2).bind fun d ↦
+        (C.applyMapList q.1.1 q.1.2 q.2.2).bind fun bs ↦
+          (RelationApplicationData.ofSymbolArgs? (q.2.1, bs)).map fun e ↦ (d, e) :=
+    ComputableIn.option_bind hsrcData houter
+  have henc : ComputableIn O fun q : (ℕ × List ℕ) × (L.RelationSymbol × List ℕ) ↦
+      encode (C.relInstance? q.1.1 q.1.2 q.2) :=
+    (ComputableIn.encode.comp hbig).of_eq fun q ↦ rfl
+  exact ComputableIn.encode_iff.mp henc
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
