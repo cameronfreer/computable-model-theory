@@ -1514,6 +1514,95 @@ theorem funCheckOne_recursiveIn :
     (ComputableIn.const false) (C.funCheckSome_recursiveIn (B := B))
   exact h.of_eq fun q ↦ (C.funCheckOne_eq_optionNatEq q.1.1.1 q.1.1.2 q.1.2 q.2).symm
 
+/-! #### The relation side
+
+Same shape throughout. The comparison is ordinary `Bool` equality of the two returned truth
+values — kept as its own typed declaration for symmetry with the function side, so any
+equality-instance mismatch has one obvious location. -/
+
+private def relSrcEvalInput
+    (y : (((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ)) ×
+      (RelationApplicationData L ℕ × RelationApplicationData L ℕ)) :
+    ℕ × RelationApplicationData L ℕ := (y.1.1.1.1, y.2.1)
+
+private def relTgtEvalInput
+    (z : ((((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ)) ×
+      (RelationApplicationData L ℕ × RelationApplicationData L ℕ)) × Bool) :
+    ℕ × RelationApplicationData L ℕ := (z.1.1.1.1.2, z.1.2.2)
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem relSrcEvalInput_computableIn :
+    ComputableIn O (relSrcEvalInput (L := L)) := by
+  have hi : ComputableIn O fun y : (((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ)) ×
+      (RelationApplicationData L ℕ × RelationApplicationData L ℕ) ↦ y.1.1.1.1 :=
+    ComputableIn.fst.comp (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst))
+  have hd : ComputableIn O fun y : (((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ)) ×
+      (RelationApplicationData L ℕ × RelationApplicationData L ℕ) ↦ y.2.1 :=
+    ComputableIn.fst.comp ComputableIn.snd
+  exact (hi.pair hd).of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem relSrcEval_recursiveIn :
+    RecursiveIn O fun y : (((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ)) ×
+      (RelationApplicationData L ℕ × RelationApplicationData L ℕ) ↦
+      B.relEval y.1.1.1.1 y.2.1 := by
+  have h := RecursiveIn.comp
+    (f := fun p : ℕ × RelationApplicationData L ℕ ↦ B.relEval p.1 p.2)
+    (g := relSrcEvalInput (L := L)) B.relEval_recursiveIn relSrcEvalInput_computableIn
+  exact h.of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem relTgtEvalInput_computableIn :
+    ComputableIn O (relTgtEvalInput (L := L)) := by
+  have hj : ComputableIn O fun z : ((((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ)) ×
+      (RelationApplicationData L ℕ × RelationApplicationData L ℕ)) × Bool ↦ z.1.1.1.1.2 :=
+    ComputableIn.snd.comp (ComputableIn.fst.comp
+      (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst)))
+  have he : ComputableIn O fun z : ((((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ)) ×
+      (RelationApplicationData L ℕ × RelationApplicationData L ℕ)) × Bool ↦ z.1.2.2 :=
+    ComputableIn.snd.comp (ComputableIn.snd.comp ComputableIn.fst)
+  exact (hj.pair he).of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem relTgtEval_recursiveIn :
+    RecursiveIn O fun z : ((((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ)) ×
+      (RelationApplicationData L ℕ × RelationApplicationData L ℕ)) × Bool ↦
+      B.relEval z.1.1.1.1.2 z.1.2.2 := by
+  have h := RecursiveIn.comp
+    (f := fun p : ℕ × RelationApplicationData L ℕ ↦ B.relEval p.1 p.2)
+    (g := relTgtEvalInput (L := L)) B.relEval_recursiveIn relTgtEvalInput_computableIn
+  exact h.of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+/-- The relation comparison: ordinary `Bool` equality of the two evaluations. -/
+private theorem relCompare_computableIn :
+    ComputableIn₂ O
+      fun (z : ((((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ)) ×
+        (RelationApplicationData L ℕ × RelationApplicationData L ℕ)) × Bool) (b₂ : Bool) ↦
+        (z.2 == b₂) :=
+  ((Primrec.beq.to_comp.computableIn₂ (O := O)).comp
+    (ComputableIn.snd.comp ComputableIn.fst) ComputableIn.snd).to₂
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem relCheckSome_recursiveIn :
+    RecursiveIn₂ O fun (q : ((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ))
+      (de : RelationApplicationData L ℕ × RelationApplicationData L ℕ) ↦
+      (B.relEval q.1.1.1 de.1).bind fun b₁ ↦
+        (B.relEval q.1.1.2 de.2).map fun b₂ ↦ (b₁ == b₂) := by
+  have hmap := RecursiveIn.map (relTgtEval_recursiveIn (B := B))
+    (relCompare_computableIn (L := L) (O := O))
+  have hbind := RecursiveIn.bind (relSrcEval_recursiveIn (B := B)) hmap.to₂
+  exact hbind.to₂
+
+omit [EffectivelyFiniteLanguage L] in
+/-- **The per-instance relation check is partial recursive.** -/
+theorem relCheckOne_recursiveIn :
+    RecursiveIn O fun q : ((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ) ↦
+      C.relCheckOne q.1.1.1 q.1.1.2 q.1.2 q.2 := by
+  have h := RecursiveIn.option_casesOn_right C.relCheckInstance_computableIn
+    (ComputableIn.const false) (relCheckSome_recursiveIn (B := B))
+  exact h.of_eq fun q ↦ rfl
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
