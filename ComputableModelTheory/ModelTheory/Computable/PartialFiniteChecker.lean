@@ -1152,6 +1152,50 @@ theorem applyMapList_computableIn :
     ComputableIn.list_foldr ComputableIn.snd (ComputableIn.const (Option.some [])) hstep
   exact h.of_eq fun q ↦ rfl
 
+/-! ### Computability, rung 2: the instance enumerations
+
+Total list computations off the fixed symbol lists. The packaged symbol stays opaque: its arity
+is read through `primrec_functionSymbol_arity` rather than by destructuring the `Sigma`, which
+is what every earlier `L.FunctionSymbol` stall in this file came from. -/
+
+theorem funInstances_computableIn : ComputableIn O fun i : ℕ ↦ C.funInstances i := by
+  have hsym : ComputableIn O fun _ : ℕ ↦ EffectivelyFiniteLanguage.functionSymbols (L := L) :=
+    ComputableIn.const _
+  have hsec : ComputableIn O fun p : ℕ × L.FunctionSymbol ↦
+      (List.replicate p.2.arity (C.support p.1)).sections :=
+    (Primrec.list_sections_replicate.to_comp.computableIn₂ (O := O)).comp
+      ((primrec_functionSymbol_arity.to_comp.computableIn (O := O)).comp ComputableIn.snd)
+      (C.support_computableIn.comp ComputableIn.fst)
+  have hpair : ComputableIn₂ O fun (p : ℕ × L.FunctionSymbol) (as : List ℕ) ↦ (p.2, as) :=
+    ((ComputableIn.snd.comp ComputableIn.fst).pair ComputableIn.snd).to₂
+  have hmap : ComputableIn₂ O fun (i : ℕ) (s : L.FunctionSymbol) ↦
+      ((List.replicate s.arity (C.support i)).sections.map fun as ↦ (s, as)) :=
+    (ComputableIn.list_map hsec hpair).to₂
+  have h : ComputableIn O fun i : ℕ ↦
+      (EffectivelyFiniteLanguage.functionSymbols (L := L)).flatMap fun s ↦
+        (List.replicate s.arity (C.support i)).sections.map fun as ↦ (s, as) :=
+    ComputableIn.list_flatMap hsym hmap
+  exact h.of_eq fun i ↦ rfl
+
+theorem relInstances_computableIn : ComputableIn O fun i : ℕ ↦ C.relInstances i := by
+  have hsym : ComputableIn O fun _ : ℕ ↦ EffectivelyFiniteLanguage.relationSymbols (L := L) :=
+    ComputableIn.const _
+  have hsec : ComputableIn O fun p : ℕ × L.RelationSymbol ↦
+      (List.replicate p.2.arity (C.support p.1)).sections :=
+    (Primrec.list_sections_replicate.to_comp.computableIn₂ (O := O)).comp
+      ((primrec_relationSymbol_arity.to_comp.computableIn (O := O)).comp ComputableIn.snd)
+      (C.support_computableIn.comp ComputableIn.fst)
+  have hpair : ComputableIn₂ O fun (p : ℕ × L.RelationSymbol) (as : List ℕ) ↦ (p.2, as) :=
+    ((ComputableIn.snd.comp ComputableIn.fst).pair ComputableIn.snd).to₂
+  have hmap : ComputableIn₂ O fun (i : ℕ) (r : L.RelationSymbol) ↦
+      ((List.replicate r.arity (C.support i)).sections.map fun as ↦ (r, as)) :=
+    (ComputableIn.list_map hsec hpair).to₂
+  have h : ComputableIn O fun i : ℕ ↦
+      (EffectivelyFiniteLanguage.relationSymbols (L := L)).flatMap fun r ↦
+        (List.replicate r.arity (C.support i)).sections.map fun as ↦ (r, as) :=
+    ComputableIn.list_flatMap hsym hmap
+  exact h.of_eq fun i ↦ rfl
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
