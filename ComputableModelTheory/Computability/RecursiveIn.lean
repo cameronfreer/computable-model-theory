@@ -66,6 +66,7 @@ theorem encode_iff {f : α → σ} : ComputableIn O (fun a ↦ encode (f a)) ↔
 protected theorem encode : ComputableIn O (@encode α _) :=
   Computable.encode.computableIn
 
+
 /-- Pairing of oracle-computable functions is oracle-computable. -/
 protected theorem pair {f : α → β} {g : α → γ} (hf : ComputableIn O f)
     (hg : ComputableIn O g) : ComputableIn O fun a ↦ (f a, g a) :=
@@ -101,6 +102,18 @@ namespace ComputableIn
 protected theorem comp {f : β → σ} {g : α → β} (hf : ComputableIn O f)
     (hg : ComputableIn O g) : ComputableIn O fun a ↦ f (g a) :=
   RecursiveIn.comp (f := fun b ↦ Part.some (f b)) hf hg
+
+/-- **Extensional transfer through encodings.** Replace the target of a computability result by
+a pointwise-equal function, comparing the two only *under* `encode`.
+
+This is the approved shape whenever the result type is structure-valued. Plain `of_eq` then has
+to reconcile two structure-valued functions, and in this library that reliably stalls at `whnf`
+— on `ofEquiv`-encoded application data, on `Option Unit`, on encoded dependent symbols. Going
+through `encode` makes the comparison one between `ℕ`-valued functions, where the reconciliation
+is trivial, and `encode_iff` carries the conclusion back. -/
+protected theorem of_encode_eq {f g : α → σ} (hf : ComputableIn O f)
+    (h : ∀ a, encode (f a) = encode (g a)) : ComputableIn O g :=
+  ComputableIn.encode_iff.1 (ComputableIn.of_eq (ComputableIn.comp ComputableIn.encode hf) h)
 
 /-- Curry an oracle-computable function on a product type. -/
 theorem to₂ {f : α × β → σ} (hf : ComputableIn O f) :
@@ -660,6 +673,44 @@ theorem foldrPart_nil (g : β → σ →. σ) (init : σ) : foldrPart g init [] 
 theorem foldrPart_cons (g : β → σ →. σ) (init : σ) (b : β) (t : List β) :
     foldrPart g init (b :: t) = (foldrPart g init t).bind fun acc ↦ g b acc := by
   rw [foldrPart, List.reverse_cons, foldlPart_concat, foldrPart]
+
+/-- **A partial right fold whose steps are all defined is defined.** The halting side of a
+finite partial scan: totality of the whole fold reduces to totality of each step on an
+arbitrary accumulator. -/
+theorem foldrPart_dom {g : β → σ →. σ} {init : σ} :
+    ∀ {l : List β}, (∀ b ∈ l, ∀ acc : σ, (g b acc).Dom) → (foldrPart g init l).Dom := by
+  intro l
+  induction l with
+  | nil => exact fun _ ↦ trivial
+  | cons b t ih =>
+    intro h
+    rw [foldrPart_cons]
+    exact ⟨ih fun x hx ↦ h x (List.mem_cons_of_mem b hx), h b List.mem_cons_self _⟩
+
+/-- **Conjunctive partial scan.** A `Bool`-valued fold that ands the step results accepts
+exactly when every step accepts.
+
+Note there is **no definedness hypothesis**: a rejecting step and a divergent step both block
+acceptance, so the equivalence holds outright. That is what lets a checker's semantic
+specification be stated before, and independently of, its totalization. -/
+theorem true_mem_foldrPart_and_iff {g : β →. Bool} {l : List β} :
+    true ∈ foldrPart (fun b acc ↦ (g b).map (· && acc)) true l ↔ ∀ b ∈ l, true ∈ g b := by
+  induction l with
+  | nil => rw [foldrPart_nil]; simp
+  | cons b t ih =>
+    rw [foldrPart_cons]
+    constructor
+    · intro h
+      obtain ⟨acc, hacc, h⟩ := Part.mem_bind_iff.1 h
+      obtain ⟨v, hv, h⟩ := (Part.mem_map_iff _).1 h
+      obtain ⟨rfl, rfl⟩ := Bool.and_eq_true .. ▸ h
+      intro x hx
+      rcases List.mem_cons.1 hx with rfl | hx
+      · exact hv
+      · exact ih.1 hacc x hx
+    · intro h
+      exact Part.mem_bind_iff.2 ⟨true, ih.2 fun x hx ↦ h x (List.mem_cons_of_mem b hx),
+        (Part.mem_map_iff _).2 ⟨true, h b List.mem_cons_self, rfl⟩⟩
 
 end FoldPart
 

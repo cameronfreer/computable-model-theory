@@ -5,6 +5,7 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Syntax.Complexity
 import ComputableModelTheory.ModelTheory.Syntax.ComputableOps
+import ComputableModelTheory.ModelTheory.Syntax.ApplicationDataComputable
 import ComputableModelTheory.ModelTheory.Syntax.EffectiveLanguage
 import ComputableModelTheory.ModelTheory.Syntax.FormulaOps
 import ComputableModelTheory.ModelTheory.Syntax.FormulaSigma

@@ -3,6 +3,7 @@ Copyright (c) 2026 Cameron Freer. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
+import ComputableModelTheory.ModelTheory.Syntax.ApplicationDataComputable
 import ComputableModelTheory.ModelTheory.Computable.PartialFiniteRoute
 
 /-!
@@ -345,18 +346,6 @@ every image lookup succeeds by `exists_applyMap_eq_some`. -/
 
 variable {C}
 
-/-- A partial right fold whose steps are all defined is defined. -/
-private theorem foldrPart_dom {β σ : Type*} {g : β → σ →. σ} {init : σ} :
-    ∀ {l : List β}, (∀ b ∈ l, ∀ acc : σ, (g b acc).Dom) → (foldrPart g init l).Dom := by
-  intro l
-  induction l with
-  | nil => exact fun _ ↦ trivial
-  | cons b t ih =>
-    intro h
-    rw [foldrPart_cons]
-    have hdt := ih fun x hx ↦ h x (List.mem_cons_of_mem b hx)
-    exact ⟨hdt, h b List.mem_cons_self _ ⟩
-
 /-- On a valid code, a function instance over the source carrier assembles. -/
 theorem exists_funInstance? {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i j)
     {p : L.FunctionSymbol × List ℕ} (hp : p ∈ C.funInstances i) :
@@ -442,29 +431,6 @@ Each scan accepts exactly when every enumerated instance does. The per-instance 
 read off the stored evaluators: a `Part` holds at most one value, so the evaluator's own
 correctness clause identifies the value the check compared. -/
 
-/-- A conjunctive partial fold accepts exactly when every step accepts. No definedness
-hypothesis is needed: a rejecting or divergent step blocks acceptance either way. -/
-private theorem mem_foldrPart_and {β : Type*} {g : β →. Bool} :
-    ∀ {l : List β},
-      true ∈ foldrPart (fun b acc ↦ (g b).map (· && acc)) true l ↔ ∀ b ∈ l, true ∈ g b := by
-  intro l
-  induction l with
-  | nil => rw [foldrPart_nil]; simp
-  | cons b t ih =>
-    rw [foldrPart_cons]
-    constructor
-    · intro h
-      obtain ⟨acc, hacc, h⟩ := Part.mem_bind_iff.1 h
-      obtain ⟨v, hv, h⟩ := (Part.mem_map_iff _).1 h
-      obtain ⟨rfl, rfl⟩ := Bool.and_eq_true .. ▸ h
-      intro x hx
-      rcases List.mem_cons.1 hx with rfl | hx
-      · exact hv
-      · exact ih.1 hacc x hx
-    · intro h
-      exact Part.mem_bind_iff.2 ⟨true, ih.2 fun x hx ↦ h x (List.mem_cons_of_mem b hx),
-        (Part.mem_map_iff _).2 ⟨true, h b List.mem_cons_self, rfl⟩⟩
-
 omit [EffectivelyFiniteLanguage L] in
 /-- **One function instance is preserved.** The check accepts exactly when the code sends the
 source value of the application to the value of the image application. -/
@@ -511,12 +477,12 @@ theorem mem_relCheckOne_iff {i j : ℕ} {f : List ℕ} {p : L.RelationSymbol × 
 theorem mem_functionScanPart_iff (F : PotentialEmbeddingData) (f : List ℕ) :
     true ∈ C.functionScanPart F f ↔
       ∀ p ∈ C.funInstances F.domIdx, true ∈ C.funCheckOne F.domIdx F.codIdx f p :=
-  mem_foldrPart_and
+  true_mem_foldrPart_and_iff
 
 theorem mem_relationScanPart_iff (F : PotentialEmbeddingData) (f : List ℕ) :
     true ∈ C.relationScanPart F f ↔
       ∀ p ∈ C.relInstances F.domIdx, true ∈ C.relCheckOne F.domIdx F.codIdx f p :=
-  mem_foldrPart_and
+  true_mem_foldrPart_and_iff
 
 /-! ### The map a valid code determines
 
@@ -1234,8 +1200,7 @@ theorem funInstance?_computableIn :
       C.funInstance? q.1.1 q.1.2 q.2 := by
   have hsrcData : ComputableIn O fun q : (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ) ↦
       FunctionApplicationData.ofSymbolArgs? q.2 :=
-    (FunctionApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn (O := O)).comp
-      ComputableIn.snd
+    FunctionApplicationData.ofSymbolArgs?_computableIn ComputableIn.snd
   have hpair : ComputableIn₂ O
       fun (z : (((ℕ × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
         FunctionApplicationData L ℕ) × List ℕ) (e : FunctionApplicationData L ℕ) ↦
@@ -1246,7 +1211,7 @@ theorem funInstance?_computableIn :
       fun z : (((ℕ × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
         FunctionApplicationData L ℕ) × List ℕ ↦
         FunctionApplicationData.ofSymbolArgs? (z.1.1.2.1, z.2) :=
-    (FunctionApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn (O := O)).comp
+    FunctionApplicationData.ofSymbolArgs?_computableIn
       ((ComputableIn.fst.comp
         (ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst))).pair
         ComputableIn.snd)
@@ -1268,10 +1233,7 @@ theorem funInstance?_computableIn :
           (FunctionApplicationData.ofSymbolArgs? (q.2.1, bs)).map fun e ↦ (d, e) :=
     ComputableIn.option_bind hsrcData houter
   -- structure-valued `of_eq` stalls; cross the whole `Option (data × data)` through `encode`
-  have henc : ComputableIn O fun q : (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ) ↦
-      encode (C.funInstance? q.1.1 q.1.2 q.2) :=
-    (ComputableIn.encode.comp hbig).of_eq fun q ↦ rfl
-  exact ComputableIn.encode_iff.mp henc
+  exact ComputableIn.of_encode_eq hbig fun _ ↦ rfl
 
 /-- The relation decoder's repacking for `applyMapList`. -/
 private def relInstanceMapInput (q : (ℕ × List ℕ) × (L.RelationSymbol × List ℕ)) :
@@ -1306,8 +1268,7 @@ theorem relInstance?_computableIn :
       C.relInstance? q.1.1 q.1.2 q.2 := by
   have hsrcData : ComputableIn O fun q : (ℕ × List ℕ) × (L.RelationSymbol × List ℕ) ↦
       RelationApplicationData.ofSymbolArgs? q.2 :=
-    (RelationApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn (O := O)).comp
-      ComputableIn.snd
+    RelationApplicationData.ofSymbolArgs?_computableIn ComputableIn.snd
   have hpair : ComputableIn₂ O
       fun (z : (((ℕ × List ℕ) × (L.RelationSymbol × List ℕ)) ×
         RelationApplicationData L ℕ) × List ℕ) (e : RelationApplicationData L ℕ) ↦
@@ -1318,7 +1279,7 @@ theorem relInstance?_computableIn :
       fun z : (((ℕ × List ℕ) × (L.RelationSymbol × List ℕ)) ×
         RelationApplicationData L ℕ) × List ℕ ↦
         RelationApplicationData.ofSymbolArgs? (z.1.1.2.1, z.2) :=
-    (RelationApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn (O := O)).comp
+    RelationApplicationData.ofSymbolArgs?_computableIn
       ((ComputableIn.fst.comp
         (ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst))).pair
         ComputableIn.snd)
@@ -1339,10 +1300,7 @@ theorem relInstance?_computableIn :
         (C.applyMapList q.1.1 q.1.2 q.2.2).bind fun bs ↦
           (RelationApplicationData.ofSymbolArgs? (q.2.1, bs)).map fun e ↦ (d, e) :=
     ComputableIn.option_bind hsrcData houter
-  have henc : ComputableIn O fun q : (ℕ × List ℕ) × (L.RelationSymbol × List ℕ) ↦
-      encode (C.relInstance? q.1.1 q.1.2 q.2) :=
-    (ComputableIn.encode.comp hbig).of_eq fun q ↦ rfl
-  exact ComputableIn.encode_iff.mp henc
+  exact ComputableIn.of_encode_eq hbig fun _ ↦ rfl
 
 end ExactFiniteCarriers
 
