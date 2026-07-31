@@ -1096,6 +1096,62 @@ theorem validToken_computableIn :
         decide q.2.Nodup) <;> rfl
   exact ComputableIn.encode_iff.mp henc
 
+/-! ### Computability, rung 2: the argument-list lookup -/
+
+/-- The fold step's repacking for `applyMap`. -/
+private def applyMapStepInput
+    (x : ((ℕ × List ℕ) × List ℕ) × (ℕ × Option (List ℕ))) : (ℕ × List ℕ) × ℕ :=
+  (x.1.1, x.2.1)
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem applyMapStepInput_computableIn : ComputableIn O applyMapStepInput :=
+  ((ComputableIn.fst.comp ComputableIn.fst).pair
+    (ComputableIn.fst.comp ComputableIn.snd)).of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+/-- Ladder step 3 again: the composition is extracted and fully pinned, because inside
+`applyMapList_computableIn` the enclosing expected type stalls `comp` exactly as it did for
+`validCode`. -/
+private theorem applyMapStep_computableIn :
+    ComputableIn O fun x : ((ℕ × List ℕ) × List ℕ) × (ℕ × Option (List ℕ)) ↦
+      C.applyMap x.1.1.1 x.1.1.2 x.2.1 := by
+  have hbase : ComputableIn O fun p : (ℕ × List ℕ) × ℕ ↦ C.applyMap p.1.1 p.1.2 p.2 :=
+    C.applyMap_computableIn
+  have hcomposed : ComputableIn O fun x : ((ℕ × List ℕ) × List ℕ) × (ℕ × Option (List ℕ)) ↦
+      C.applyMap (applyMapStepInput x).1.1 (applyMapStepInput x).1.2
+        (applyMapStepInput x).2 :=
+    ComputableIn.comp
+      (α := ((ℕ × List ℕ) × List ℕ) × (ℕ × Option (List ℕ)))
+      (β := (ℕ × List ℕ) × ℕ)
+      (σ := Option ℕ)
+      (f := fun p ↦ C.applyMap p.1.1 p.1.2 p.2)
+      (g := applyMapStepInput)
+      hbase applyMapStepInput_computableIn
+  exact hcomposed.of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+theorem applyMapList_computableIn :
+    ComputableIn O fun q : (ℕ × List ℕ) × List ℕ ↦ C.applyMapList q.1.1 q.1.2 q.2 := by
+  have hcons : ComputableIn₂ O
+      fun (y : (((ℕ × List ℕ) × List ℕ) × (ℕ × Option (List ℕ))) × ℕ) (l : List ℕ) ↦
+        y.2 :: l :=
+    (((Computable.list_cons.computableIn₂ (O := O)).comp
+      (ComputableIn.snd.comp ComputableIn.fst) ComputableIn.snd)).to₂
+  have hmap : ComputableIn₂ O
+      fun (x : ((ℕ × List ℕ) × List ℕ) × (ℕ × Option (List ℕ))) (b : ℕ) ↦
+        x.2.2.map (b :: ·) :=
+    (ComputableIn.option_map
+      (ComputableIn.snd.comp (ComputableIn.snd.comp ComputableIn.fst)) hcons).to₂
+  have hstep : ComputableIn₂ O
+      fun (q : (ℕ × List ℕ) × List ℕ) (p : ℕ × Option (List ℕ)) ↦
+        (C.applyMap q.1.1 q.1.2 p.1).bind fun b ↦ p.2.map (b :: ·) :=
+    (ComputableIn.option_bind C.applyMapStep_computableIn hmap).to₂
+  have h : ComputableIn O fun q : (ℕ × List ℕ) × List ℕ ↦
+      q.2.foldr (fun a acc ↦ (C.applyMap q.1.1 q.1.2 a).bind fun b ↦ acc.map (b :: ·))
+        (Option.some []) :=
+    ComputableIn.list_foldr ComputableIn.snd (ComputableIn.const (Option.some [])) hstep
+  exact h.of_eq fun q ↦ rfl
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
