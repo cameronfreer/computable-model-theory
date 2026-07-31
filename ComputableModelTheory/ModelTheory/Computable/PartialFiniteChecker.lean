@@ -1302,6 +1302,80 @@ theorem relInstance?_computableIn :
     ComputableIn.option_bind hsrcData houter
   exact ComputableIn.of_encode_eq hbig fun _ ↦ rfl
 
+/-! ### Computability, rung 3: the per-instance checks -/
+
+/-- The instance repacking for the per-instance check. The fixed parameter is
+`(i, j, f) : (ℕ × ℕ) × List ℕ`, which is also the shape `foldrPart₂` needs at the scan rung, so
+no repacking layer appears between rungs 3 and 4a. -/
+private def funCheckInstanceInput
+    (q : ((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) :
+    (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ) :=
+  ((q.1.1.1, q.1.2), q.2)
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem funCheckInstanceInput_computableIn :
+    ComputableIn O (funCheckInstanceInput (L := L)) :=
+  (((ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst)).pair
+    (ComputableIn.snd.comp ComputableIn.fst)).pair ComputableIn.snd).of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+/-- The decoded instance at the check's parameter shape. Needs **both** remedies: the input is a
+projection repacking, and the result is structure-valued. -/
+private theorem funCheckInstance_computableIn :
+    ComputableIn O fun q : ((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ) ↦
+      C.funInstance? q.1.1.1 q.1.2 q.2 := by
+  have hbase : ComputableIn O fun r : (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ) ↦
+      C.funInstance? r.1.1 r.1.2 r.2 := C.funInstance?_computableIn
+  have hcomposed : ComputableIn O
+      fun q : ((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ) ↦
+        C.funInstance? (funCheckInstanceInput (L := L) q).1.1
+          (funCheckInstanceInput (L := L) q).1.2
+          (funCheckInstanceInput (L := L) q).2 :=
+    ComputableIn.comp
+      (α := ((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ))
+      (β := (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ))
+      (σ := Option (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ))
+      (f := fun r ↦ C.funInstance? r.1.1 r.1.2 r.2)
+      (g := funCheckInstanceInput (L := L))
+      hbase funCheckInstanceInput_computableIn
+  exact ComputableIn.of_encode_eq hcomposed fun _ ↦ rfl
+
+/-- The instance repacking for the per-instance check. The fixed parameter is
+`(i, j, f) : (ℕ × ℕ) × List ℕ`, which is also the shape `foldrPart₂` needs at the scan rung, so
+no repacking layer appears between rungs 3 and 4a. -/
+private def relCheckInstanceInput
+    (q : ((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ)) :
+    (ℕ × List ℕ) × (L.RelationSymbol × List ℕ) :=
+  ((q.1.1.1, q.1.2), q.2)
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem relCheckInstanceInput_computableIn :
+    ComputableIn O (relCheckInstanceInput (L := L)) :=
+  (((ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst)).pair
+    (ComputableIn.snd.comp ComputableIn.fst)).pair ComputableIn.snd).of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+/-- The decoded instance at the check's parameter shape. Needs **both** remedies: the input is a
+projection repacking, and the result is structure-valued. -/
+private theorem relCheckInstance_computableIn :
+    ComputableIn O fun q : ((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ) ↦
+      C.relInstance? q.1.1.1 q.1.2 q.2 := by
+  have hbase : ComputableIn O fun r : (ℕ × List ℕ) × (L.RelationSymbol × List ℕ) ↦
+      C.relInstance? r.1.1 r.1.2 r.2 := C.relInstance?_computableIn
+  have hcomposed : ComputableIn O
+      fun q : ((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ) ↦
+        C.relInstance? (relCheckInstanceInput (L := L) q).1.1
+          (relCheckInstanceInput (L := L) q).1.2
+          (relCheckInstanceInput (L := L) q).2 :=
+    ComputableIn.comp
+      (α := ((ℕ × ℕ) × List ℕ) × (L.RelationSymbol × List ℕ))
+      (β := (ℕ × List ℕ) × (L.RelationSymbol × List ℕ))
+      (σ := Option (RelationApplicationData L ℕ × RelationApplicationData L ℕ))
+      (f := fun r ↦ C.relInstance? r.1.1 r.1.2 r.2)
+      (g := relCheckInstanceInput (L := L))
+      hbase relCheckInstanceInput_computableIn
+  exact ComputableIn.of_encode_eq hcomposed fun _ ↦ rfl
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
