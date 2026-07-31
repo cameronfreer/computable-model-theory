@@ -1196,6 +1196,83 @@ theorem relInstances_computableIn : ComputableIn O fun i : ℕ ↦ C.relInstance
     ComputableIn.list_flatMap hsym hmap
   exact h.of_eq fun i ↦ rfl
 
+/-! ### Computability, rung 2: the instance decoders
+
+Assembly of both application data is **absolute** — `primrec_ofSymbolArgs?` lifted — and only
+the middle argument-list lookup is `O`-relative. -/
+
+/-- The decoder's repacking for `applyMapList`. -/
+private def funInstanceMapInput (q : (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ)) :
+    (ℕ × List ℕ) × List ℕ := (q.1, q.2.2)
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem funInstanceMapInput_computableIn :
+    ComputableIn O (funInstanceMapInput (L := L)) :=
+  (ComputableIn.fst.pair (ComputableIn.snd.comp ComputableIn.snd)).of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem funInstanceMapped_computableIn :
+    ComputableIn O fun q : (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ) ↦
+      C.applyMapList q.1.1 q.1.2 q.2.2 := by
+  have hbase : ComputableIn O fun r : (ℕ × List ℕ) × List ℕ ↦
+      C.applyMapList r.1.1 r.1.2 r.2 := C.applyMapList_computableIn
+  have hcomposed : ComputableIn O fun q : (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ) ↦
+      C.applyMapList (funInstanceMapInput (L := L) q).1.1
+        (funInstanceMapInput (L := L) q).1.2 (funInstanceMapInput (L := L) q).2 :=
+    ComputableIn.comp
+      (α := (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ))
+      (β := (ℕ × List ℕ) × List ℕ)
+      (σ := Option (List ℕ))
+      (f := fun r ↦ C.applyMapList r.1.1 r.1.2 r.2)
+      (g := funInstanceMapInput (L := L))
+      hbase funInstanceMapInput_computableIn
+  exact hcomposed.of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+theorem funInstance?_computableIn :
+    ComputableIn O fun q : (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ) ↦
+      C.funInstance? q.1.1 q.1.2 q.2 := by
+  have hsrcData : ComputableIn O fun q : (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ) ↦
+      FunctionApplicationData.ofSymbolArgs? q.2 :=
+    (FunctionApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn (O := O)).comp
+      ComputableIn.snd
+  have hpair : ComputableIn₂ O
+      fun (z : (((ℕ × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+        FunctionApplicationData L ℕ) × List ℕ) (e : FunctionApplicationData L ℕ) ↦
+        (z.1.2, e) :=
+    ((ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst)).pair
+      ComputableIn.snd).to₂
+  have htgtData : ComputableIn O
+      fun z : (((ℕ × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+        FunctionApplicationData L ℕ) × List ℕ ↦
+        FunctionApplicationData.ofSymbolArgs? (z.1.1.2.1, z.2) :=
+    (FunctionApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn (O := O)).comp
+      ((ComputableIn.fst.comp
+        (ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst))).pair
+        ComputableIn.snd)
+  have hinner : ComputableIn₂ O
+      fun (y : ((ℕ × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+        FunctionApplicationData L ℕ) (bs : List ℕ) ↦
+        (FunctionApplicationData.ofSymbolArgs? (y.1.2.1, bs)).map fun e ↦ (y.2, e) :=
+    (ComputableIn.option_map htgtData hpair).to₂
+  have houter : ComputableIn₂ O
+      fun (q : (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ))
+        (d : FunctionApplicationData L ℕ) ↦
+        (C.applyMapList q.1.1 q.1.2 q.2.2).bind fun bs ↦
+          (FunctionApplicationData.ofSymbolArgs? (q.2.1, bs)).map fun e ↦ (d, e) :=
+    (ComputableIn.option_bind (C.funInstanceMapped_computableIn.comp ComputableIn.fst)
+      hinner).to₂
+  have hbig : ComputableIn O fun q : (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ) ↦
+      (FunctionApplicationData.ofSymbolArgs? q.2).bind fun d ↦
+        (C.applyMapList q.1.1 q.1.2 q.2.2).bind fun bs ↦
+          (FunctionApplicationData.ofSymbolArgs? (q.2.1, bs)).map fun e ↦ (d, e) :=
+    ComputableIn.option_bind hsrcData houter
+  -- structure-valued `of_eq` stalls; cross the whole `Option (data × data)` through `encode`
+  have henc : ComputableIn O fun q : (ℕ × List ℕ) × (L.FunctionSymbol × List ℕ) ↦
+      encode (C.funInstance? q.1.1 q.1.2 q.2) :=
+    (ComputableIn.encode.comp hbig).of_eq fun q ↦ rfl
+  exact ComputableIn.encode_iff.mp henc
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
