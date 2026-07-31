@@ -314,6 +314,15 @@ theorem list_map {f : α → List β} {g : α → β → σ}
     | nil => rfl
     | cons b l ih => rw [List.foldr_cons, ih, List.map_cons]
 
+/-- `List.flatMap`, relative to an oracle: the relative `list_map` followed by the absolute
+flatten. Mathlib has the absolute `Primrec.list_flatMap`, but an enumeration whose per-element
+list depends on an oracle-computable value needs this relative form. -/
+theorem list_flatMap {f : α → List β} {g : α → β → List σ}
+    (hf : ComputableIn O f) (hg : ComputableIn₂ O g) :
+    ComputableIn O fun a ↦ (f a).flatMap (g a) :=
+  ((Primrec.list_flatten.to_comp.computableIn (O := O)).comp
+    (ComputableIn.list_map hf hg)).of_eq fun _ ↦ rfl
+
 end ComputableIn
 
 /-! ### Option and sum case analysis -/
