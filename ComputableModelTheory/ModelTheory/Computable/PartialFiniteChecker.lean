@@ -1376,6 +1376,105 @@ private theorem relCheckInstance_computableIn :
       hbase relCheckInstanceInput_computableIn
   exact ComputableIn.of_encode_eq hcomposed fun _ ↦ rfl
 
+/-! #### The function side's evaluator calls
+
+Each adapter is a separate declaration with a fully explicit signature. No totality reasoning
+appears here: these steps are legitimately partial on an arbitrary instance, and halting is
+established later, where the folds are known to traverse enumerated carrier-valid instances. -/
+
+private def funSrcEvalInput
+    (y : (((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+      (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ)) :
+    ℕ × FunctionApplicationData L ℕ := (y.1.1.1.1, y.2.1)
+
+private def funTgtEvalInput
+    (z : ((((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+      (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ)) × ℕ) :
+    ℕ × FunctionApplicationData L ℕ := (z.1.1.1.1.2, z.1.2.2)
+
+private def funCompareInput
+    (w : (((((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+      (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ)) × ℕ) × ℕ) :
+    (ℕ × List ℕ) × ℕ := ((w.1.1.1.1.1.1, w.1.1.1.1.2), w.1.2)
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem funSrcEvalInput_computableIn :
+    ComputableIn O (funSrcEvalInput (L := L)) := by
+  have hi : ComputableIn O fun y : (((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+      (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ) ↦ y.1.1.1.1 :=
+    ComputableIn.fst.comp (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst))
+  have hd : ComputableIn O fun y : (((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+      (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ) ↦ y.2.1 :=
+    ComputableIn.fst.comp ComputableIn.snd
+  exact (hi.pair hd).of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem funSrcEval_recursiveIn :
+    RecursiveIn O fun y : (((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+      (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ) ↦
+      B.funEval y.1.1.1.1 y.2.1 := by
+  have h := RecursiveIn.comp
+    (f := fun p : ℕ × FunctionApplicationData L ℕ ↦ B.funEval p.1 p.2)
+    (g := funSrcEvalInput (L := L)) B.funEval_recursiveIn funSrcEvalInput_computableIn
+  exact h.of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem funTgtEvalInput_computableIn :
+    ComputableIn O (funTgtEvalInput (L := L)) := by
+  have hj : ComputableIn O fun z : ((((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+      (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ)) × ℕ ↦ z.1.1.1.1.2 :=
+    ComputableIn.snd.comp (ComputableIn.fst.comp
+      (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst)))
+  have he : ComputableIn O fun z : ((((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+      (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ)) × ℕ ↦ z.1.2.2 :=
+    ComputableIn.snd.comp (ComputableIn.snd.comp ComputableIn.fst)
+  exact (hj.pair he).of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem funTgtEval_recursiveIn :
+    RecursiveIn O fun z : ((((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+      (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ)) × ℕ ↦
+      B.funEval z.1.1.1.1.2 z.1.2.2 := by
+  have h := RecursiveIn.comp
+    (f := fun p : ℕ × FunctionApplicationData L ℕ ↦ B.funEval p.1 p.2)
+    (g := funTgtEvalInput (L := L)) B.funEval_recursiveIn funTgtEvalInput_computableIn
+  exact h.of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem funCompareInput_computableIn :
+    ComputableIn O (funCompareInput (L := L)) := by
+  have hi : ComputableIn O fun w : (((((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+      (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ)) × ℕ) × ℕ ↦
+      w.1.1.1.1.1.1 :=
+    ComputableIn.fst.comp (ComputableIn.fst.comp (ComputableIn.fst.comp
+      (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst))))
+  have hf : ComputableIn O fun w : (((((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+      (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ)) × ℕ) × ℕ ↦
+      w.1.1.1.1.2 :=
+    ComputableIn.snd.comp (ComputableIn.fst.comp (ComputableIn.fst.comp
+      (ComputableIn.fst.comp ComputableIn.fst)))
+  have hv : ComputableIn O fun w : (((((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+      (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ)) × ℕ) × ℕ ↦ w.1.2 :=
+    ComputableIn.snd.comp ComputableIn.fst
+  exact ((hi.pair hf).pair hv).of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+private theorem funCompare_computableIn :
+    ComputableIn₂ O
+      fun (z : ((((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+        (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ)) × ℕ) (u : ℕ) ↦
+        optionNatEq (C.applyMap z.1.1.1.1.1 z.1.1.1.2 z.2) (Option.some u) := by
+  have happly := ComputableIn.comp
+    (f := fun p : (ℕ × List ℕ) × ℕ ↦ C.applyMap p.1.1 p.1.2 p.2)
+    (g := funCompareInput (L := L)) C.applyMap_computableIn funCompareInput_computableIn
+  have hsome : ComputableIn O
+      fun w : (((((ℕ × ℕ) × List ℕ) × (L.FunctionSymbol × List ℕ)) ×
+        (FunctionApplicationData L ℕ × FunctionApplicationData L ℕ)) × ℕ) × ℕ ↦
+        (Option.some w.2 : Option ℕ) :=
+    ComputableIn.option_some.comp ComputableIn.snd
+  exact (((optionNatEq_primrec.to_comp.computableIn₂ (O := O)).comp happly hsome).to₂).of_eq
+    fun _ ↦ rfl
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
