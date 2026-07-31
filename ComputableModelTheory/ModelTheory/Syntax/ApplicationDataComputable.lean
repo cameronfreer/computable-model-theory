@@ -25,8 +25,10 @@ the finite checker. Besides shortening those, taking the pair as a *parameter* m
 out of each caller's expected-type context, which is where composition against a projection
 repacking tends to stall.
 
-This lives in its own file rather than in `EffectiveLanguage` so that the syntax layer does not
-have to import the relative-computability substrate.
+This lives in its own file rather than in `EffectiveLanguage` so that the *foundational* module
+stays independent: importers that need only the primitive-recursive syntax layer do not acquire
+the relative-computability substrate. The `Syntax` umbrella does import this module, so anything
+importing the umbrella gets both.
 -/
 
 open Encodable

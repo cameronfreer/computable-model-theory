@@ -107,10 +107,15 @@ protected theorem comp {f : β → σ} {g : α → β} (hf : ComputableIn O f)
 a pointwise-equal function, comparing the two only *under* `encode`.
 
 This is the approved shape whenever the result type is structure-valued. Plain `of_eq` then has
-to reconcile two structure-valued functions, and in this library that reliably stalls at `whnf`
-— on `ofEquiv`-encoded application data, on `Option Unit`, on encoded dependent symbols. Going
-through `encode` makes the comparison one between `ℕ`-valued functions, where the reconciliation
-is trivial, and `encode_iff` carries the conclusion back. -/
+to reconcile two structure-valued functions, which in this library stalls at `whnf`; the
+reproduced case is `ofEquiv`-encoded application data (`funInstance?` / `relInstance?`, whose
+result is `Option (data × data)`). Going through `encode` makes the comparison one between
+`ℕ`-valued functions, where the reconciliation is trivial, and `encode_iff` carries the
+conclusion back.
+
+Note this is *not* a remedy for a stalled `comp` whose input is a projection repacking — that is
+a separate failure at a different unification boundary, and it needs the composition extracted
+as its own fully pinned declaration instead. The two can co-occur. -/
 protected theorem of_encode_eq {f g : α → σ} (hf : ComputableIn O f)
     (h : ∀ a, encode (f a) = encode (g a)) : ComputableIn O g :=
   ComputableIn.encode_iff.1 (ComputableIn.of_eq (ComputableIn.comp ComputableIn.encode hf) h)

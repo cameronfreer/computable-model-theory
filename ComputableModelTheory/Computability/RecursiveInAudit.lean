@@ -105,6 +105,32 @@ theorem test_computableIn_list_map :
 theorem test_list_map_value : ([1, 2, 3] : List ℕ).map (fun b ↦ b + b) = [2, 4, 6] :=
   rfl
 
+/-- Encoded extensional transfer: a computability result moves to a pointwise-equal target
+compared only under `encode`. -/
+theorem test_computableIn_of_encode_eq {f g : α → σ} (hf : ComputableIn O f)
+    (h : ∀ a, Encodable.encode (f a) = Encodable.encode (g a)) : ComputableIn O g :=
+  ComputableIn.of_encode_eq hf h
+
+omit [Primcodable σ] in
+/-- Halting gate for conjunctive partial scans: all steps defined ⇒ the fold is defined. -/
+theorem test_foldrPart_dom {β : Type*} {g : β → σ →. σ} {init : σ} {l : List β}
+    (h : ∀ b ∈ l, ∀ acc : σ, (g b acc).Dom) : (foldrPart g init l).Dom :=
+  foldrPart_dom h
+
+/-- Semantic gate for conjunctive partial scans, with no definedness hypothesis. -/
+theorem test_true_mem_foldrPart_and_iff {β : Type*} {g : β →. Bool} {l : List β} :
+    true ∈ foldrPart (fun b acc ↦ (g b).map (· && acc)) true l ↔ ∀ b ∈ l, true ∈ g b :=
+  true_mem_foldrPart_and_iff
+
+/-- The conjunctive scan on a concrete list: one rejecting step rejects the whole fold. -/
+theorem test_foldrPart_and_value :
+    ¬ (true ∈ foldrPart (fun b acc ↦ ((Part.some (decide (b = 1)) : Part Bool)).map (· && acc))
+      true [1, 2]) := by
+  rw [true_mem_foldrPart_and_iff]
+  intro h
+  have := h 2 (by simp)
+  simp at this
+
 /-- Option case analysis gate: `Option.getD` via cases is computable in any oracle
 set. -/
 theorem test_computableIn_option_casesOn {f : α → Option ℕ} (hf : ComputableIn O f) :
@@ -156,6 +182,10 @@ theorem test_nat_strong_rec_value :
 
 end
 
+#assert_standard_axioms test_computableIn_of_encode_eq
+#assert_standard_axioms test_foldrPart_dom
+#assert_standard_axioms test_true_mem_foldrPart_and_iff
+#assert_standard_axioms test_foldrPart_and_value
 #assert_standard_axioms test_computableIn_option_casesOn
 #assert_standard_axioms test_computableIn_sumCasesOn
 #assert_standard_axioms test_recursiveIn_prec'
