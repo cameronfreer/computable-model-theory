@@ -1683,6 +1683,45 @@ theorem relationScanPart_recursiveIn :
       (C.relInstances_computableIn.comp hi))
   exact (RecursiveIn.comp hfold hin).of_eq fun q ↦ rfl
 
+/-! ### Computability, rungs 4b and 5: the guarded program, then the total checker -/
+
+/-- The accepted branch: run the function scan, then the relation scan, and conjoin. Standalone,
+so the guard does not appear in its expected type. -/
+private theorem finiteMapCheckSome_recursiveIn :
+    RecursiveIn₂ O fun (q : PotentialEmbeddingData × List ℕ) (_ : Unit) ↦
+      (C.functionScanPart q.1 q.2).bind fun b₁ ↦
+        (C.relationScanPart q.1 q.2).map fun b₂ ↦ b₁ && b₂ := by
+  have hfun : RecursiveIn O fun x : (PotentialEmbeddingData × List ℕ) × Unit ↦
+      C.functionScanPart x.1.1 x.1.2 :=
+    RecursiveIn.comp
+      (f := fun q : PotentialEmbeddingData × List ℕ ↦ C.functionScanPart q.1 q.2)
+      C.functionScanPart_recursiveIn ComputableIn.fst
+  have hrel : RecursiveIn O fun y : ((PotentialEmbeddingData × List ℕ) × Unit) × Bool ↦
+      C.relationScanPart y.1.1.1 y.1.1.2 :=
+    RecursiveIn.comp
+      (f := fun q : PotentialEmbeddingData × List ℕ ↦ C.relationScanPart q.1 q.2)
+      C.relationScanPart_recursiveIn (ComputableIn.fst.comp ComputableIn.fst)
+  have hand : ComputableIn₂ O
+      fun (y : ((PotentialEmbeddingData × List ℕ) × Unit) × Bool) (b₂ : Bool) ↦
+        (y.2 && b₂) :=
+    ((Primrec.and.to_comp.computableIn₂ (O := O)).comp
+      (ComputableIn.snd.comp ComputableIn.fst) ComputableIn.snd).to₂
+  exact (RecursiveIn.bind hfun (RecursiveIn.map hrel hand).to₂).to₂
+
+/-- **The guarded program is partial recursive.** An invalid code takes the constant-`false`
+branch without either scan being evaluated. -/
+theorem finiteMapCheckPart_recursiveIn :
+    RecursiveIn O fun q : PotentialEmbeddingData × List ℕ ↦ C.finiteMapCheckPart q.1 q.2 := by
+  have h := RecursiveIn.option_casesOn_right C.validToken_computableIn
+    (ComputableIn.const false) (finiteMapCheckSome_recursiveIn (C := C))
+  exact h.of_eq fun q ↦ rfl
+
+/-- **The checker is computable in the presentation oracle.** One `computableIn_get` against the
+global domain theorem; nothing else. -/
+theorem finiteMapCheck_computableIn :
+    ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦ C.finiteMapCheck q.1 q.2 :=
+  C.finiteMapCheckPart_recursiveIn.computableIn_get fun q ↦ C.finiteMapCheckPart_dom q.1 q.2
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
