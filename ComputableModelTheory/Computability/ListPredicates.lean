@@ -101,6 +101,18 @@ theorem list_any {f : α → List β} {p : α → β → Bool} (hf : Primrec f) 
   | nil => rfl
   | cons b l ih => rw [List.foldr_cons, ih, List.any_cons]
 
+/-- **Indexed access with a default**, at a computed index. `List.getElem!` is `getElem?`
+followed by `getD`, and this is that composite as one combinator.
+
+Nine call sites in this library had been writing the composite by hand, always at a *fixed*
+index; those compose this with `Primrec.const i`. Stated at a variable index because that is the
+general form and costs nothing. -/
+theorem list_getElem! [Inhabited β] :
+    Primrec₂ fun (l : List β) (i : ℕ) ↦ l[i]! :=
+  (Primrec.option_getD.comp
+    (Primrec.list_getElem?.comp Primrec.fst Primrec.snd)
+    (Primrec.const default)).of_eq fun _ ↦ List.getElem!_eq_getElem?_getD.symm
+
 /-- List membership, decided through the **canonical** `Primrec.eq` decision on encodings and then
 transported to ordinary `∈`. -/
 theorem list_mem [DecidableEq β] {f : α → List β} {g : α → β} (hf : Primrec f) (hg : Primrec g) :

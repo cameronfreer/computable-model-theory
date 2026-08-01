@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
 import ComputableModelTheory.Computability.RecursiveIn
+import ComputableModelTheory.Computability.ListPredicates
 import ComputableModelTheory.Util.AssertAxioms
 
 /-!
@@ -105,6 +106,14 @@ theorem test_computableIn_list_map :
 theorem test_list_map_value : ([1, 2, 3] : List ℕ).map (fun b ↦ b + b) = [2, 4, 6] :=
   rfl
 
+/-- Indexed access with a default, at a computed index. -/
+theorem test_primrec_list_getElem! : Primrec₂ fun (l : List ℕ) (i : ℕ) ↦ l[i]! :=
+  Primrec.list_getElem!
+
+/-- And at a fixed index, the form every existing call site wants. -/
+theorem test_primrec_list_getElem!_const (i : ℕ) : Primrec fun l : List ℕ ↦ l[i]! :=
+  Primrec.list_getElem!.comp Primrec.id (Primrec.const i)
+
 /-- Encoded extensional transfer: a computability result moves to a pointwise-equal target
 compared only under `encode`. -/
 theorem test_computableIn_of_encode_eq {f g : α → σ} (hf : ComputableIn O f)
@@ -182,6 +191,8 @@ theorem test_nat_strong_rec_value :
 
 end
 
+#assert_standard_axioms test_primrec_list_getElem!
+#assert_standard_axioms test_primrec_list_getElem!_const
 #assert_standard_axioms test_computableIn_of_encode_eq
 #assert_standard_axioms test_foldrPart_dom
 #assert_standard_axioms test_true_mem_foldrPart_and_iff
