@@ -207,6 +207,75 @@ def mixedCarriers : ExactFiniteCarriers (mixedAge (O := O)) where
 @[simp]
 theorem mixedCarriers_support (i : ℕ) : (mixedCarriers (O := O)).support i = [0, 1] := rfl
 
+/-! ### Layer 3: the attribution gates
+
+The candidate is the **swap** of `0` and `1`, coded against the normalized source `[0, 1]`. -/
+
+/-- The swap, as an image list indexed by the support `[0, 1]`. -/
+def swapCode : List ℕ := [1, 0]
+
+/-- The identity, for the accepting row. -/
+def idCode : List ℕ := [0, 1]
+
+/-- Potential embedding data whose range tuple is the swap of the generators. -/
+def swapData : PotentialEmbeddingData := ⟨0, 0, [1, 0]⟩
+
+/-- Potential embedding data whose range tuple is the generators themselves. -/
+def idData : PotentialEmbeddingData := ⟨0, 0, [0, 1]⟩
+
+/-- A defined `Part Bool` that does not contain `true` contains `false`. Lets the rejecting gate
+be stated positively rather than as a negation. -/
+private theorem false_mem_of_dom_of_not_true {x : Part Bool} (hd : x.Dom)
+    (h : ¬ (true ∈ x)) : false ∈ x := by
+  have hget := Part.get_mem hd
+  cases hv : x.get hd with
+  | false => exact hv ▸ hget
+  | true => exact absurd (hv ▸ hget) h
+
+/-- **Gate 1.** The swap list is a valid finite-map code. -/
+theorem test_swapCode_mem_finiteMaps :
+    swapCode ∈ (mixedCarriers (O := O)).finiteMaps 0 0 := by
+  refine ((mixedCarriers (O := O)).mem_finiteMaps_iff 0 0 swapCode).2 ⟨rfl, ?_⟩
+  intro y hy
+  rw [mixedCarriers_support]
+  rcases List.mem_cons.1 hy with rfl | hy
+  · simp
+  · rcases List.mem_cons.1 hy with rfl | hy
+    · simp
+    · exact absurd hy (by simp)
+
+/-- **Gate 2.** Generator agreement accepts the swap. -/
+theorem test_swap_generatorCheck :
+    (mixedCarriers (O := O)).generatorCheck swapData swapCode = true := rfl
+
+/-- **Gate 3.** The swap code is duplicate-free — so it codes an injective map. -/
+theorem test_swapCode_nodup : swapCode.Nodup := by decide
+
+@[simp]
+theorem mixed_functionSymbols :
+    EffectivelyFiniteLanguage.functionSymbols (L := mixedLang) =
+      [⟨1, MixedFunctions.zero⟩] := rfl
+
+@[simp]
+theorem mixed_relationSymbols :
+    EffectivelyFiniteLanguage.relationSymbols (L := mixedLang) =
+      [⟨2, MixedRelations.eq⟩] := rfl
+
+/-- The four enumerated relation instances. -/
+private theorem relInstances_eq :
+    (mixedCarriers (O := O)).relInstances 0 =
+      [(⟨2, MixedRelations.eq⟩, [0, 0]), (⟨2, MixedRelations.eq⟩, [1, 0]),
+        (⟨2, MixedRelations.eq⟩, [0, 1]), (⟨2, MixedRelations.eq⟩, [1, 1])] := by
+  rw [ExactFiniteCarriers.relInstances, mixedCarriers_support, mixed_relationSymbols]
+  rfl
+
+/-- The two enumerated function instances. -/
+private theorem funInstances_eq :
+    (mixedCarriers (O := O)).funInstances 0 =
+      [(⟨1, MixedFunctions.zero⟩, [0]), (⟨1, MixedFunctions.zero⟩, [1])] := by
+  rw [ExactFiniteCarriers.funInstances, mixedCarriers_support, mixed_functionSymbols]
+  rfl
+
 end
 
 end FirstOrder.Language
