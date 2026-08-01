@@ -276,6 +276,128 @@ private theorem funInstances_eq :
   rw [ExactFiniteCarriers.funInstances, mixedCarriers_support, mixed_functionSymbols]
   rfl
 
+/-- **Gate 4.** The relation scan **accepts** the swap. Proved from the scan specification and
+the concrete evaluator values, not from the checker. The swap preserves and reflects equality,
+so every enumerated relation instance agrees on both sides. -/
+theorem test_swap_relationScan :
+    true ∈ (mixedCarriers (O := O)).relationScanPart swapData swapCode := by
+  rw [ExactFiniteCarriers.mem_relationScanPart_iff]
+  intro p hp
+  rw [show swapData.domIdx = 0 from rfl, relInstances_eq] at hp
+  rcases List.mem_cons.1 hp with rfl | hp
+  · exact Part.mem_bind_iff.2 ⟨_, Part.mem_some _,
+      (Part.mem_map_iff _).2 ⟨_, Part.mem_some _, rfl⟩⟩
+  rcases List.mem_cons.1 hp with rfl | hp
+  · exact Part.mem_bind_iff.2 ⟨_, Part.mem_some _,
+      (Part.mem_map_iff _).2 ⟨_, Part.mem_some _, rfl⟩⟩
+  rcases List.mem_cons.1 hp with rfl | hp
+  · exact Part.mem_bind_iff.2 ⟨_, Part.mem_some _,
+      (Part.mem_map_iff _).2 ⟨_, Part.mem_some _, rfl⟩⟩
+  rcases List.mem_cons.1 hp with rfl | hp
+  · exact Part.mem_bind_iff.2 ⟨_, Part.mem_some _,
+      (Part.mem_map_iff _).2 ⟨_, Part.mem_some _, rfl⟩⟩
+  · exact absurd hp (by simp)
+
+/-- **Gate 5.** The function scan **rejects** the swap. Stated positively as `false ∈ …`, and
+proved from the scan specification: the instance `f(0)` is where it fails, since
+`swap (f 0) = swap 0 = 1` while `f (swap 0) = f 1 = 0`. -/
+theorem test_swap_functionScan :
+    false ∈ (mixedCarriers (O := O)).functionScanPart swapData swapCode := by
+  refine false_mem_of_dom_of_not_true
+    (ExactFiniteCarriers.functionScanPart_dom test_swapCode_mem_finiteMaps) ?_
+  rw [ExactFiniteCarriers.mem_functionScanPart_iff]
+  intro h
+  have hbad := h (⟨1, MixedFunctions.zero⟩, [0]) (by
+    rw [show swapData.domIdx = 0 from rfl, funInstances_eq]; simp)
+  obtain ⟨v, hv, hbad⟩ := Part.mem_bind_iff.1 hbad
+  obtain ⟨u, hu, hbad⟩ := (Part.mem_map_iff _).1 hbad
+  rw [Part.mem_some_iff.1 hv, Part.mem_some_iff.1 hu,
+    show ((mixedCarriers (O := O)).applyMap swapData.domIdx swapCode 0 == Option.some 0)
+      = false from rfl] at hbad
+  exact absurd hbad (by simp)
+
+/-- The swap passes all three total checks, so the scans are what decide it. -/
+private theorem swap_validToken :
+    (mixedCarriers (O := O)).validToken swapData swapCode = Option.some () := rfl
+
+/-- **Gate 6a.** The complete checker rejects the swap — and by gates 4 and 5, the rejection is
+attributable to function preservation, not to the relation scan. -/
+theorem test_swap_rejected :
+    (mixedCarriers (O := O)).finiteMapCheck swapData swapCode = false := by
+  have hmem : false ∈ (mixedCarriers (O := O)).finiteMapCheckPart swapData swapCode := by
+    rw [ExactFiniteCarriers.finiteMapCheckPart, swap_validToken]
+    exact Part.mem_bind_iff.2 ⟨false, test_swap_functionScan,
+      (Part.mem_map_iff _).2 ⟨true, test_swap_relationScan, rfl⟩⟩
+  have hget := Part.get_mem
+    ((mixedCarriers (O := O)).finiteMapCheckPart_dom swapData swapCode)
+  exact Part.mem_unique hget hmem
+
+/-- The identity is a valid code too. -/
+theorem test_idCode_mem_finiteMaps :
+    idCode ∈ (mixedCarriers (O := O)).finiteMaps 0 0 := by
+  refine ((mixedCarriers (O := O)).mem_finiteMaps_iff 0 0 idCode).2 ⟨rfl, ?_⟩
+  intro y hy
+  rw [mixedCarriers_support]
+  rcases List.mem_cons.1 hy with rfl | hy
+  · simp
+  · rcases List.mem_cons.1 hy with rfl | hy
+    · simp
+    · exact absurd hy (by simp)
+
+private theorem id_validToken :
+    (mixedCarriers (O := O)).validToken idData idCode = Option.some () := rfl
+
+private theorem id_relationScan :
+    true ∈ (mixedCarriers (O := O)).relationScanPart idData idCode := by
+  rw [ExactFiniteCarriers.mem_relationScanPart_iff]
+  intro p hp
+  rw [show idData.domIdx = 0 from rfl, relInstances_eq] at hp
+  rcases List.mem_cons.1 hp with rfl | hp
+  · exact Part.mem_bind_iff.2 ⟨_, Part.mem_some _,
+      (Part.mem_map_iff _).2 ⟨_, Part.mem_some _, rfl⟩⟩
+  rcases List.mem_cons.1 hp with rfl | hp
+  · exact Part.mem_bind_iff.2 ⟨_, Part.mem_some _,
+      (Part.mem_map_iff _).2 ⟨_, Part.mem_some _, rfl⟩⟩
+  rcases List.mem_cons.1 hp with rfl | hp
+  · exact Part.mem_bind_iff.2 ⟨_, Part.mem_some _,
+      (Part.mem_map_iff _).2 ⟨_, Part.mem_some _, rfl⟩⟩
+  rcases List.mem_cons.1 hp with rfl | hp
+  · exact Part.mem_bind_iff.2 ⟨_, Part.mem_some _,
+      (Part.mem_map_iff _).2 ⟨_, Part.mem_some _, rfl⟩⟩
+  · exact absurd hp (by simp)
+
+private theorem id_functionScan :
+    true ∈ (mixedCarriers (O := O)).functionScanPart idData idCode := by
+  rw [ExactFiniteCarriers.mem_functionScanPart_iff]
+  intro p hp
+  rw [show idData.domIdx = 0 from rfl, funInstances_eq] at hp
+  rcases List.mem_cons.1 hp with rfl | hp
+  · exact Part.mem_bind_iff.2 ⟨_, Part.mem_some _,
+      (Part.mem_map_iff _).2 ⟨_, Part.mem_some _, rfl⟩⟩
+  rcases List.mem_cons.1 hp with rfl | hp
+  · exact Part.mem_bind_iff.2 ⟨_, Part.mem_some _,
+      (Part.mem_map_iff _).2 ⟨_, Part.mem_some _, rfl⟩⟩
+  · exact absurd hp (by simp)
+
+/-- **Gate 6b.** The complete checker accepts the identity. Together with gate 6a this shows the
+fixture discriminates: the checker is not rejecting everything. -/
+theorem test_id_accepted :
+    (mixedCarriers (O := O)).finiteMapCheck idData idCode = true := by
+  have hmem : true ∈ (mixedCarriers (O := O)).finiteMapCheckPart idData idCode := by
+    rw [ExactFiniteCarriers.finiteMapCheckPart, id_validToken]
+    exact Part.mem_bind_iff.2 ⟨true, id_functionScan,
+      (Part.mem_map_iff _).2 ⟨true, id_relationScan, rfl⟩⟩
+  exact ((mixedCarriers (O := O)).finiteMapCheck_eq_true_iff_mem idData idCode).2 hmem
+
 end
 
 end FirstOrder.Language
+
+#assert_standard_axioms FirstOrder.Language.test_swapCode_mem_finiteMaps
+#assert_standard_axioms FirstOrder.Language.test_swap_generatorCheck
+#assert_standard_axioms FirstOrder.Language.test_swapCode_nodup
+#assert_standard_axioms FirstOrder.Language.test_swap_relationScan
+#assert_standard_axioms FirstOrder.Language.test_swap_functionScan
+#assert_standard_axioms FirstOrder.Language.test_swap_rejected
+#assert_standard_axioms FirstOrder.Language.test_idCode_mem_finiteMaps
+#assert_standard_axioms FirstOrder.Language.test_id_accepted
