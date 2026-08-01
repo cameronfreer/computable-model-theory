@@ -1722,6 +1722,56 @@ theorem finiteMapCheck_computableIn :
     ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦ C.finiteMapCheck q.1 q.2 :=
   C.finiteMapCheckPart_recursiveIn.computableIn_get fun q ↦ C.finiteMapCheckPart_dom q.1 q.2
 
+/-! ### The Observation 2.7 decision procedure
+
+The acceptance theorem. Realizability of potential embedding data is **decidable in the
+presentation oracle**, by searching the finite candidate list — no unbounded search anywhere. -/
+
+/-- The candidate list at a potential embedding datum. -/
+private def candidateListInput (F : PotentialEmbeddingData) : ℕ × ℕ :=
+  (F.domIdx, F.codIdx)
+
+private theorem candidateListInput_computableIn :
+    ComputableIn O candidateListInput :=
+  (PotentialEmbeddingData.domIdx_computable.pair
+    PotentialEmbeddingData.codIdx_computable).of_eq fun _ ↦ rfl
+
+omit [EffectivelyFiniteLanguage L] in
+include C in
+private theorem candidateList_computableIn :
+    ComputableIn O fun F : PotentialEmbeddingData ↦ C.finiteMaps F.domIdx F.codIdx := by
+  have hbase : ComputableIn O fun p : ℕ × ℕ ↦ C.finiteMaps p.1 p.2 :=
+    C.finiteMaps_computableIn
+  have hcomposed := ComputableIn.comp
+    (α := PotentialEmbeddingData) (β := ℕ × ℕ) (σ := List (List ℕ))
+    (f := fun p : ℕ × ℕ ↦ C.finiteMaps p.1 p.2) (g := candidateListInput)
+    hbase candidateListInput_computableIn
+  exact hcomposed.of_eq fun _ ↦ rfl
+
+include C in
+/-- **Observation 2.7, effectively.** Given exact finite carrier certificates and an effectively
+finite language, `PartialIsEmbedding` is decidable in the presentation oracle. -/
+theorem partialIsEmbedding_computablePredIn :
+    ComputablePredIn O fun F : PotentialEmbeddingData ↦ B.PartialIsEmbedding F := by
+  -- the candidate list
+  have hlist := candidateList_computableIn (C := C)
+  -- the paired checker predicate
+  have hpred : ComputablePredIn O fun p : PotentialEmbeddingData × List ℕ ↦
+      C.finiteMapCheck p.1 p.2 = true :=
+    ⟨fun _ ↦ inferInstance, C.finiteMapCheck_computableIn.of_eq fun p ↦ by simp⟩
+  -- bounded search over the candidates
+  obtain ⟨D, hD⟩ := ComputablePredIn.exists_mem_computableList
+    (l := fun F : PotentialEmbeddingData ↦ C.finiteMaps F.domIdx F.codIdx)
+    (p := fun (F : PotentialEmbeddingData) (f : List ℕ) ↦ C.finiteMapCheck F f = true)
+    hlist hpred
+  -- transport to the semantic predicate, defining the decider from the equivalence
+  refine ⟨fun F ↦ decidable_of_iff _ (C.exists_mem_finiteMaps_finiteMapCheck_iff F), ?_⟩
+  refine hD.of_eq fun F ↦ Bool.eq_iff_iff.2 ?_
+  exact (decide_eq_true_iff).trans
+    ((C.exists_mem_finiteMaps_finiteMapCheck_iff F).trans
+      (@decide_eq_true_iff _
+        (decidable_of_iff _ (C.exists_mem_finiteMaps_finiteMapCheck_iff F))).symm)
+
 end ExactFiniteCarriers
 
 end FirstOrder.Language
