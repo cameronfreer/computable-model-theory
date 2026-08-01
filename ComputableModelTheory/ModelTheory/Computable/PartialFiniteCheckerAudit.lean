@@ -53,6 +53,14 @@ theorem test_finiteMapCheck_computableIn :
     ComputableIn O fun q : PotentialEmbeddingData × List ℕ ↦ C.finiteMapCheck q.1 q.2 :=
   C.finiteMapCheck_computableIn
 
+include C in
+/-- **The acceptance gate.** Realizability of potential embedding data is decidable in the
+presentation oracle — the theorem that exercises the finite candidate enumeration, the
+executable checker, the bounded-list existential and the semantic characterization together. -/
+theorem test_partialIsEmbedding_computablePredIn :
+    ComputablePredIn O fun F : PotentialEmbeddingData ↦ B.PartialIsEmbedding F :=
+  C.partialIsEmbedding_computablePredIn
+
 end
 
 #assert_standard_axioms test_finiteMapCheck_total
@@ -60,3 +68,4 @@ end
 #assert_standard_axioms test_finiteMapCheck_eq_true_iff_mem
 #assert_standard_axioms test_exists_mem_finiteMaps
 #assert_standard_axioms test_finiteMapCheck_computableIn
+#assert_standard_axioms test_partialIsEmbedding_computablePredIn
