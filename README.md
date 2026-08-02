@@ -46,6 +46,8 @@ import ComputableModelTheory.ModelTheory.Age        -- ages, potential embedding
 The substrate is usable on its own: `ComputableModelTheory.Computability` mentions no model
 theory, and `ModelTheory.Syntax` mentions no structures.
 
+The library is pre-1.0 and its API is not yet stable; downstream users should pin a commit.
+
 Computability notions are relative to a set of oracles and named `…In O`; absolute statements are
 the specialization, not the primitive. Every module carries a header docstring stating what it
 provides and, where the choice was not forced, why it is shaped the way it is.
