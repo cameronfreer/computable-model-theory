@@ -1,69 +1,92 @@
 # computable-model-theory
 
-A Lean 4 / [mathlib](https://github.com/leanprover-community/mathlib4) library that aims
-to formalize computable model theory: effective presentations of first-order languages
-and structures, computable ages, potential embeddings and embedding information, and
-effective Fraïssé constructions. The library is developed as a reusable spine over
-mathlib's `FirstOrder` model theory, importing classical infinitary-logic foundations
-from [infinitary-logic](https://github.com/cameronfreer/infinitary-logic) as a pinned
-dependency.
+A Lean 4 / [mathlib](https://github.com/leanprover-community/mathlib4) library formalizing
+computable model theory: effective presentations of first-order languages and structures,
+computable ages, potential embeddings and embedding information, and effective Fraïssé
+constructions.
 
-## Current status
+The library is a reusable spine over mathlib's `FirstOrder` model theory. Classical
+infinitary-logic foundations (Scott sentences, back-and-forth, Henkin construction) are imported
+from [infinitary-logic](https://github.com/cameronfreer/infinitary-logic) as a pinned dependency
+rather than reproved here.
 
-The relative-computability substrate is in place: typed `RecursiveIn`/`ComputableIn`
-combinators (composition, pairing, bind, map, conditionals, μ-search), the
-oracle-relative predicate layer `ComputablePredIn`/`REPredIn` with Boolean closure,
-finite quantifiers, and r.e. closure lemmas, and lightweight reductions with oracle
-transport. On the syntax side, `EffectiveLanguage` provides computability data for
-first-order languages, terms of effective languages are `Primcodable` — including
-uniformly over all `Fin` variable bounds, via a stack machine on natural-number symbol
-codes — with computable term operations, and bounded formulas (packaged over all
-numbers of free variables), formulas, and sentences are `Primcodable`, via a second
-stack machine over the formula alphabet whose primitive recursiveness is proven by
-course-of-values recursion on suffix length. ω-presented computable structures are
-defined — uniformly over application
-data, so a single algorithm interprets every symbol — with the empty language, a graph
-language, and a unary-function language on `ℕ` as computable examples. Term evaluation
-and atomic and quantifier-free satisfaction in computable structures are computable in
-the oracle — quantifier-free satisfaction by a satisfaction stack machine run in
-parallel with mathlib's formula decoder — and the partial and total characteristic
-oracles are proven interchangeable. The signed atomic and quantifier-free diagram
-predicates at fixed width are computable in the oracle. Finite tuples are list-backed
-with a fixed-width view, and the central semantic gate identifies membership in a
-tuple's closure with term realization over the tuple. Generated computable
-presentations bundle a computable structure with a generating tuple behind an
-instance-free interface; atomic equivalence of tuples is characterized by
-generator-preserving equivalences of tuple closures; closure membership is r.e. by
-effective term enumeration; and the failure of atomic equivalence between two fixed
-presentations is r.e. Uniform computable ages enumerate structures with single
-index-uniform programs, represent isomorphism-closed classes of finitely generated
-structures, and carry potential embeddings — pure code data whose actualness is atomic
-equivalence of generators with the range tuple, realized as bundled embeddings
-extending the tuple assignment. Terms and atomic data over natural-number variables
-are evaluated by single programs uniform in the age index and a list environment;
-atomic equivalence is exactly agreement on width-valid atomic data; the failure of
-actualness of arbitrary potential embedding data is uniformly r.e.; and embedding
-information is defined semantically with an r.e. complement.
+The formalization target is Csima–Harizanov–Miller–Montalbán, *Computability of Fraïssé limits*
+(JSL 76(1), 2011). Paper results are stated with their numbering, and the correspondence to the
+paper is maintained deliberately: a definition that specializes a paper notion says so, and a
+theorem weaker than its paper counterpart says that too.
 
-On top of that base: canonical least-term transport of values along potential embedding
-data; total composition of potential data with its identity, associativity, and
-realized-embedding laws; `Primcodable` spans and amalgamation diagrams with coded
-commutativity matching realized commutativity; the indexed HP/JEP/AP properties with
-joint embedding data; effective HP/JEP/AP witness interfaces (total selectors with
-computability and conditional soundness); an abstract EI-decision interface; a minimal
-oracle jump calculus (`ComputesJumpOf`, with the r.e.-to-decidable bridges and the
-displayed `0′`), giving `EI(K) ≤ O′` in interface form; and a thin representation
-boundary to `infinitary-logic`'s Scott/back-and-forth and Henkin layers. Witness
-extraction and the effective Fraïssé limit are to come.
+## Layout
 
-## Staging
+| Directory | Contents |
+|---|---|
+| `Computability/` | The oracle-relative substrate: `RecursiveIn` / `ComputableIn` combinators, the predicate layer `ComputablePredIn` / `REPredIn`, partial folds, list operations, reductions and the jump |
+| `ModelTheory/Syntax/` | Effective languages, `Primcodable` terms and formulas, computable syntactic operations |
+| `ModelTheory/Computable/` | Computable structures and diagrams, tuple closures, computable ages, potential embeddings, partial (possibly-empty) presentation families, effective witness interfaces |
+| `ModelTheory/` | Language-independent pieces used by the above (`Age`, `TupleClosure`) |
+| `Util/` | The axiom-policy assertion command used by the audit modules |
 
-| Stage | Content |
-|-------|---------|
-| 1 | Syntax computability (effective languages, `Primcodable` syntax, computable operations) |
-| 2 | Computable structures and diagrams (ω-presentations, term/qf evaluation, atomic diagrams) |
-| 3 | Computable ages and potential embeddings (tuple closures, atomic equivalence, embedding information) |
-| 4 | AP/Fraïssé upper bound (effective HP/JEP/AP witnesses, computable Fraïssé construction) |
+Roughly: `Computability` knows nothing about model theory, `Syntax` knows nothing about
+structures, and `Computable` is where the two meet.
+
+## Orientation
+
+Entry points, depending on what you want:
+
+* **The computability substrate on its own** — `Computability/RecursiveIn.lean` for the
+  combinators, `Computability/OraclePred.lean` for the predicate layer. Both are usable
+  independently of the model theory and are candidates for upstreaming.
+* **How languages become effective** — `ModelTheory/Syntax/EffectiveLanguage.lean`, then the
+  `Primcodable` instances for terms and formulas.
+* **What a computable age is** — `ModelTheory/Computable/ComputableAge.lean`, then
+  `PotentialEmbedding.lean` for embedding data as pure code.
+* **The general, possibly-empty-carrier setting** — `ModelTheory/Computable/PartialAge.lean`.
+  This is the paper's Definition 2.1; the all-carrier-`ℕ` version is a fragment of it, not the
+  other way around.
+
+Every module carries a header docstring stating what it provides and, where the choice was not
+forced, why it is shaped the way it is.
+
+## Conventions
+
+**Oracle-relative by default.** Computability notions are relative to a set of oracles and named
+`…In O`. Absolute statements are the specialization, not the primitive. Where a result genuinely
+needs no oracle it is stated absolutely (`Primrec`, `Computable`) and lifted at the use site.
+
+**Audit modules.** Files named `*Audit.lean` sit outside the root import spine and serve two
+purposes: they enforce the axiom policy per declaration via `#assert_standard_axioms`, and they
+pin the public API as acceptance tests — including *behavioral* gates on concrete fixtures, not
+only type-checking gates. They are checked explicitly:
+
+```
+bash scripts/run-audit-modules.sh
+```
+
+The script fails if an audit module is untracked, so a new audit cannot be silently skipped.
+
+**Axiom policy.** The spine depends only on `propext`, `Classical.choice` and `Quot.sound`. No
+custom axioms and no `sorry` — the audit modules enforce this declaration by declaration rather
+than by a global scan.
+
+**Upstreaming.** Generic computability facts here are candidates for mathlib, but they move only
+after demonstrated use in this library: a fact with no consumer stays put, however reasonable it
+looks. The plan, per-API status, and what is deliberately deferred are tracked in
+[#24](https://github.com/cameronfreer/computable-model-theory/issues/24).
+
+## Status and roadmap
+
+Current state and planned work live in the issue tracker rather than in this file, so they cannot
+drift out of date:
+
+* [#15](https://github.com/cameronfreer/computable-model-theory/issues/15) — the CHMM
+  formalization tracker: what is done, what is next, and in what order.
+* [#24](https://github.com/cameronfreer/computable-model-theory/issues/24) — the mathlib
+  upstreaming plan.
+
+In broad terms: the computability substrate, effective syntax, computable structures and
+diagrams, computable ages with potential embeddings, and the general partial-family setting with
+its effective witness interfaces are in place, along with the finite-search decision procedure for
+realizability of embedding data. The effective Fraïssé limit itself, and the priority
+constructions of the paper's later sections, are the current work.
 
 ## Building
 
@@ -73,16 +96,12 @@ Requires the Lean toolchain pinned in `lean-toolchain` (managed by
 ```
 lake exe cache get
 lake build
+bash scripts/run-audit-modules.sh
 ```
 
-The audit modules (axiom-policy enforcement and API acceptance tests) are outside the
-root import spine and are checked explicitly, as in CI:
-
-```
-lake env lean ComputableModelTheory/Computability/OraclePredAudit.lean
-```
+CI does the same, via `leanprover/lean-action` for the build and then the audit sweep.
 
 ## License
 
-Released under the Apache 2.0 license, following mathlib convention; see
-[LICENSE](LICENSE). Source files carry the corresponding mathlib-style copyright headers.
+Released under the Apache 2.0 license, following mathlib convention; see [LICENSE](LICENSE).
+Source files carry the corresponding mathlib-style copyright headers.
