@@ -22,6 +22,26 @@ untracked_list="$(git ls-files --others --exclude-standard '*Audit.lean' | sort)
 n_tracked="$(printf '%s' "${tracked_list}" | grep -c . || true)"
 n_untracked="$(printf '%s' "${untracked_list}" | grep -c . || true)"
 
+# An audit module must not import another audit module. Audit .oleans are never built (they
+# are outside the root import spine and no lean_lib globs them), so such an import resolves
+# only against a stale local artifact and fails on a clean checkout — a CI-only breakage that
+# a local sweep reports as green. Shared fixtures belong in a spine module instead.
+bad_imports=0
+while IFS= read -r file; do
+  [ -n "${file}" ] || continue
+  if grep -qE '^import .*Audit$' "${file}"; then
+    echo "ERROR: ${file} imports another audit module:" >&2
+    grep -nE '^import .*Audit$' "${file}" | sed 's/^/    /' >&2
+    bad_imports=1
+  fi
+done < <(printf '%s\n%s\n' "${tracked_list}" "${untracked_list}")
+if [ "${bad_imports}" -ne 0 ]; then
+  echo >&2
+  echo "Audit .oleans are never built, so this only works against a stale local artifact." >&2
+  echo "Move the shared declarations into a module in the import spine." >&2
+  exit 1
+fi
+
 status=0
 count=0
 while IFS= read -r file; do
