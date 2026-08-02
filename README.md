@@ -23,13 +23,15 @@ Fraïssé theory, including formalizations guided by Csima–Harizanov–Miller�
 
 ## Paper alignment
 
-Results following Csima–Harizanov–Miller–Montalbán, *Computability of Fraïssé limits* (JSL 76(1),
-2011) are stated with their numbering, and the correspondence is maintained deliberately — a
-definition that specializes a paper notion says so, as does a theorem weaker than its counterpart.
-Current landmarks include the empty-capable form of Theorem 2.8 and both effective-search routes
-underlying Observation 2.7. The authoritative coverage map and dependency order live in
-[tracking issue #15](https://github.com/cameronfreer/computable-model-theory/issues/15) and the
-repository milestones.
+The current paper-facing development follows Csima–Harizanov–Miller–Montalbán, *Computability of
+Fraïssé limits* (JSL 76(1), 2011). When a declaration formalizes or adapts a numbered paper
+result, its docstring records the citation and whether the formal statement is exact,
+specialized, strengthened, or weaker. Landmarks include the empty-capable form of Theorem 2.8 and
+both effective-search routes underlying Observation 2.7.
+
+The coverage map and dependency order live in
+[tracking issue #15](https://github.com/cameronfreer/computable-model-theory/issues/15) as the
+source of truth, reducing duplication and drift.
 
 ## Using the library
 
@@ -59,16 +61,18 @@ lake build
 scripts/run-audit-modules.sh
 ```
 
-Audit modules sit outside the root import spine. They enforce the axiom policy declaration by
-declaration and pin public API contracts as acceptance tests, including behavioral gates on
-concrete fixtures rather than type-checking alone. The runner discovers them from the git index,
-so a new audit module cannot be silently skipped. The library depends only on `propext`,
-`Classical.choice` and `Quot.sound`.
+Audit modules sit outside the root import spine. They pin public API contracts as acceptance
+tests — including behavioral gates on concrete fixtures, not type-checking alone — and check the
+axiom policy on those contracts. The runner discovers them from the git index, so a new audit
+module cannot be silently skipped.
+
+Audited public contracts are checked to use only `propext`, `Classical.choice` and `Quot.sound`;
+the library declares no custom axioms.
 
 ## Dependencies
 
-Built on mathlib. Classical infinitary-logic foundations — Scott sentences, back-and-forth, and
-the Henkin construction — are imported from
+Built on mathlib. Classical infinitary-logic foundations — atomic diagrams, back-and-forth, and
+Henkin completeness — are imported from
 [infinitary-logic](https://github.com/cameronfreer/infinitary-logic) as a pinned dependency rather
 than reproved here.
 
