@@ -23,6 +23,6 @@ Umbrella module for the syntax layer: effective-language conventions on top of m
 `FirstOrder.Language`, `Primcodable` instances for terms (including uniformly over all
 `Fin` variable bounds) and for bounded formulas, formulas, and sentences, computability
 of term operations and of the sigma-level formula constructors, and decidability and
-computability of the `IsAtomic`/`IsQF` complexity predicates; formula
-relabelling/substitution and the prenex operations are still to come.
+computability of the `IsAtomic`/`IsQF` complexity predicates, and the oracle-relative assembly
+of function and relation application data.
 -/

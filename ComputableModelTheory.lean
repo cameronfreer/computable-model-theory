@@ -9,7 +9,7 @@ import ComputableModelTheory.ModelTheory
 /-!
 # Computable Model Theory
 
-Root module for the `ComputableModelTheory` library: a reusable computable-model-theory
-spine over mathlib, from relative computability predicates through computable ages to
-effective Fraïssé constructions.
+Root module for the `ComputableModelTheory` library: a reusable spine for effective
+first-order model theory over mathlib, from oracle-relative computability through effective
+syntax and presentations to infrastructure for effective Fraïssé theory.
 -/

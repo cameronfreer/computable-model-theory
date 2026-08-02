@@ -27,6 +27,7 @@ and atomic-data evaluation, semantic embedding information with its r.e. complem
 canonical least-term transport of values along potential embedding data, composition of
 potential embedding data, potential spans with amalgamation diagrams, the indexed
 HP/JEP/AP properties with joint embedding data, the effective HP/JEP/AP witness
-interfaces, and the thin representation boundary to `infinitary-logic`. Witness
-extraction is to come.
+interfaces, embedding-information extraction, the partial (possibly-empty carrier) family
+setting with its CHP/CJEP/CAP interfaces and finite-carrier decision procedures, and the thin
+representation boundary to `infinitary-logic`.
 -/

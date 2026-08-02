@@ -51,9 +51,12 @@ import Mathlib.ModelTheory.Semantics
 # Computable structures
 
 Umbrella module for the computable-structure layer: ω-presented computable structures,
-computable term evaluation, atomic and quantifier-free satisfaction, the signed
-atomic and quantifier-free diagram predicates at fixed width, generated computable
-presentations, atomic equivalence of tuples with its generator-preserving
-closure-equivalence characterization, effective term enumeration over tuple closures,
-and the r.e. failure of atomic equivalence between presentations.
+computable term evaluation, atomic and quantifier-free satisfaction, and the signed atomic and
+quantifier-free diagram predicates at fixed width; generated computable presentations, atomic
+equivalence of tuples with its generator-preserving closure-equivalence characterization,
+effective term enumeration over tuple closures, and the r.e. failure of atomic equivalence
+between presentations; c.e.-domain, decidable-domain and partial presentations with computable
+isomorphisms, canonical transport, presentation chains and their limits; and the partial
+(possibly-empty carrier) age setting with its potential-embedding realization theory, effective
+witness interfaces, and finite-carrier embedding decision procedure.
 -/
