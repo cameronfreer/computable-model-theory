@@ -141,6 +141,58 @@ noncomputable def toEquiv : P.domain ≃[L] Q.domain where
 
 @[simp] theorem toEquiv_apply (x : P.domain) : e.toEquiv x = e.toSubtypeFun x := rfl
 
+/-- **Composition.** Genuine reusable single-member API: the forward maps compose by `bind`,
+the backward maps compose in the reverse order. -/
+def trans {W : PartialCePresentationIn O L} (e : PartialCeIsoIn E P Q)
+    (f : PartialCeIsoIn E Q W) : PartialCeIsoIn E P W where
+  toFun x := (e.toFun x).bind f.toFun
+  invFun z := (f.invFun z).bind e.invFun
+  toFun_recursiveIn :=
+    RecursiveIn.bind e.toFun_recursiveIn (f.toFun_recursiveIn.comp ComputableIn.snd).to₂
+  invFun_recursiveIn :=
+    RecursiveIn.bind f.invFun_recursiveIn (e.invFun_recursiveIn.comp ComputableIn.snd).to₂
+  toFun_dom := fun x ↦ by
+    rw [Part.dom_iff_mem]
+    constructor
+    · rintro ⟨z, hz⟩
+      obtain ⟨y, hy, -⟩ := Part.mem_bind_iff.1 hz
+      exact (e.toFun_dom x).1 (Part.dom_iff_mem.2 ⟨y, hy⟩)
+    · intro hx
+      have hd : (e.toFun x).Dom := (e.toFun_dom x).2 hx
+      have hy : (e.toFun x).get hd ∈ e.toFun x := Part.get_mem hd
+      obtain ⟨z, hz⟩ := Part.dom_iff_mem.1 ((f.toFun_dom _).2 (e.toFun_mem hy))
+      exact ⟨z, Part.mem_bind_iff.2 ⟨_, hy, hz⟩⟩
+  invFun_dom := fun z ↦ by
+    rw [Part.dom_iff_mem]
+    constructor
+    · rintro ⟨x, hx⟩
+      obtain ⟨y, hy, -⟩ := Part.mem_bind_iff.1 hx
+      exact (f.invFun_dom z).1 (Part.dom_iff_mem.2 ⟨y, hy⟩)
+    · intro hz
+      have hd : (f.invFun z).Dom := (f.invFun_dom z).2 hz
+      have hy : (f.invFun z).get hd ∈ f.invFun z := Part.get_mem hd
+      obtain ⟨x, hx⟩ := Part.dom_iff_mem.1 ((e.invFun_dom _).2 (f.invFun_mem hy))
+      exact ⟨x, Part.mem_bind_iff.2 ⟨_, hy, hx⟩⟩
+  toFun_mem := fun h ↦ by
+    obtain ⟨y, -, hz⟩ := Part.mem_bind_iff.1 h
+    exact f.toFun_mem hz
+  invFun_toFun := fun h ↦ by
+    obtain ⟨y, hy, hz⟩ := Part.mem_bind_iff.1 h
+    exact Part.mem_bind_iff.2 ⟨y, f.invFun_toFun hz, e.invFun_toFun hy⟩
+  toFun_invFun := fun h ↦ by
+    obtain ⟨y, hy, hx⟩ := Part.mem_bind_iff.1 h
+    exact Part.mem_bind_iff.2 ⟨y, e.toFun_invFun hx, f.toFun_invFun hy⟩
+  toFun_funMap := fun n g v w hw ↦ by
+    choose u hu using fun k ↦ Part.mem_bind_iff.1 (hw k)
+    have hu1 : ∀ k, u k ∈ e.toFun (v k) := fun k ↦ (hu k).1
+    have hu2 : ∀ k, w k ∈ f.toFun (u k) := fun k ↦ (hu k).2
+    exact Part.mem_bind_iff.2
+      ⟨_, e.toFun_funMap n g v u hu1, f.toFun_funMap n g u w hu2⟩
+  toFun_relMap := fun n R v w hw ↦ by
+    choose u hu using fun k ↦ Part.mem_bind_iff.1 (hw k)
+    exact (f.toFun_relMap n R u w fun k ↦ (hu k).2).trans
+      (e.toFun_relMap n R v u fun k ↦ (hu k).1)
+
 end PartialCeIsoIn
 
 /-! ### The bridge from the nonempty layer

@@ -52,4 +52,86 @@ structure RepresentationCoverIn (E : Set (ℕ →. ℕ)) (A B : PartialAgeIn O L
   /-- Uniformity of the backward maps. -/
   invFun_uniform : RecursiveIn E fun p : ℕ × ℕ ↦ (isoAt p.1).invFun p.2
 
+namespace RepresentationCoverIn
+
+variable {A B C : PartialAgeIn O L}
+
+/-- Covers compose. There is deliberately no `symm`: a cover claims nothing about which target
+indices are hit. -/
+noncomputable def trans (r : RepresentationCoverIn E A B)
+    (s : RepresentationCoverIn E B C) : RepresentationCoverIn E A C where
+  indexMap i := s.indexMap (r.indexMap i)
+  indexMap_computableIn := s.indexMap_computableIn.comp r.indexMap_computableIn
+  isoAt i := (r.isoAt i).trans (s.isoAt (r.indexMap i))
+  toFun_uniform := by
+    have hg : RecursiveIn₂ E fun (p : ℕ × ℕ) (y : ℕ) ↦
+        (s.isoAt (r.indexMap p.1)).toFun y :=
+      (s.toFun_uniform.comp
+        ((r.indexMap_computableIn.comp (ComputableIn.fst.comp ComputableIn.fst)).pair
+          ComputableIn.snd)).to₂
+    exact RecursiveIn.bind r.toFun_uniform hg
+  invFun_uniform := by
+    have hg : RecursiveIn₂ E fun (p : ℕ × ℕ) (y : ℕ) ↦ (r.isoAt p.1).invFun y :=
+      (r.invFun_uniform.comp
+        ((ComputableIn.fst.comp ComputableIn.fst).pair ComputableIn.snd)).to₂
+    have hs : RecursiveIn E fun p : ℕ × ℕ ↦ (s.isoAt (r.indexMap p.1)).invFun p.2 :=
+      s.invFun_uniform.comp
+        ((r.indexMap_computableIn.comp ComputableIn.fst).pair ComputableIn.snd)
+    exact RecursiveIn.bind hs hg
+
+@[simp] theorem trans_indexMap (r : RepresentationCoverIn E A B)
+    (s : RepresentationCoverIn E B C) (i : ℕ) :
+    (r.trans s).indexMap i = s.indexMap (r.indexMap i) := rfl
+
+end RepresentationCoverIn
+
+/-! ### The paper-facing notion
+
+CHMM Definition 2.3: two covers, one in each direction, **independently supplied**. No equation
+relates the two index maps. That is not an omission — the paper allows the representations to
+contain different numbers of copies of an isomorphism type, so requiring the index maps to be
+mutually inverse would be strictly stronger than the definition. -/
+
+/-- **Computable isomorphism of representations** (CHMM Definition 2.3): a cover in each
+direction. -/
+structure RepresentationIsoIn (E : Set (ℕ →. ℕ)) (A B : PartialAgeIn O L) where
+  /-- Every member of `A` is matched in `B`. -/
+  forward : RepresentationCoverIn E A B
+  /-- Every member of `B` is matched in `A`. -/
+  backward : RepresentationCoverIn E B A
+
+namespace RepresentationIsoIn
+
+variable {A B C : PartialAgeIn O L}
+
+/-- Symmetry: swap the two stored covers. Needs no oracle hypothesis, and — crucially — could
+not be obtained from `forward` alone, since a cover has no inverse. -/
+def symm (r : RepresentationIsoIn E A B) : RepresentationIsoIn E B A where
+  forward := r.backward
+  backward := r.forward
+
+@[simp] theorem symm_forward (r : RepresentationIsoIn E A B) :
+    r.symm.forward = r.backward := rfl
+
+@[simp] theorem symm_backward (r : RepresentationIsoIn E A B) :
+    r.symm.backward = r.forward := rfl
+
+@[simp] theorem symm_symm (r : RepresentationIsoIn E A B) : r.symm.symm = r := rfl
+
+/-- Composition: forward covers compose in order, backward covers in the **reverse** order. -/
+noncomputable def trans (r : RepresentationIsoIn E A B)
+    (s : RepresentationIsoIn E B C) : RepresentationIsoIn E A C where
+  forward := r.forward.trans s.forward
+  backward := s.backward.trans r.backward
+
+@[simp] theorem trans_forward_indexMap (r : RepresentationIsoIn E A B)
+    (s : RepresentationIsoIn E B C) (i : ℕ) :
+    (r.trans s).forward.indexMap i = s.forward.indexMap (r.forward.indexMap i) := rfl
+
+@[simp] theorem trans_backward_indexMap (r : RepresentationIsoIn E A B)
+    (s : RepresentationIsoIn E B C) (i : ℕ) :
+    (r.trans s).backward.indexMap i = r.backward.indexMap (s.backward.indexMap i) := rfl
+
+end RepresentationIsoIn
+
 end FirstOrder.Language

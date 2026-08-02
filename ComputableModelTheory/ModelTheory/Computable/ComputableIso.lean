@@ -9,11 +9,18 @@ import ComputableModelTheory.ModelTheory.Computable.InitialSegmentPresentation
 /-!
 # Computable isomorphism of coded-domain presentations
 
-CHMM Definition 2.3, over the Level-1 representation notion: a **computable
-isomorphism** between c.e. presentations is a pair of partial maps, recursive in the
-oracle, whose domains are *exactly* the presentation domains, inverse to each other
-there, preserving function interpretations and preserving-and-reflecting relation
-interpretations on realized pairs.
+A **computable isomorphism** between c.e. presentations is a pair of partial maps, recursive in
+the oracle, whose domains are *exactly* the presentation domains, inverse to each other there,
+preserving function interpretations and preserving-and-reflecting relation interpretations on
+realized pairs.
+
+This is the **nonempty single-presentation building block**, not CHMM Definition 2.3. The
+paper's notion relates whole representations and supplies one computable sequence *in each
+direction*, allowing the two representations to contain different numbers of copies of an
+isomorphism type; it is formalized as `RepresentationIsoIn`, built from two independently
+supplied covers. A single `CeIsoIn` matches one already-paired member and cannot produce a match
+for an arbitrary member of the other representation, so the paper-facing notion is genuinely
+stronger than a family of these.
 
 The structure carries only the forward-direction structure laws; the inverse-side
 laws (`invFun_funMap`, `invFun_relMap`), injectivity, and surjectivity are derived.
