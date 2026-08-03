@@ -155,6 +155,135 @@ noncomputable def refl (A : PartialAgeIn O L) (hOE : O ⊆ E) :
 
 end RepresentationCoverIn
 
+/-! ### Tuple traversal along a cover
+
+One layer below generator images. `Forall₂` is the stable semantic API: length preservation and
+coordinate facts follow from it without introducing casts early.
+
+The oracle split here is deliberate. Traversal itself is `RecursiveIn E` with **no** `O ⊆ E` —
+it only runs the stored maps. Reading either family's recorded generators is what touches
+presentation data, so the total generator-image functions below need the inclusion. -/
+
+namespace RepresentationCoverIn
+
+variable {A B : PartialAgeIn O L} (r : RepresentationCoverIn E A B)
+
+/-- Map a whole tuple forward along the isomorphism at index `i`. -/
+noncomputable def toTuplePart (i : ℕ) (s : List ℕ) : Part (List ℕ) :=
+  listMapPart (r.isoAt i).toFun s
+
+/-- Map a whole tuple backward. -/
+noncomputable def invTuplePart (i : ℕ) (s : List ℕ) : Part (List ℕ) :=
+  listMapPart (r.isoAt i).invFun s
+
+theorem toTuplePart_recursiveIn :
+    RecursiveIn E fun p : ℕ × List ℕ ↦ r.toTuplePart p.1 p.2 :=
+  RecursiveIn.listMapPart₂ (g := fun i ↦ (r.isoAt i).toFun) r.toFun_uniform
+
+theorem invTuplePart_recursiveIn :
+    RecursiveIn E fun p : ℕ × List ℕ ↦ r.invTuplePart p.1 p.2 :=
+  RecursiveIn.listMapPart₂ (g := fun i ↦ (r.isoAt i).invFun) r.invFun_uniform
+
+/-- **The `Forall₂` specification** of forward traversal. -/
+theorem mem_toTuplePart_iff {i : ℕ} {s t : List ℕ} :
+    t ∈ r.toTuplePart i s ↔ List.Forall₂ (fun x y ↦ y ∈ (r.isoAt i).toFun x) s t :=
+  mem_listMapPart_iff
+
+theorem mem_invTuplePart_iff {i : ℕ} {s t : List ℕ} :
+    t ∈ r.invTuplePart i s ↔ List.Forall₂ (fun y x ↦ x ∈ (r.isoAt i).invFun y) s t :=
+  mem_listMapPart_iff
+
+/-- **Exact domain of forward traversal**: every entry lies in the source member's carrier. -/
+theorem toTuplePart_dom_iff {i : ℕ} {s : List ℕ} :
+    (r.toTuplePart i s).Dom ↔ ∀ x ∈ s, x ∈ A.domainAt i := by
+  rw [toTuplePart, listMapPart_dom_iff]
+  exact forall₂_congr fun x _ ↦ (r.isoAt i).toFun_dom x
+
+/-- **Exact domain of backward traversal**: every entry lies in the matched member's carrier. -/
+theorem invTuplePart_dom_iff {i : ℕ} {s : List ℕ} :
+    (r.invTuplePart i s).Dom ↔ ∀ y ∈ s, y ∈ B.domainAt (r.indexMap i) := by
+  rw [invTuplePart, listMapPart_dom_iff]
+  exact forall₂_congr fun y _ ↦ (r.isoAt i).invFun_dom y
+
+/-- **The empty tuple always maps to the empty tuple** — including when the element map is
+nowhere defined. This is the sharpest check that no nonempty-carrier fallback has crept in. -/
+@[simp] theorem toTuplePart_nil (i : ℕ) : r.toTuplePart i [] = Part.some [] := rfl
+
+@[simp] theorem invTuplePart_nil (i : ℕ) : r.invTuplePart i [] = Part.some [] := rfl
+
+/-- Forward traversal lands in the matched member's carrier. -/
+theorem mem_domainAt_of_mem_toTuplePart {i : ℕ} {s t : List ℕ}
+    (h : t ∈ r.toTuplePart i s) : ∀ y ∈ t, y ∈ B.domainAt (r.indexMap i) := by
+  have hf := r.mem_toTuplePart_iff.1 h
+  clear h
+  induction hf with
+  | nil => simp
+  | cons hxy _ ih =>
+    intro y hy
+    rcases List.mem_cons.1 hy with rfl | hy
+    · exact (r.isoAt i).toFun_mem hxy
+    · exact ih y hy
+
+/-! ### Derived generator images
+
+**Derived, never stored.** A cover already determines these; recording them would be redundant
+data that could drift from the isomorphisms.
+
+`sourceGensImage` is the tuple appearing in the paper's cover sequence. `targetGensPreimage` is
+*not* additional representation data either, but it is needed later: the matched target's
+recorded generators need not be forward images of the source's recorded generators, since CHMM
+does not require an isomorphism to carry recorded generators to recorded generators.
+
+Both are total *values*, needing no oracle hypothesis. Their **computability** is what needs
+`O ⊆ E`, since reading either family's generator list touches presentation data — unlike
+traversal itself, which only runs the stored maps. -/
+
+/-- The forward images of the source member's recorded generators. -/
+noncomputable def sourceGensImage (i : ℕ) : List ℕ :=
+  (r.toTuplePart i (A.gens i)).get
+    (r.toTuplePart_dom_iff.2 fun x hx ↦ by
+      obtain ⟨k, hk⟩ := List.mem_iff_get.1 hx
+      exact hk ▸ A.gens_mem_domainAt k)
+
+/-- The backward images of the matched member's recorded generators. -/
+noncomputable def targetGensPreimage (i : ℕ) : List ℕ :=
+  (r.invTuplePart i (B.gens (r.indexMap i))).get
+    (r.invTuplePart_dom_iff.2 fun y hy ↦ by
+      obtain ⟨k, hk⟩ := List.mem_iff_get.1 hy
+      exact hk ▸ B.gens_mem_domainAt k)
+
+theorem mem_sourceGensImage (i : ℕ) :
+    r.sourceGensImage i ∈ r.toTuplePart i (A.gens i) :=
+  Part.get_mem _
+
+theorem mem_targetGensPreimage (i : ℕ) :
+    r.targetGensPreimage i ∈ r.invTuplePart i (B.gens (r.indexMap i)) :=
+  Part.get_mem _
+
+/-- The generator images land in the matched member's carrier. -/
+theorem sourceGensImage_mem_domainAt (i : ℕ) :
+    ∀ y ∈ r.sourceGensImage i, y ∈ B.domainAt (r.indexMap i) :=
+  r.mem_domainAt_of_mem_toTuplePart (r.mem_sourceGensImage i)
+
+/-- Length is preserved — read off the `Forall₂` specification, with no casts. -/
+theorem sourceGensImage_length (i : ℕ) :
+    (r.sourceGensImage i).length = (A.gens i).length :=
+  (List.Forall₂.length_eq (r.mem_toTuplePart_iff.1 (r.mem_sourceGensImage i))).symm
+
+theorem targetGensPreimage_length (i : ℕ) :
+    (r.targetGensPreimage i).length = (B.gens (r.indexMap i)).length :=
+  (List.Forall₂.length_eq (r.mem_invTuplePart_iff.1 (r.mem_targetGensPreimage i))).symm
+
+/-- **The empty case explicitly.** A member with no recorded generators maps to the empty tuple,
+even though the element map is nowhere defined there. -/
+theorem sourceGensImage_of_gens_nil {i : ℕ} (h : A.gens i = []) :
+    r.sourceGensImage i = [] := by
+  have := r.mem_sourceGensImage i
+  rw [h, r.toTuplePart_nil] at this
+  exact Part.mem_some_iff.1 this
+
+end RepresentationCoverIn
+
 /-! ### The paper-facing notion
 
 CHMM Definition 2.3: two covers, one in each direction, **independently supplied**. No equation
