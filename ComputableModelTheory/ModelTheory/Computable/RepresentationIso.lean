@@ -114,18 +114,16 @@ noncomputable def trans (r : RepresentationCoverIn E A B)
 it is not automatically `E`-recursive. Every `isoAt i` is the one uniform program applied at `i`,
 so the per-index maps and the uniformity fields are literally the same program. -/
 noncomputable def refl (A : PartialAgeIn O L) (hOE : O ⊆ E) :
-    RepresentationCoverIn E A A where
-  indexMap i := i
-  indexMap_computableIn := ComputableIn.id
-  isoAt i :=
+    RepresentationCoverIn E A A :=
+  -- the oracle lift happens exactly once, and every use below is this same proof
+  let hId : RecursiveIn E A.idFun := RecursiveIn.mono hOE A.idFun_recursiveIn
+  { indexMap := fun i ↦ i
+    indexMap_computableIn := ComputableIn.id
+    isoAt := fun i ↦
     { toFun := fun x ↦ A.idFun (i, x)
       invFun := fun x ↦ A.idFun (i, x)
-      toFun_recursiveIn :=
-        (RecursiveIn.mono hOE A.idFun_recursiveIn).comp
-          ((ComputableIn.const i).pair ComputableIn.id)
-      invFun_recursiveIn :=
-        (RecursiveIn.mono hOE A.idFun_recursiveIn).comp
-          ((ComputableIn.const i).pair ComputableIn.id)
+      toFun_recursiveIn := hId.comp ((ComputableIn.const i).pair ComputableIn.id)
+      invFun_recursiveIn := hId.comp ((ComputableIn.const i).pair ComputableIn.id)
       toFun_dom := fun x ↦ A.idFun_dom i x
       invFun_dom := fun x ↦ A.idFun_dom i x
       toFun_mem := fun h ↦ by
@@ -145,8 +143,8 @@ noncomputable def refl (A : PartialAgeIn O L) (hOE : O ⊆ E) :
       toFun_relMap := fun n R v w hw ↦ by
         have hvw : ∀ k, w k = v k := fun k ↦ (A.mem_idFun.1 (hw k)).1
         rw [show w = v from funext hvw] }
-  toFun_uniform := RecursiveIn.mono hOE A.idFun_recursiveIn
-  invFun_uniform := RecursiveIn.mono hOE A.idFun_recursiveIn
+    toFun_uniform := hId
+    invFun_uniform := hId }
 
 @[simp] theorem refl_indexMap (A : PartialAgeIn O L) (hOE : O ⊆ E) (i : ℕ) :
     (RepresentationCoverIn.refl A hOE (E := E)).indexMap i = i := rfl
@@ -205,9 +203,9 @@ noncomputable def trans (r : RepresentationIsoIn E A B)
     (r.trans s).backward.indexMap i = r.backward.indexMap (s.backward.indexMap i) := rfl
 
 /-- **Reflexivity**, reusing one cover for both directions. -/
-noncomputable def refl (A : PartialAgeIn O L) (hOE : O ⊆ E) : RepresentationIsoIn E A A where
-  forward := RepresentationCoverIn.refl A hOE
-  backward := RepresentationCoverIn.refl A hOE
+noncomputable def refl (A : PartialAgeIn O L) (hOE : O ⊆ E) : RepresentationIsoIn E A A :=
+  let c := RepresentationCoverIn.refl A hOE
+  { forward := c, backward := c }
 
 /-- **The semantic consequence.** A computable isomorphism of representations presents the same
 class of structures. No oracle hypothesis: each direction reads off the stored index map and
