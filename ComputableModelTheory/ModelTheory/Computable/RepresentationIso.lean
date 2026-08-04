@@ -5,6 +5,7 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Computable.PartialComputableIso
 import ComputableModelTheory.ModelTheory.Computable.PartialAgeSteps
+import ComputableModelTheory.ModelTheory.Computable.PartialMemberEmbedding
 
 /-!
 # Covers of one representation by another
@@ -234,9 +235,9 @@ data that could drift from the isomorphisms.
 recorded generators need not be forward images of the source's recorded generators, since CHMM
 does not require an isomorphism to carry recorded generators to recorded generators.
 
-Both are total *values*, needing no oracle hypothesis. Their **computability** is what needs
-`O ⊆ E`, since reading either family's generator list touches presentation data — unlike
-traversal itself, which only runs the stored maps. -/
+Both are total *values*, needing no oracle hypothesis. The **computability** of the total
+generator-image functions is what needs `O ⊆ E`, since reading either family's generator list
+touches presentation data — unlike traversal itself, which only runs the stored maps. -/
 
 /-- The forward images of the source member's recorded generators. -/
 noncomputable def sourceGensImage (i : ℕ) : List ℕ :=
@@ -274,6 +275,40 @@ theorem targetGensPreimage_length (i : ℕ) :
     (r.targetGensPreimage i).length = (B.gens (r.indexMap i)).length :=
   (List.Forall₂.length_eq (r.mem_invTuplePart_iff.1 (r.mem_targetGensPreimage i))).symm
 
+/-- Backward traversal lands in the source member's carrier. -/
+theorem mem_domainAt_of_mem_invTuplePart {i : ℕ} {s t : List ℕ}
+    (h : t ∈ r.invTuplePart i s) : ∀ x ∈ t, x ∈ A.domainAt i := by
+  have hf := r.mem_invTuplePart_iff.1 h
+  clear h
+  induction hf with
+  | nil => simp
+  | cons hxy _ ih =>
+    intro x hx
+    rcases List.mem_cons.1 hx with rfl | hx
+    · exact (r.isoAt i).invFun_mem hxy
+    · exact ih x hx
+
+/-- The generator preimages are certified elements of the **source** member — needed when
+conjugating an arbitrary embedding. -/
+theorem targetGensPreimage_mem_domainAt (i : ℕ) :
+    ∀ x ∈ r.targetGensPreimage i, x ∈ A.domainAt i :=
+  r.mem_domainAt_of_mem_invTuplePart (r.mem_targetGensPreimage i)
+
+/-! #### Coordinates -/
+
+/-- Coordinatewise: the `n`-th generator image is the isomorphism's value at the `n`-th
+generator. Stated on `get` with both bounds explicit, so no cast is introduced. -/
+theorem sourceGensImage_get (i : ℕ) {n : ℕ} (h₁ : n < (A.gens i).length)
+    (h₂ : n < (r.sourceGensImage i).length) :
+    (r.sourceGensImage i).get ⟨n, h₂⟩ ∈ (r.isoAt i).toFun ((A.gens i).get ⟨n, h₁⟩) :=
+  (r.mem_toTuplePart_iff.1 (r.mem_sourceGensImage i)).get h₁ h₂
+
+theorem targetGensPreimage_get (i : ℕ) {n : ℕ}
+    (h₁ : n < (B.gens (r.indexMap i)).length) (h₂ : n < (r.targetGensPreimage i).length) :
+    (r.targetGensPreimage i).get ⟨n, h₂⟩ ∈
+      (r.isoAt i).invFun ((B.gens (r.indexMap i)).get ⟨n, h₁⟩) :=
+  (r.mem_invTuplePart_iff.1 (r.mem_targetGensPreimage i)).get h₁ h₂
+
 /-- **The empty case explicitly.** A member with no recorded generators maps to the empty tuple,
 even though the element map is nowhere defined there. -/
 theorem sourceGensImage_of_gens_nil {i : ℕ} (h : A.gens i = []) :
@@ -281,6 +316,65 @@ theorem sourceGensImage_of_gens_nil {i : ℕ} (h : A.gens i = []) :
   have := r.mem_sourceGensImage i
   rw [h, r.toTuplePart_nil] at this
   exact Part.mem_some_iff.1 this
+
+/-! #### Computability
+
+`O ⊆ E` enters exactly here, and only to read presentation data: the source generators, and the
+target generators at the mapped index. Each proof names its partial program first, then applies
+`computableIn_get` once. -/
+
+/-- The generator-image function is computable, given that the map oracle sees the presentation
+oracle. -/
+theorem sourceGensImage_computableIn (hOE : O ⊆ E) :
+    ComputableIn E r.sourceGensImage := by
+  have hgens : ComputableIn E A.gens := RecursiveIn.mono hOE A.gens_computableIn
+  have hSourcePart : RecursiveIn E fun i ↦ r.toTuplePart i (A.gens i) :=
+    r.toTuplePart_recursiveIn.comp (ComputableIn.id.pair hgens)
+  exact hSourcePart.computableIn_get _
+
+/-- The generator-preimage function is computable under the same hypothesis. -/
+theorem targetGensPreimage_computableIn (hOE : O ⊆ E) :
+    ComputableIn E r.targetGensPreimage := by
+  have hgens : ComputableIn E fun i ↦ B.gens (r.indexMap i) :=
+    (RecursiveIn.mono hOE B.gens_computableIn).comp r.indexMap_computableIn
+  have hTargetPart : RecursiveIn E fun i ↦ r.invTuplePart i (B.gens (r.indexMap i)) :=
+    r.invTuplePart_recursiveIn.comp (ComputableIn.id.pair hgens)
+  exact hTargetPart.computableIn_get _
+
+/-! #### The recovered CHMM sequence
+
+The paper presents a computable isomorphism of representations by a sequence of *tuples*. The
+stored isomorphisms recover exactly that sequence, and — crucially — the tuple is realized by the
+**induced equivalence itself**, not merely by some isomorphism between the same two members. -/
+
+/-- The potential embedding data determined by a cover at index `i`. Note the two indices refer
+to **different families** — `domIdx` to `A`, `codIdx` to `B` — so `PartialAgeIn.PartialIsEmbedding`,
+which is single-family, does not express its actualness. The cross-family statement is
+`sourceGensImage_realized` below. -/
+noncomputable def generatorEmbeddingData (i : ℕ) : PotentialEmbeddingData :=
+  PotentialEmbeddingData.mk i (r.indexMap i) (r.sourceGensImage i)
+
+@[simp] theorem generatorEmbeddingData_domIdx (i : ℕ) :
+    (r.generatorEmbeddingData i).domIdx = i := rfl
+
+@[simp] theorem generatorEmbeddingData_codIdx (i : ℕ) :
+    (r.generatorEmbeddingData i).codIdx = r.indexMap i := rfl
+
+@[simp] theorem generatorEmbeddingData_rangeTuple (i : ℕ) :
+    (r.generatorEmbeddingData i).rangeTuple = r.sourceGensImage i := rfl
+
+/-- **The recovered tuple is realized by the induced equivalence itself.** Not merely: some
+isomorphism between these two members sends the generators there — but *this* one does. That is
+what makes the computational tuple and the semantic equivalence the same map. -/
+theorem sourceGensImage_realized (i : ℕ) :
+    ∃ hlen : (A.gens i).length = (r.sourceGensImage i).length,
+      ∀ k : Fin (A.gens i).length,
+        (((r.isoAt i).toEquiv (A.gensView i k) :
+            (B.memberAt (r.indexMap i)).domain) : ℕ) =
+          (r.sourceGensImage i).get (Fin.cast hlen k) := by
+  refine ⟨(r.sourceGensImage_length i).symm, fun k ↦ ?_⟩
+  refine Part.mem_unique ((r.isoAt i).toSubtypeFun_mem (A.gensView i k)) ?_
+  exact r.sourceGensImage_get i k.isLt (by rw [r.sourceGensImage_length i]; exact k.isLt)
 
 end RepresentationCoverIn
 
