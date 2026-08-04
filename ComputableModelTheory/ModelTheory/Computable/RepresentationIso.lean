@@ -394,6 +394,37 @@ theorem generatorEmbeddingData_realized (i : ℕ) :
   exact r.sourceGensImage_get i k.isLt (by rw [r.sourceGensImage_length i]; exact k.isLt)
 
 
+/-! #### Semantic conjugation
+
+Conjugation is defined on a **single cover**, not on the bidirectional wrapper. The "backward"
+leg is `isoAt d`'s own inverse — *not* `RepresentationIsoIn.backward`, which is an independent
+cover with an unrelated index map and would not land at `c.indexMap d`.
+
+At this level correctness is stated through the composed `Language.Embedding` and the
+realization predicates. Crossing to the all-ℕ coded `IsEmbedding` interface, where
+`Embedding.atomicEquivalent_map` does the work, comes later. -/
+
+/-- Conjugate an explicit member embedding along a cover:
+`B_{c d} → A_d → A_a → B_{c a}`. -/
+noncomputable def conjEmbedding {d a : ℕ}
+    (f : (A.memberAt d).domain ↪[L] (A.memberAt a).domain) :
+    (B.memberAt (r.indexMap d)).domain ↪[L] (B.memberAt (r.indexMap a)).domain :=
+  ((r.isoAt a).toEquiv.toEmbedding.comp f).comp (r.isoAt d).toEquiv.symm.toEmbedding
+
+@[simp] theorem conjEmbedding_apply {d a : ℕ}
+    (f : (A.memberAt d).domain ↪[L] (A.memberAt a).domain)
+    (y : (B.memberAt (r.indexMap d)).domain) :
+    r.conjEmbedding f y = (r.isoAt a).toEquiv (f ((r.isoAt d).toEquiv.symm y)) := rfl
+
+/-- Conjugation is compatible with the source isomorphism: on the image of `x`, the conjugate
+agrees with the forward image of `f x`. This is the equation every coordinate computation
+reduces to. -/
+theorem conjEmbedding_toEquiv {d a : ℕ}
+    (f : (A.memberAt d).domain ↪[L] (A.memberAt a).domain)
+    (x : (A.memberAt d).domain) :
+    r.conjEmbedding f ((r.isoAt d).toEquiv x) = (r.isoAt a).toEquiv (f x) := by
+  rw [conjEmbedding_apply, Equiv.symm_apply_apply]
+
 end RepresentationCoverIn
 
 /-! ### The paper-facing notion
