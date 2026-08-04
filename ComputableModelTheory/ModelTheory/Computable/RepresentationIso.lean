@@ -353,7 +353,7 @@ to **different families** — `domIdx` to `A`, `codIdx` to `B` — so `PartialAg
 which is single-family, does not express its actualness. The cross-family statement is
 `sourceGensImage_realized` below. -/
 noncomputable def generatorEmbeddingData (i : ℕ) : PotentialEmbeddingData :=
-  PotentialEmbeddingData.mk i (r.indexMap i) (r.sourceGensImage i)
+  PotentialEmbeddingData.ofTriple (i, r.indexMap i, r.sourceGensImage i)
 
 @[simp] theorem generatorEmbeddingData_domIdx (i : ℕ) :
     (r.generatorEmbeddingData i).domIdx = i := rfl
@@ -363,6 +363,22 @@ noncomputable def generatorEmbeddingData (i : ℕ) : PotentialEmbeddingData :=
 
 @[simp] theorem generatorEmbeddingData_rangeTuple (i : ℕ) :
     (r.generatorEmbeddingData i).rangeTuple = r.sourceGensImage i := rfl
+
+/-- **The CHMM pair sequence is computable.** Implied by computability of `indexMap` and
+`sourceGensImage` separately, but this packaged form is the kernel-checked statement.
+
+Routed through the triple and `encode`, per the note at `PotentialEmbedding.lean`: composing
+directly against the `ofEquiv` encoding of `PotentialEmbeddingData` diverges at `whnf`. Note
+this is *not* `of_encode_eq`, which compares two functions of the same result type — here the
+intermediate returns a triple and the target returns `PotentialEmbeddingData`. -/
+theorem generatorEmbeddingData_computableIn (hOE : O ⊆ E) :
+    ComputableIn E r.generatorEmbeddingData := by
+  have htriple : ComputableIn E fun i : ℕ ↦ (i, r.indexMap i, r.sourceGensImage i) :=
+    ComputableIn.id.pair
+      (r.indexMap_computableIn.pair (r.sourceGensImage_computableIn hOE))
+  have henc : ComputableIn E fun i : ℕ ↦ encode (r.generatorEmbeddingData i) :=
+    (ComputableIn.encode.comp htriple).of_eq fun _ ↦ rfl
+  exact ComputableIn.encode_iff.mp henc
 
 /-- **The recovered tuple is realized by the induced equivalence itself.** Not merely: some
 isomorphism between these two members sends the generators there — but *this* one does. That is

@@ -172,6 +172,30 @@ theorem test_sameClass (σ τ : ℕ → ℕ) (hσ : ComputableIn O σ) (hτ : Co
     (emptyGraphAge (O := O)).SameClass (emptyGraphAge (O := O)) :=
   (emptyIso σ τ hσ hτ).sameClass
 
+/-! ### Gate 4: the recovered CHMM sequence -/
+
+/-- **The packaged pair sequence is computable.** -/
+theorem test_generatorEmbeddingData_computableIn {L : Language} [L.EffectiveLanguage]
+    {A B : PartialAgeIn O L}
+    (r : RepresentationCoverIn O A B) (hOE : O ⊆ O) :
+    ComputableIn O r.generatorEmbeddingData :=
+  r.generatorEmbeddingData_computableIn hOE
+
+/-- **The recovered tuple is realized by the induced equivalence itself** — cross-family, since
+the two indices refer to different families. -/
+theorem test_generatorEmbeddingData_realized {L : Language} [L.EffectiveLanguage]
+    {A B : PartialAgeIn O L}
+    (r : RepresentationCoverIn O A B) (i : ℕ) :
+    A.PartialRealizesBetween B (r.generatorEmbeddingData i)
+      (r.isoAt i).toEquiv.toEmbedding :=
+  r.generatorEmbeddingData_realized i
+
+/-- **Empty source generators give an empty range tuple** — on the empty family, where the
+element map is nowhere defined. -/
+theorem test_generatorEmbeddingData_rangeTuple_nil (σ : ℕ → ℕ) (hσ : ComputableIn O σ) (i : ℕ) :
+    ((emptyCover σ hσ).generatorEmbeddingData i).rangeTuple = [] :=
+  (emptyCover σ hσ).sourceGensImage_of_gens_nil (i := i) rfl
+
 end
 
 end FirstOrder.Language
@@ -182,3 +206,6 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_trans_backward_order
 #assert_standard_axioms FirstOrder.Language.test_symm_forward_eq_backward
 #assert_standard_axioms FirstOrder.Language.test_sameClass
+#assert_standard_axioms FirstOrder.Language.test_generatorEmbeddingData_computableIn
+#assert_standard_axioms FirstOrder.Language.test_generatorEmbeddingData_realized
+#assert_standard_axioms FirstOrder.Language.test_generatorEmbeddingData_rangeTuple_nil
