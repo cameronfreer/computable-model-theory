@@ -70,6 +70,17 @@ theorem memberEmbedding_ext_of_gens {i j : ℕ}
   rw [← HomClass.realize_term (L := L) f, ← HomClass.realize_term (L := L) g,
     show (⇑f ∘ B.gensView i) = (⇑g ∘ B.gensView i) from funext h]
 
+/-- **Cross-family rigidity.** Two embeddings from a member of `A` into a member of `B` that
+agree on `A`'s recorded generators are equal. Only the *source* family's generation law is used,
+so nothing here requires the two families to coincide. -/
+theorem memberEmbedding_ext_of_gens' {A B : PartialAgeIn O L} {i j : ℕ}
+    {f g : (A.memberAt i).domain ↪[L] (B.memberAt j).domain}
+    (h : ∀ k, f (A.gensView i k) = g (A.gensView i k)) : f = g := by
+  refine DFunLike.ext _ _ fun x ↦ ?_
+  obtain ⟨T, rfl⟩ := exists_realize_gensView x
+  rw [← HomClass.realize_term (L := L) f, ← HomClass.realize_term (L := L) g,
+    show (⇑f ∘ A.gensView i) = (⇑g ∘ A.gensView i) from funext h]
+
 /-! ### Realizing potential embedding data -/
 
 /-- A member embedding **realizes** potential embedding data: it runs between the indicated
@@ -80,6 +91,34 @@ def PartialRealizes (B : PartialAgeIn O L) (F : PotentialEmbeddingData)
     ∀ k : Fin (B.gens F.domIdx).length,
       ((f (B.gensView F.domIdx k) : (B.memberAt F.codIdx).domain) : ℕ) =
         F.rangeTuple.get (Fin.cast hlen k)
+
+/-- **Cross-family realization.** The same length-and-coordinate contract as `PartialRealizes`,
+but with the source member drawn from `A` and the target from `B`.
+
+Needed because transport along a computable isomorphism of representations moves data *between*
+families, where the single-family predicate does not typecheck. No existential companion is
+provided: conjugation uses explicit composites, and a cover already supplies an explicit induced
+equivalence, so an existential would discard exactly the information those proofs rely on. -/
+def PartialRealizesBetween (A B : PartialAgeIn O L) (F : PotentialEmbeddingData)
+    (f : (A.memberAt F.domIdx).domain ↪[L] (B.memberAt F.codIdx).domain) : Prop :=
+  ∃ hlen : (A.gens F.domIdx).length = F.rangeTuple.length,
+    ∀ k : Fin (A.gens F.domIdx).length,
+      ((f (A.gensView F.domIdx k) : (B.memberAt F.codIdx).domain) : ℕ) =
+        F.rangeTuple.get (Fin.cast hlen k)
+
+/-- At a single family this is exactly `PartialRealizes`. -/
+theorem partialRealizesBetween_self {F : PotentialEmbeddingData}
+    {f : (B.memberAt F.domIdx).domain ↪[L] (B.memberAt F.codIdx).domain} :
+    PartialRealizesBetween B B F f ↔ B.PartialRealizes F f :=
+  Iff.rfl
+
+/-- The cross-family realizer is unique, by cross-family rigidity. -/
+theorem PartialRealizesBetween.unique {A B : PartialAgeIn O L} {F : PotentialEmbeddingData}
+    {f g : (A.memberAt F.domIdx).domain ↪[L] (B.memberAt F.codIdx).domain}
+    (hf : PartialRealizesBetween A B F f) (hg : PartialRealizesBetween A B F g) : f = g := by
+  obtain ⟨hlf, hfk⟩ := hf
+  obtain ⟨hlg, hgk⟩ := hg
+  exact memberEmbedding_ext_of_gens' fun k ↦ Subtype.ext ((hfk k).trans (hgk k).symm)
 
 /-- The partial-family analogue of `PotentialEmbeddingData.IsEmbedding`: the data is realized
 by some member embedding. -/

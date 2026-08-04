@@ -163,7 +163,8 @@ coordinate facts follow from it without introducing casts early.
 
 The oracle split here is deliberate. Traversal itself is `RecursiveIn E` with **no** `O ⊆ E` —
 it only runs the stored maps. Reading either family's recorded generators is what touches
-presentation data, so the total generator-image functions below need the inclusion. -/
+presentation data, so the *computability* of the total generator-image functions below needs the
+inclusion — the functions themselves do not. -/
 
 namespace RepresentationCoverIn
 
@@ -365,16 +366,17 @@ noncomputable def generatorEmbeddingData (i : ℕ) : PotentialEmbeddingData :=
 
 /-- **The recovered tuple is realized by the induced equivalence itself.** Not merely: some
 isomorphism between these two members sends the generators there — but *this* one does. That is
-what makes the computational tuple and the semantic equivalence the same map. -/
-theorem sourceGensImage_realized (i : ℕ) :
-    ∃ hlen : (A.gens i).length = (r.sourceGensImage i).length,
-      ∀ k : Fin (A.gens i).length,
-        (((r.isoAt i).toEquiv (A.gensView i k) :
-            (B.memberAt (r.indexMap i)).domain) : ℕ) =
-          (r.sourceGensImage i).get (Fin.cast hlen k) := by
+what makes the computational tuple and the semantic equivalence the same map.
+
+Stated through the named cross-family predicate, so conjugation can consume it without
+re-expanding a coordinate formula. -/
+theorem generatorEmbeddingData_realized (i : ℕ) :
+    A.PartialRealizesBetween B (r.generatorEmbeddingData i)
+      (r.isoAt i).toEquiv.toEmbedding := by
   refine ⟨(r.sourceGensImage_length i).symm, fun k ↦ ?_⟩
   refine Part.mem_unique ((r.isoAt i).toSubtypeFun_mem (A.gensView i k)) ?_
   exact r.sourceGensImage_get i k.isLt (by rw [r.sourceGensImage_length i]; exact k.isLt)
+
 
 end RepresentationCoverIn
 
