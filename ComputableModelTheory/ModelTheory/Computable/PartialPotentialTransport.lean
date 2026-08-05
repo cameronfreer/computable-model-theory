@@ -1,0 +1,190 @@
+/-
+Copyright (c) 2026 Cameron Freer. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Cameron Freer
+-/
+import ComputableModelTheory.ModelTheory.Computable.PartialTupleReindex
+import ComputableModelTheory.ModelTheory.Computable.PartialMemberEmbedding
+
+/-!
+# Applying potential embedding data as a partial map
+
+Potential embedding data is pure code: a pair of member indices and a range tuple. When the data
+is *actual* it names a unique member embedding, and this file evaluates that embedding partially,
+without ever choosing a realizer.
+
+The route is the obvious one. To send `x`, find a term over the source member's recorded
+generators whose value is `x`, then realize the same term over the range tuple. Both halves are
+already available: `Term.boundedDecode` supplies bounded terms with their `VarsBelow` certificate,
+and `partialRealize` evaluates a term against an on-domain environment.
+
+**The search tests a total predicate.** `gensTermValue?` is `Option`-valued and *total*:
+undecodable codes give `none`, and a decoded bounded term always evaluates, because the recorded
+generators are on-domain and bounded decoding supplies the variable bound. So the `rfind` ranges
+over a total Boolean test; only the search itself is partial, halting exactly when `x` lies in the
+generated carrier.
+
+**No exact-domain theorem for the public operation, deliberately.** On malformed or nonactual data
+`applyPotentialPart` may halt accidentally, so a characterization of its domain would be false or
+misleading. The internal search has one; the operation does not, and nothing at Level 1 totalizes
+it.
+-/
+
+open Encodable Part FirstOrder Language
+
+namespace FirstOrder.Language
+
+namespace PartialAgeIn
+
+variable {O : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
+variable (A : PartialAgeIn O L)
+
+/-! ### The total generator-value enumerator -/
+
+/-- The value of the `m`-th bounded term over member `i`'s recorded generators, if `m` decodes to
+one. Total: the environment is on-domain and the decoded term is variable-bounded, so evaluation
+always succeeds. -/
+noncomputable def gensTermValue? (i m : ℕ) : Option ℕ :=
+  (Term.boundedDecode (L := L) (A.gens i).length m).map fun t ↦
+    @Term.realize L ℕ (A.structureAt i) ℕ (ComputableAgeIn.envFun (A.gens i)) t
+
+variable {A}
+
+/-- The recorded generators are on-domain — the hypothesis every correctness statement of the
+partial machine needs. -/
+theorem gens_forall_mem_domainAt (i : ℕ) : ∀ x ∈ A.gens i, x ∈ A.domainAt i := by
+  intro x hx
+  obtain ⟨k, hk⟩ := List.mem_iff_get.1 hx
+  exact hk ▸ A.gens_mem_domainAt k
+
+theorem gensTermValue?_eq_some_iff {i m x : ℕ} :
+    A.gensTermValue? i m = Option.some x ↔
+      ∃ t : L.Term ℕ,
+        Term.boundedDecode (L := L) (A.gens i).length m = Option.some t ∧
+          @Term.realize L ℕ (A.structureAt i) ℕ (ComputableAgeIn.envFun (A.gens i)) t = x := by
+  rw [gensTermValue?, Option.map_eq_some_iff]
+
+variable (A)
+
+/-- The enumerator is computable — the partial machine is what actually computes it, exactly as
+for `genEnum?`. -/
+theorem gensTermValue?_computableIn :
+    ComputableIn O fun p : ℕ × ℕ ↦ A.gensTermValue? p.1 p.2 := by
+  have henv : ComputableIn O fun p : ℕ × ℕ ↦ A.gens p.1 :=
+    A.gens_computableIn.comp ComputableIn.fst
+  have hdec : ComputableIn O fun p : ℕ × ℕ ↦
+      Term.boundedDecode (L := L) (A.gens p.1).length p.2 :=
+    (Term.primrec₂_boundedDecode (L := L)).to_comp.computableIn₂.comp
+      ((Computable.list_length.computableIn).comp henv) ComputableIn.snd
+  have hcall : RecursiveIn O fun q : (ℕ × ℕ) × L.Term ℕ ↦
+      A.partialRealize q.1.1 (A.gens q.1.1) q.2 :=
+    RecursiveIn.comp (O := O) (α := (ℕ × ℕ) × L.Term ℕ)
+      (β := (ℕ × Tuple ℕ) × L.Term ℕ) (σ := ℕ)
+      (f := fun r : (ℕ × Tuple ℕ) × L.Term ℕ ↦ A.partialRealize r.1.1 r.1.2 r.2)
+      (g := fun q : (ℕ × ℕ) × L.Term ℕ ↦ ((q.1.1, A.gens q.1.1), q.2))
+      A.partialRealize_recursiveIn
+      (ComputableIn.pair (O := O) (α := (ℕ × ℕ) × L.Term ℕ)
+        (β := ℕ × Tuple ℕ) (γ := L.Term ℕ)
+        (f := fun q ↦ (q.1.1, A.gens q.1.1)) (g := fun q ↦ q.2)
+        (ComputableIn.pair (O := O) (α := (ℕ × ℕ) × L.Term ℕ) (β := ℕ) (γ := Tuple ℕ)
+          (f := fun q ↦ q.1.1) (g := fun q ↦ A.gens q.1.1)
+          ((Primrec.fst.comp Primrec.fst).to_comp.computableIn)
+          (henv.comp (ComputableIn.fst (O := O) (α := ℕ × ℕ) (β := L.Term ℕ))))
+        (ComputableIn.snd (O := O) (α := ℕ × ℕ) (β := L.Term ℕ)))
+  have hpart : RecursiveIn O fun p : ℕ × ℕ ↦
+      Option.casesOn (motive := fun _ ↦ Part (Option ℕ))
+        (Term.boundedDecode (L := L) (A.gens p.1).length p.2)
+        (Part.some Option.none)
+        fun t ↦ (A.partialRealize p.1 (A.gens p.1) t).map Option.some :=
+    RecursiveIn.option_casesOn_right (O := O) (α := ℕ × ℕ) (β := L.Term ℕ)
+      (σ := Option ℕ)
+      (o := fun p ↦ Term.boundedDecode (L := L) (A.gens p.1).length p.2)
+      (f := fun _ ↦ Option.none)
+      (g := fun p t ↦ (A.partialRealize p.1 (A.gens p.1) t).map Option.some)
+      hdec (ComputableIn.const Option.none)
+      ((RecursiveIn.map (O := O) (α := (ℕ × ℕ) × L.Term ℕ) (β := ℕ) (σ := Option ℕ)
+        (f := fun q ↦ A.partialRealize q.1.1 (A.gens q.1.1) q.2)
+        (g := fun _ (v : ℕ) ↦ Option.some v)
+        hcall (ComputableIn.option_some.comp ComputableIn.snd).to₂).to₂)
+  refine hpart.of_eq fun p ↦ ?_
+  show _ = Part.some (A.gensTermValue? p.1 p.2)
+  rw [gensTermValue?]
+  rcases h : Term.boundedDecode (L := L) (A.gens p.1).length p.2 with - | t
+  · rfl
+  · show (A.partialRealize p.1 (A.gens p.1) t).map Option.some = _
+    rw [partialRealize_eq_some (gens_forall_mem_domainAt p.1)
+      (Term.boundedDecode_eq_some_iff.1 h).2]
+    rfl
+
+/-! ### The search, and the partial application
+
+The search is `rfind` over a **total** Boolean test, so no partial-search obstruction arises.
+Only the search itself is partial, halting exactly when `x` is a value of some bounded term over
+the recorded generators — that is, exactly when `x` lies in the generated carrier. -/
+
+variable {A}
+
+/-- The least code of a bounded term over member `i`'s generators whose value is `x`. -/
+noncomputable def gensTermCode (A : PartialAgeIn O L) (i x : ℕ) : Part ℕ :=
+  Nat.rfind fun m ↦ Part.some (decide (A.gensTermValue? i m = Option.some x))
+
+variable (A)
+
+/-- The repacking the search's value lookup needs, named with its exact type. -/
+private def gensTermTestInput (q : (ℕ × ℕ) × ℕ) : ℕ × ℕ := (q.1.1, q.2)
+
+private theorem gensTermTestInput_computableIn :
+    ComputableIn O gensTermTestInput :=
+  ((ComputableIn.fst.comp ComputableIn.fst).pair ComputableIn.snd).of_eq fun _ ↦ rfl
+
+private theorem gensTermValue_at_computableIn :
+    ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦ A.gensTermValue? q.1.1 q.2 := by
+  have hbase : ComputableIn O fun p : ℕ × ℕ ↦ A.gensTermValue? p.1 p.2 :=
+    A.gensTermValue?_computableIn
+  have hcomposed : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦
+      A.gensTermValue? (gensTermTestInput q).1 (gensTermTestInput q).2 :=
+    ComputableIn.comp (α := (ℕ × ℕ) × ℕ) (β := ℕ × ℕ) (σ := Option ℕ)
+      (f := fun p : ℕ × ℕ ↦ A.gensTermValue? p.1 p.2) (g := gensTermTestInput)
+      hbase gensTermTestInput_computableIn
+  exact hcomposed.of_eq fun _ ↦ rfl
+
+/-- The search's Boolean test, as its own declaration. Extracted because fusing it into
+`gensTermCode_recursiveIn` stalls at `whnf` — the established remedy for a composition whose
+input is a projection repacking. Equality of `Option ℕ` goes through encodings, never through
+`Primrec.eq` at `Option ℕ`. -/
+theorem gensTermTest_computableIn :
+    ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦
+      decide (Encodable.encode (A.gensTermValue? q.1.1 q.2) =
+        Encodable.encode (Option.some q.1.2 : Option ℕ)) := by
+  have hval : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦ A.gensTermValue? q.1.1 q.2 :=
+    A.gensTermValue_at_computableIn
+  have htgt : ComputableIn O fun q : (ℕ × ℕ) × ℕ ↦ (Option.some q.1.2 : Option ℕ) :=
+    ComputableIn.option_some.comp (ComputableIn.snd.comp ComputableIn.fst)
+  exact ((Primrec.eq (α := ℕ)).decide.to_comp.computableIn₂ (O := O)).comp
+    (ComputableIn.encode.comp hval) (ComputableIn.encode.comp htgt)
+
+theorem gensTermCode_recursiveIn :
+    RecursiveIn O fun p : ℕ × ℕ ↦ A.gensTermCode p.1 p.2 := by
+  have h : ComputableIn₂ O fun (p : ℕ × ℕ) (m : ℕ) ↦
+      decide (A.gensTermValue? p.1 m = Option.some p.2) :=
+    ComputableIn.of_eq (A.gensTermTest_computableIn).to₂ fun q ↦
+      Bool.eq_iff_iff.2 (by
+        rw [decide_eq_true_iff, decide_eq_true_iff]
+        exact Encodable.encode_inj)
+  exact RecursiveIn.rfind_total h
+
+variable {A}
+
+/-- **Apply potential embedding data to a value.** Find a bounded term over the source member's
+recorded generators whose value is `x`, then realize that same term over the range tuple.
+
+No exact-domain theorem: on malformed or nonactual data this may halt accidentally. -/
+noncomputable def applyPotentialPart (F : PotentialEmbeddingData) (x : ℕ) : Part ℕ :=
+  (A.gensTermCode F.domIdx x).bind fun m ↦
+    ((Term.boundedDecode (L := L) (A.gens F.domIdx).length m : Option (L.Term ℕ)) :
+        Part (L.Term ℕ)).bind fun t ↦
+      A.partialRealize F.codIdx F.rangeTuple t
+
+end PartialAgeIn
+
+end FirstOrder.Language
