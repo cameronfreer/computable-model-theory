@@ -373,6 +373,26 @@ theorem applyPotentialPart_mem_realizer {F : PotentialEmbeddingData}
   rw [partialRealize_rangeTuple_eq_some hf ht]
   exact Part.mem_some_iff.2 (congrArg _ (congrArg _ (Subtype.ext hrel.symm)))
 
+/-! #### Consequences that mention no realizer
+
+`PartialIsEmbedding` hides its witness behind an existential. Discharging it inside the proof
+gives statements about `applyPotentialPart` alone — but only statements that survive the
+discharge: *that* the machine halts, and *where* the value lands. Naming the value would put the
+witness back into the statement, so these two are the whole of what this layer can say. -/
+
+/-- **Actual data makes the application total on the source carrier.** -/
+theorem applyPotentialPart_dom_of_partialIsEmbedding {F : PotentialEmbeddingData}
+    (h : A.PartialIsEmbedding F) {x : ℕ} (hx : x ∈ (A.memberAt F.domIdx).domain) :
+    (A.applyPotentialPart F x).Dom :=
+  Part.dom_iff_mem.2 ⟨_, applyPotentialPart_mem_realizer h.choose_spec hx⟩
+
+/-- **And the value lands in the target member.** -/
+theorem applyPotentialPart_mem_domainAt_of_partialIsEmbedding {F : PotentialEmbeddingData}
+    (h : A.PartialIsEmbedding F) {x y : ℕ} (hx : x ∈ (A.memberAt F.domIdx).domain)
+    (hy : y ∈ A.applyPotentialPart F x) : y ∈ (A.memberAt F.codIdx).domain := by
+  rw [Part.mem_unique hy (applyPotentialPart_mem_realizer h.choose_spec hx)]
+  exact (h.choose ⟨x, hx⟩).2
+
 end PartialAgeIn
 
 end FirstOrder.Language

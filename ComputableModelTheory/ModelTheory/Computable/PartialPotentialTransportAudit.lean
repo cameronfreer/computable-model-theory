@@ -198,6 +198,20 @@ theorem test_applyPotentialPart_mem_realizer {L : Language} [L.EffectiveLanguage
     ((f ⟨x, hx⟩ : (A.memberAt F.codIdx).domain) : ℕ) ∈ A.applyPotentialPart F x :=
   PartialAgeIn.applyPotentialPart_mem_realizer hf hx
 
+/-- **Actual data makes the application total on the source carrier**, with no realizer in the
+statement. -/
+theorem test_dom_of_partialIsEmbedding {L : Language} [L.EffectiveLanguage]
+    {A : PartialAgeIn O L} {F : PotentialEmbeddingData} (h : A.PartialIsEmbedding F) {x : ℕ}
+    (hx : x ∈ (A.memberAt F.domIdx).domain) : (A.applyPotentialPart F x).Dom :=
+  PartialAgeIn.applyPotentialPart_dom_of_partialIsEmbedding h hx
+
+/-- **And the value lands in the target member**, again with no realizer in the statement. -/
+theorem test_mem_domainAt_of_partialIsEmbedding {L : Language} [L.EffectiveLanguage]
+    {A : PartialAgeIn O L} {F : PotentialEmbeddingData} (h : A.PartialIsEmbedding F) {x y : ℕ}
+    (hx : x ∈ (A.memberAt F.domIdx).domain) (hy : y ∈ A.applyPotentialPart F x) :
+    y ∈ (A.memberAt F.codIdx).domain :=
+  PartialAgeIn.applyPotentialPart_mem_domainAt_of_partialIsEmbedding h hx hy
+
 /-! ### Gate 2: the recorded generator -/
 
 /-- On the recorded generator the application returns the recorded range entry. This row would
@@ -254,6 +268,8 @@ open FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_applyPotentialPart_recursiveIn
 #assert_standard_axioms FirstOrder.Language.test_partialRealize_rangeTuple
 #assert_standard_axioms FirstOrder.Language.test_applyPotentialPart_mem_realizer
+#assert_standard_axioms FirstOrder.Language.test_dom_of_partialIsEmbedding
+#assert_standard_axioms FirstOrder.Language.test_mem_domainAt_of_partialIsEmbedding
 #assert_standard_axioms FirstOrder.Language.test_apply_generator
 #assert_standard_axioms FirstOrder.Language.test_five_not_generator
 #assert_standard_axioms FirstOrder.Language.test_apply_non_generator
