@@ -169,6 +169,24 @@ theorem PartialWellFormed.length {F : PotentialEmbeddingData}
     (h : B.PartialWellFormed F) : (B.gens F.domIdx).length = F.rangeTuple.length :=
   h.2
 
+/-- **Well-formedness can be unsatisfiable at a given index pair.** If the domain member records
+a generator while the codomain member is empty, *no* datum at those indices is well-formed — the
+length equation forces a nonempty range tuple, and carrier validity has nowhere to put it.
+
+This is a statement about the index pair alone, so it bounds what any construction can return
+there, transporting or otherwise. It has content precisely because Definition 2.1 permits empty
+and finitely-generated members in one family; at the all-ℕ fragment every carrier is inhabited
+and the situation cannot arise. -/
+theorem not_partialWellFormed_of_empty_codomain {F : PotentialEmbeddingData}
+    (hgens : B.gens F.domIdx ≠ []) (hempty : ∀ x, x ∉ B.domainAt F.codIdx) :
+    ¬ B.PartialWellFormed F := by
+  rintro ⟨hvalid, hlen⟩
+  have hne : F.rangeTuple ≠ [] := by
+    intro h
+    exact hgens (List.eq_nil_of_length_eq_zero (by rw [hlen, h, List.length_nil]))
+  obtain ⟨x, hx⟩ := List.exists_mem_of_ne_nil _ hne
+  exact hempty x (hvalid x hx)
+
 /-- A realizer forces well-formedness: its coordinate equations exhibit every range entry as
 the image of a generator, hence as an element of the codomain member. -/
 theorem PartialRealizes.partialWellFormed {F : PotentialEmbeddingData}

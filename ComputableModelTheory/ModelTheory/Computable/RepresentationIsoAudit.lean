@@ -284,6 +284,84 @@ theorem test_transportOutOf_lands_at_query (F G : PotentialEmbeddingData)
     G.domIdx = 2 ∧ G.codIdx = 8 :=
   RepresentationIsoIn.transportOutOf_indices _ hG
 
+/-! ### Gate 7: an index pair where well-formedness is unsatisfiable
+
+The CAP probe's fixture. Member `0` is empty; every other member is the singleton `{5}` generated
+by `[5]`. Definition 2.1 permits exactly this mixture, and it is what makes
+`not_partialWellFormed_of_empty_codomain` a real obstruction rather than a vacuous statement: at
+the index pair `(1, 0)` there is **no** well-formed datum at all, so no construction can return
+one there. -/
+
+/-- The mixed family: member `0` empty, all others the singleton `{5}`. -/
+noncomputable def mixedGraphAge : PartialAgeIn O Language.graph where
+  structureAt _ := pathGraphStructure
+  enum? i _ := if i = 0 then Option.none else Option.some 5
+  enum?_computableIn :=
+    (Primrec.ite (Primrec.eq.comp (Primrec.fst (β := ℕ)) (Primrec.const (0 : ℕ)))
+      (Primrec.const (Option.none : Option ℕ))
+      (Primrec.const (Option.some 5))).to_comp.computableIn
+  gens i := if i = 0 then [] else [5]
+  gens_computableIn :=
+    (Primrec.ite (Primrec.eq.comp (Primrec.id (α := ℕ)) (Primrec.const (0 : ℕ)))
+      (Primrec.const ([] : List ℕ)) (Primrec.const ([5] : List ℕ))).to_comp.computableIn
+  funEval _ _ := Part.none
+  funEval_recursiveIn := RecursiveIn.none
+  funEval_correct := fun _ d _ ↦ isEmptyElim d
+  relEval _ d :=
+    Part.some (decide (@RelationApplicationData.relMap Language.graph ℕ pathGraphStructure d))
+  relEval_recursiveIn := by
+    obtain ⟨inst, hcomp⟩ := (pathGraph_isComputable (O := O)).relMap_computablePredIn
+    have h : ComputableIn O fun p : ℕ × RelationApplicationData Language.graph ℕ ↦
+        @decide (@RelationApplicationData.relMap Language.graph ℕ pathGraphStructure p.2)
+          (inst p.2) := hcomp.comp ComputableIn.snd
+    exact h.of_eq fun _ ↦ decide_eq_decide.2 Iff.rfl
+  relEval_correct := fun _ _ _ ↦ ⟨_, Part.mem_some _, decide_eq_true_iff⟩
+  generates := fun i x ↦ by
+    by_cases hi : i = 0
+    · rw [show (if i = 0 then ([] : List ℕ) else [5]) = [] from if_pos hi]
+      constructor
+      · rintro ⟨m, hm⟩
+        rw [if_pos hi] at hm
+        exact (Option.some_ne_none _ hm.symm).elim
+      · rintro ⟨T, -⟩
+        cases T with
+        | var k => exact k.elim0
+        | @func n f ts => exact isEmptyElim f
+    · rw [show (if i = 0 then ([] : List ℕ) else [5]) = [5] from if_neg hi]
+      constructor
+      · rintro ⟨m, hm⟩
+        rw [if_neg hi] at hm
+        exact ⟨Term.var ⟨0, by simp⟩, (Option.some_inj.1 hm).symm⟩
+      · rintro ⟨T, hT⟩
+        refine ⟨0, ?_⟩
+        rw [if_neg hi]
+        refine congrArg Option.some ?_
+        cases T with
+        | var k =>
+          match k with
+          | ⟨0, _⟩ => exact hT.symm
+        | @func n f ts => exact isEmptyElim f
+
+/-- Member `0` of the mixed family is empty. -/
+theorem not_mem_mixedGraphAge_zero (x : ℕ) : x ∉ (mixedGraphAge (O := O)).domainAt 0 := by
+  rintro ⟨m, hm⟩
+  exact (Option.some_ne_none _ hm.symm).elim
+
+/-- **No well-formed datum exists from member `1` to member `0`.** The length equation forces a
+one-entry range tuple and member `0` has nowhere to put it. Since `PartialCAPIn`'s unconditional
+clause demands `PartialWellFormed` of the right leg on *arbitrary* input, this bounds what any
+transported selector can return — the clause cannot be obtained by transport, or by anything
+else, at such an index pair. -/
+theorem test_no_wellFormed_into_empty_member (F : PotentialEmbeddingData)
+    (hd : F.domIdx = 1) (ha : F.codIdx = 0) :
+    ¬ (mixedGraphAge (O := O)).PartialWellFormed F := by
+  refine PartialAgeIn.not_partialWellFormed_of_empty_codomain ?_ ?_
+  · rw [hd]
+    simp only [mixedGraphAge, if_neg (by decide : ¬ (1 : ℕ) = 0)]
+    exact List.cons_ne_nil _ _
+  · rw [ha]
+    exact not_mem_mixedGraphAge_zero
+
 /-- **Both mixed composites are partial recursive in the map oracle.** -/
 theorem test_transport_recursiveIn {L : Language} [L.EffectiveLanguage] {A B : PartialAgeIn O L}
     (r : RepresentationIsoIn O A B) (hOE : O ⊆ O) (c e a : ℕ) :
@@ -312,3 +390,4 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_transportInto_lands_at_query
 #assert_standard_axioms FirstOrder.Language.test_transportOutOf_lands_at_query
 #assert_standard_axioms FirstOrder.Language.test_transport_recursiveIn
+#assert_standard_axioms FirstOrder.Language.test_no_wellFormed_into_empty_member
