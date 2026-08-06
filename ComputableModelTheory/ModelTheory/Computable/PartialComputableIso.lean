@@ -141,6 +141,33 @@ noncomputable def toEquiv : P.domain ≃[L] Q.domain where
 
 @[simp] theorem toEquiv_apply (x : P.domain) : e.toEquiv x = e.toSubtypeFun x := rfl
 
+/-! ### Two-ended conjugation
+
+Transporting an embedding needs an isomorphism at **each end**, and the two are supplied
+independently. That generality is not decoration: in a two-cover setting the source and target
+ends may come from different covers, with unrelated index maps and no round-trip equation
+between them. Tying both ends to one indexed family — the diagonal case — would silently assume
+exactly the round trip CHMM Definition 2.3 declines to require. -/
+
+/-- **Conjugate an embedding along isomorphisms at its two ends.** -/
+noncomputable def conjugate {P Q P' Q' : PartialCePresentationIn O L}
+    (σ : PartialCeIsoIn E P P') (τ : PartialCeIsoIn E Q Q')
+    (f : P.domain ↪[L] Q.domain) : P'.domain ↪[L] Q'.domain :=
+  (τ.toEquiv.toEmbedding.comp f).comp σ.toEquiv.symm.toEmbedding
+
+@[simp] theorem conjugate_apply {P Q P' Q' : PartialCePresentationIn O L}
+    (σ : PartialCeIsoIn E P P') (τ : PartialCeIsoIn E Q Q')
+    (f : P.domain ↪[L] Q.domain) (y : P'.domain) :
+    conjugate σ τ f y = τ.toEquiv (f (σ.toEquiv.symm y)) := rfl
+
+/-- On the source isomorphism's image the conjugate is the target isomorphism's image of `f` —
+the equation every coordinate computation reduces to. -/
+theorem conjugate_toEquiv {P Q P' Q' : PartialCePresentationIn O L}
+    (σ : PartialCeIsoIn E P P') (τ : PartialCeIsoIn E Q Q')
+    (f : P.domain ↪[L] Q.domain) (x : P.domain) :
+    conjugate σ τ f (σ.toEquiv x) = τ.toEquiv (f x) := by
+  rw [conjugate_apply, Equiv.symm_apply_apply]
+
 /-- **Composition.** Genuine reusable single-member API: the forward maps compose by `bind`,
 the backward maps compose in the reverse order. -/
 def trans {W : PartialCePresentationIn O L} (e : PartialCeIsoIn E P Q)

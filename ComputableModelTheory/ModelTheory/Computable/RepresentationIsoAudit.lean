@@ -224,11 +224,71 @@ the sharpest check that no nonempty-carrier fallback has crept into any of the t
 theorem test_conjugate_empty (σ : ℕ → ℕ) (hσ : ComputableIn O σ) (F : PotentialEmbeddingData) :
     PotentialEmbeddingData.ofTriple (σ F.domIdx, σ F.codIdx, []) ∈
       (emptyCover σ hσ).conjugatePart F := by
-  rw [RepresentationCoverIn.conjugatePart,
-    (emptyCover σ hσ).targetGensPreimage_of_gens_nil (i := F.domIdx) rfl]
-  simp only [listMapPart_nil, Part.bind_some, RepresentationCoverIn.toTuplePart_nil,
-    Part.map_some, Part.mem_some_iff]
+  rw [RepresentationCoverIn.conjugatePart, conjugateDataPart,
+    gensPreimage_of_gens_nil ((emptyCover σ hσ).isoAt F.domIdx) rfl]
+  simp only [listMapPart_nil, Part.bind_some, Part.map_some, Part.mem_some_iff]
   rfl
+
+/-! ### Gate 6: the two-ended transport, and the two mixed composites
+
+The load-bearing rows for a two-cover setting. A transport queried at a `B`-index `e` must land
+**at `e`**, and no round-trip equation is available to put it there — so the composite has to mix
+the covers. The concrete rows below use the same numerically-distinguishable affine maps as gate
+2, chosen so that the single-cover answer is a *different number*, not merely a different
+expression. -/
+
+private theorem hdouble : ComputableIn O fun n ↦ 2 * n :=
+  (Primrec.nat_mul.comp (Primrec.const 2) Primrec.id).to_comp.computableIn
+
+private theorem haffine : ComputableIn O fun n ↦ 3 * n + 1 :=
+  (Primrec.nat_add.comp (Primrec.nat_mul.comp (Primrec.const 3) Primrec.id)
+    (Primrec.const 1)).to_comp.computableIn
+
+/-- **The general two-ended transport is realized at its two target indices**, which are supplied
+independently and need not be related by any index map. -/
+theorem test_conjugateDataPart_realizesAt {L : Language} [L.EffectiveLanguage]
+    {A B : PartialAgeIn O L} {d a d' a' : ℕ}
+    (σ : PartialCeIsoIn O (A.memberAt d) (B.memberAt d'))
+    (τ : PartialCeIsoIn O (A.memberAt a) (B.memberAt a'))
+    {F : PotentialEmbeddingData} {f : (A.memberAt d).domain ↪[L] (A.memberAt a).domain}
+    (hf : A.PartialRealizesAt F d a f) {G : PotentialEmbeddingData}
+    (hG : G ∈ conjugateDataPart σ τ F) :
+    B.PartialRealizesAt G d' a' (PartialCeIsoIn.conjugate σ τ f) :=
+  conjugateDataPart_realizesAt σ τ hf hG
+
+/-- **Transport along one cover is the diagonal instance** — and its source stage is the cover's
+own recorded generator preimage, so the two layers are literally the same program. -/
+theorem test_conjugatePart_is_diagonal {L : Language} [L.EffectiveLanguage]
+    {A B : PartialAgeIn O L} (r : RepresentationCoverIn O A B) (F : PotentialEmbeddingData)
+    (i : ℕ) :
+    r.conjugatePart F = conjugateDataPart (r.isoAt F.domIdx) (r.isoAt F.codIdx) F ∧
+      gensPreimage (r.isoAt i) = r.targetGensPreimage i :=
+  ⟨rfl, rfl⟩
+
+/-- **Into a queried index, exactly.** Forward `n ↦ 2n`, backward `n ↦ 3n+1`. Transporting into
+`e = 1` from `c = 3` lands at `(6, 1)`. A single-cover transport would answer at
+`forward (backward 1) = 8`, so the codomain row fails numerically if the composite ever collapses
+to one cover. -/
+theorem test_transportInto_lands_at_query (F G : PotentialEmbeddingData)
+    (hG : G ∈ (emptyIso (O := O) (fun n ↦ 2 * n) (fun n ↦ 3 * n + 1)
+      hdouble haffine).transportInto 3 1 F) :
+    G.domIdx = 6 ∧ G.codIdx = 1 :=
+  RepresentationIsoIn.transportInto_indices _ hG
+
+/-- **Out of a queried index, exactly.** The domain is the queried member `e = 2`, and the
+codomain is `forward 4 = 8`. Here the single-cover answer for the domain would be
+`forward (backward 2) = 14`. -/
+theorem test_transportOutOf_lands_at_query (F G : PotentialEmbeddingData)
+    (hG : G ∈ (emptyIso (O := O) (fun n ↦ 2 * n) (fun n ↦ 3 * n + 1)
+      hdouble haffine).transportOutOf 2 4 F) :
+    G.domIdx = 2 ∧ G.codIdx = 8 :=
+  RepresentationIsoIn.transportOutOf_indices _ hG
+
+/-- **Both mixed composites are partial recursive in the map oracle.** -/
+theorem test_transport_recursiveIn {L : Language} [L.EffectiveLanguage] {A B : PartialAgeIn O L}
+    (r : RepresentationIsoIn O A B) (hOE : O ⊆ O) (c e a : ℕ) :
+    RecursiveIn O (r.transportInto c e) ∧ RecursiveIn O (r.transportOutOf e a) :=
+  ⟨r.transportInto_recursiveIn hOE c e, r.transportOutOf_recursiveIn hOE e a⟩
 
 end
 
@@ -247,3 +307,8 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_conjugatePart_dom
 #assert_standard_axioms FirstOrder.Language.test_conjugatePart_realizesAt
 #assert_standard_axioms FirstOrder.Language.test_conjugate_empty
+#assert_standard_axioms FirstOrder.Language.test_conjugateDataPart_realizesAt
+#assert_standard_axioms FirstOrder.Language.test_conjugatePart_is_diagonal
+#assert_standard_axioms FirstOrder.Language.test_transportInto_lands_at_query
+#assert_standard_axioms FirstOrder.Language.test_transportOutOf_lands_at_query
+#assert_standard_axioms FirstOrder.Language.test_transport_recursiveIn
