@@ -175,6 +175,50 @@ theorem gensTermCode_recursiveIn :
 
 variable {A}
 
+/-! #### Search semantics
+
+The generator search's behaviour, exposed so that later proofs consume named facts instead of
+reopening `Nat.rfind`. -/
+
+/-- The generator enumerator agrees with `genEnum?` on any step list presenting the recorded
+generators — which lets the closure characterization be inherited rather than reproved. -/
+theorem gensTermValue?_eq_genEnum? {i : ℕ} {steps : List ℕ}
+    (h : A.tupleAtSteps i steps = A.gens i) (m : ℕ) :
+    A.gensTermValue? i m = A.genEnum? i steps m := by
+  rw [gensTermValue?, genEnum?, h]
+
+/-- **The search succeeds exactly on the member's carrier.** -/
+theorem exists_gensTermValue?_eq_some_iff {i x : ℕ} :
+    (∃ m, A.gensTermValue? i m = Option.some x) ↔ x ∈ A.domainAt i := by
+  obtain ⟨steps, hsteps⟩ :=
+    A.exists_steps_of_forall_mem_domainAt (gens_forall_mem_domainAt i)
+  have hval : ∀ m, A.gensTermValue? i m = A.genEnum? i steps m :=
+    gensTermValue?_eq_genEnum? hsteps
+  have hiff : (∃ m, A.gensTermValue? i m = Option.some x) ↔
+      ∃ m, A.genEnum? i steps m = Option.some x :=
+    exists_congr fun m ↦ by rw [hval m]
+  rw [hiff, exists_genEnum?_eq_some_iff, hsteps, A.mem_domainAt_iff_term]
+  exact (@mem_closure_range_iff_exists_term L ℕ (A.structureAt i) _ (A.gens i).view x).trans
+    (exists_congr fun _ ↦ eq_comm)
+
+/-- **The code search halts exactly on the carrier.** -/
+theorem gensTermCode_dom_iff {i x : ℕ} :
+    (A.gensTermCode i x).Dom ↔ x ∈ A.domainAt i := by
+  have h := Nat.rfind_some_dom_iff
+    (f := fun (y : ℕ) k ↦ decide (A.gensTermValue? i k = Option.some y)) (a := x)
+  rw [gensTermCode]
+  refine h.trans (Iff.trans ?_ exists_gensTermValue?_eq_some_iff)
+  exact ⟨fun ⟨n, hn⟩ ↦ ⟨n, of_decide_eq_true hn⟩, fun ⟨n, hn⟩ ↦ ⟨n, decide_eq_true hn⟩⟩
+
+/-- **A returned code really names a term with the queried value** — the selected term is
+exposed without reopening `rfind`. -/
+theorem gensTermValue?_of_mem_gensTermCode {i x m : ℕ} (h : m ∈ A.gensTermCode i x) :
+    A.gensTermValue? i m = Option.some x := by
+  rw [gensTermCode, Nat.mem_rfind] at h
+  exact of_decide_eq_true (Part.mem_some_iff.1 h.1).symm
+
+variable (A)
+
 /-- **Apply potential embedding data to a value.** Find a bounded term over the source member's
 recorded generators whose value is `x`, then realize that same term over the range tuple.
 
