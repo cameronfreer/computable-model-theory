@@ -318,6 +318,14 @@ theorem sourceGensImage_of_gens_nil {i : ℕ} (h : A.gens i = []) :
   rw [h, r.toTuplePart_nil] at this
   exact Part.mem_some_iff.1 this
 
+/-- The same on the backward side, where the emptiness is that of the *matched* member's
+recorded generators. -/
+theorem targetGensPreimage_of_gens_nil {i : ℕ} (h : B.gens (r.indexMap i) = []) :
+    r.targetGensPreimage i = [] := by
+  have := r.mem_targetGensPreimage i
+  rw [h, r.invTuplePart_nil] at this
+  exact Part.mem_some_iff.1 this
+
 /-! #### Computability
 
 `O ⊆ E` enters exactly here, and only to read presentation data: the source generators, and the

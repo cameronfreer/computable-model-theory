@@ -23,6 +23,7 @@ import ComputableModelTheory.ModelTheory.Computable.PartialAgeSemantics
 import ComputableModelTheory.ModelTheory.Computable.PartialPotentialTransport
 import ComputableModelTheory.ModelTheory.Computable.PartialComputableIso
 import ComputableModelTheory.ModelTheory.Computable.RepresentationIso
+import ComputableModelTheory.ModelTheory.Computable.RepresentationConjugation
 import ComputableModelTheory.ModelTheory.Computable.PartialAgeSteps
 import ComputableModelTheory.ModelTheory.Computable.PartialAllUniv
 import ComputableModelTheory.ModelTheory.Computable.PartialCHP
@@ -62,5 +63,6 @@ effective term enumeration over tuple closures, and the r.e. failure of atomic e
 between presentations; c.e.-domain, decidable-domain and partial presentations with computable
 isomorphisms, canonical transport, presentation chains and their limits; and the partial
 (possibly-empty carrier) age setting with its potential-embedding realization theory, effective
-witness interfaces, and finite-carrier embedding decision procedure.
+witness interfaces, finite-carrier embedding decision procedure, and computable isomorphism of
+representations with transport of embedding data along covers.
 -/

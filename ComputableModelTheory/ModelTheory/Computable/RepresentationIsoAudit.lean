@@ -3,7 +3,7 @@ Copyright (c) 2026 Cameron Freer. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
-import ComputableModelTheory.ModelTheory.Computable.RepresentationIso
+import ComputableModelTheory.ModelTheory.Computable.RepresentationConjugation
 import ComputableModelTheory.ModelTheory.Computable.GraphExample
 import ComputableModelTheory.Util.AssertAxioms
 
@@ -196,6 +196,40 @@ theorem test_generatorEmbeddingData_rangeTuple_nil (σ : ℕ → ℕ) (hσ : Com
     ((emptyCover σ hσ).generatorEmbeddingData i).rangeTuple = [] :=
   (emptyCover σ hσ).sourceGensImage_of_gens_nil (i := i) rfl
 
+/-! ### Gate 5: conjugating potential embedding data along a cover -/
+
+/-- **Conjugation of data is partial recursive in the map oracle.** -/
+theorem test_conjugatePart_recursiveIn {L : Language} [L.EffectiveLanguage]
+    {A B : PartialAgeIn O L} (r : RepresentationCoverIn O A B) (hOE : O ⊆ O) :
+    RecursiveIn O r.conjugatePart :=
+  r.conjugatePart_recursiveIn hOE
+
+/-- **Actual data conjugates** — halting, with no claim about the value. -/
+theorem test_conjugatePart_dom {L : Language} [L.EffectiveLanguage] {A B : PartialAgeIn O L}
+    (r : RepresentationCoverIn O A B) {F : PotentialEmbeddingData}
+    (h : A.PartialIsEmbedding F) : (r.conjugatePart F).Dom :=
+  r.conjugatePart_dom h
+
+/-- **The conjugated datum is realized by the conjugated embedding**, at the mapped indices. -/
+theorem test_conjugatePart_realizesAt {L : Language} [L.EffectiveLanguage]
+    {A B : PartialAgeIn O L} (r : RepresentationCoverIn O A B) {F : PotentialEmbeddingData}
+    {f : (A.memberAt F.domIdx).domain ↪[L] (A.memberAt F.codIdx).domain}
+    (hf : A.PartialRealizes F f) {G : PotentialEmbeddingData} (hG : G ∈ r.conjugatePart F) :
+    B.PartialRealizesAt G (r.indexMap F.domIdx) (r.indexMap F.codIdx) (r.conjEmbedding f) :=
+  r.conjugatePart_realizesAt hf hG
+
+/-- **The empty case goes all the way through.** Over the empty family every element map is
+nowhere defined, yet conjugation halts — on the empty range tuple, at the mapped indices. This is
+the sharpest check that no nonempty-carrier fallback has crept into any of the three stages. -/
+theorem test_conjugate_empty (σ : ℕ → ℕ) (hσ : ComputableIn O σ) (F : PotentialEmbeddingData) :
+    PotentialEmbeddingData.ofTriple (σ F.domIdx, σ F.codIdx, []) ∈
+      (emptyCover σ hσ).conjugatePart F := by
+  rw [RepresentationCoverIn.conjugatePart,
+    (emptyCover σ hσ).targetGensPreimage_of_gens_nil (i := F.domIdx) rfl]
+  simp only [listMapPart_nil, Part.bind_some, RepresentationCoverIn.toTuplePart_nil,
+    Part.map_some, Part.mem_some_iff]
+  rfl
+
 end
 
 end FirstOrder.Language
@@ -209,3 +243,7 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_generatorEmbeddingData_computableIn
 #assert_standard_axioms FirstOrder.Language.test_generatorEmbeddingData_realized
 #assert_standard_axioms FirstOrder.Language.test_generatorEmbeddingData_rangeTuple_nil
+#assert_standard_axioms FirstOrder.Language.test_conjugatePart_recursiveIn
+#assert_standard_axioms FirstOrder.Language.test_conjugatePart_dom
+#assert_standard_axioms FirstOrder.Language.test_conjugatePart_realizesAt
+#assert_standard_axioms FirstOrder.Language.test_conjugate_empty
