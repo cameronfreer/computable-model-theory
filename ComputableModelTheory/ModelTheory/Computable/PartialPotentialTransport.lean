@@ -229,6 +229,70 @@ noncomputable def applyPotentialPart (F : PotentialEmbeddingData) (x : ℕ) : Pa
         Part (L.Term ℕ)).bind fun t ↦
       A.partialRealize F.codIdx F.rangeTuple t
 
+/-! #### Computability of the application
+
+The `partialRealize` call's input is a projection repacking, which stalls `comp` inside the
+enclosing declaration. Extracted and fully pinned, as elsewhere. No encoded-result crossing is
+needed: the result is `Part ℕ`, not an `ofEquiv`-encoded structure. -/
+
+private def applyPotentialCodeInput (p : PotentialEmbeddingData × ℕ) : ℕ × ℕ :=
+  (p.1.domIdx, p.2)
+
+private theorem applyPotentialCodeInput_computableIn :
+    ComputableIn O applyPotentialCodeInput :=
+  ((PotentialEmbeddingData.domIdx_computable.comp ComputableIn.fst).pair
+    ComputableIn.snd).of_eq fun _ ↦ rfl
+
+private theorem applyPotentialCode_recursiveIn :
+    RecursiveIn O fun p : PotentialEmbeddingData × ℕ ↦ A.gensTermCode p.1.domIdx p.2 := by
+  have h := RecursiveIn.comp (O := O) (α := PotentialEmbeddingData × ℕ) (β := ℕ × ℕ) (σ := ℕ)
+    (f := fun q : ℕ × ℕ ↦ A.gensTermCode q.1 q.2) (g := applyPotentialCodeInput)
+    A.gensTermCode_recursiveIn applyPotentialCodeInput_computableIn
+  exact h.of_eq fun _ ↦ rfl
+
+private def applyPotentialRealizeInput
+    (q : ((PotentialEmbeddingData × ℕ) × ℕ) × L.Term ℕ) : (ℕ × Tuple ℕ) × L.Term ℕ :=
+  ((q.1.1.1.codIdx, q.1.1.1.rangeTuple), q.2)
+
+private theorem applyPotentialRealizeInput_computableIn :
+    ComputableIn O (applyPotentialRealizeInput (L := L)) :=
+  ((((PotentialEmbeddingData.codIdx_computable.comp
+        (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst))).pair
+      (PotentialEmbeddingData.rangeTuple_computable.comp
+        (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst)))).pair
+    ComputableIn.snd)).of_eq fun _ ↦ rfl
+
+private theorem applyPotentialRealize_recursiveIn :
+    RecursiveIn O fun z : ((PotentialEmbeddingData × ℕ) × ℕ) × L.Term ℕ ↦
+      A.partialRealize z.1.1.1.codIdx z.1.1.1.rangeTuple z.2 := by
+  have h := RecursiveIn.comp
+    (O := O) (α := ((PotentialEmbeddingData × ℕ) × ℕ) × L.Term ℕ)
+    (β := (ℕ × Tuple ℕ) × L.Term ℕ) (σ := ℕ)
+    (f := fun r : (ℕ × Tuple ℕ) × L.Term ℕ ↦ A.partialRealize r.1.1 r.1.2 r.2)
+    (g := applyPotentialRealizeInput (L := L))
+    A.partialRealize_recursiveIn applyPotentialRealizeInput_computableIn
+  exact h.of_eq fun _ ↦ rfl
+
+/-- **The application is partial recursive in the base oracle.** No `O ⊆ E` appears: the
+operation depends only on `A`. The inclusion enters later, when this is lifted to a map oracle
+and combined with a cover's traversals. -/
+theorem applyPotentialPart_recursiveIn :
+    RecursiveIn O fun p : PotentialEmbeddingData × ℕ ↦ A.applyPotentialPart p.1 p.2 := by
+  have hcode := A.applyPotentialCode_recursiveIn
+  have hdec : ComputableIn O fun q : (PotentialEmbeddingData × ℕ) × ℕ ↦
+      Term.boundedDecode (L := L) (A.gens q.1.1.domIdx).length q.2 :=
+    (Term.primrec₂_boundedDecode (L := L)).to_comp.computableIn₂.comp
+      ((Computable.list_length.computableIn).comp
+        (A.gens_computableIn.comp
+          (PotentialEmbeddingData.domIdx_computable.comp
+            (ComputableIn.fst.comp ComputableIn.fst))))
+      ComputableIn.snd
+  have hinner : RecursiveIn₂ O fun (p : PotentialEmbeddingData × ℕ) (m : ℕ) ↦
+      ((Term.boundedDecode (L := L) (A.gens p.1.domIdx).length m : Option (L.Term ℕ)) :
+          Part (L.Term ℕ)).bind fun t ↦ A.partialRealize p.1.codIdx p.1.rangeTuple t :=
+    (RecursiveIn.bind hdec.ofOption (A.applyPotentialRealize_recursiveIn).to₂).to₂
+  exact RecursiveIn.bind hcode hinner
+
 end PartialAgeIn
 
 end FirstOrder.Language
