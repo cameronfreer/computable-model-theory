@@ -41,12 +41,17 @@ variable (A : PartialAgeIn O L)
 
 /-! ### The total generator-value enumerator -/
 
+/-- The value of a term over member `i`'s recorded generators. Named because it is the *source*
+side of every transport statement below, and repeating the explicit structure instance obscures
+which of the two members is meant. -/
+noncomputable def gensRealize (i : ℕ) (t : L.Term ℕ) : ℕ :=
+  @Term.realize L ℕ (A.structureAt i) ℕ (ComputableAgeIn.envFun (A.gens i)) t
+
 /-- The value of the `m`-th bounded term over member `i`'s recorded generators, if `m` decodes to
 one. Total: the environment is on-domain and the decoded term is variable-bounded, so evaluation
 always succeeds. -/
 noncomputable def gensTermValue? (i m : ℕ) : Option ℕ :=
-  (Term.boundedDecode (L := L) (A.gens i).length m).map fun t ↦
-    @Term.realize L ℕ (A.structureAt i) ℕ (ComputableAgeIn.envFun (A.gens i)) t
+  (Term.boundedDecode (L := L) (A.gens i).length m).map (A.gensRealize i)
 
 variable {A}
 
@@ -57,11 +62,20 @@ theorem gens_forall_mem_domainAt (i : ℕ) : ∀ x ∈ A.gens i, x ∈ A.domainA
   obtain ⟨k, hk⟩ := List.mem_iff_get.1 hx
   exact hk ▸ A.gens_mem_domainAt k
 
+/-- A bounded term's value over the recorded generators lies in the member's carrier. Stated
+against `(A.memberAt i).domain` rather than the definitionally equal `A.domainAt i`: the subtype
+constructor `⟨_, _⟩` used below elaborates against the former, and the two are not
+interchangeable in that position. -/
+theorem gensRealize_mem_domainAt {i : ℕ} {t : L.Term ℕ}
+    (ht : Term.VarsBelow (A.gens i).length t) :
+    A.gensRealize i t ∈ (A.memberAt i).domain :=
+  realize_mem_domainAt (gens_forall_mem_domainAt i) ht
+
 theorem gensTermValue?_eq_some_iff {i m x : ℕ} :
     A.gensTermValue? i m = Option.some x ↔
       ∃ t : L.Term ℕ,
         Term.boundedDecode (L := L) (A.gens i).length m = Option.some t ∧
-          @Term.realize L ℕ (A.structureAt i) ℕ (ComputableAgeIn.envFun (A.gens i)) t = x := by
+          A.gensRealize i t = x := by
   rw [gensTermValue?, Option.map_eq_some_iff]
 
 variable (A)
@@ -186,6 +200,7 @@ theorem gensTermValue?_eq_genEnum? {i : ℕ} {steps : List ℕ}
     (h : A.tupleAtSteps i steps = A.gens i) (m : ℕ) :
     A.gensTermValue? i m = A.genEnum? i steps m := by
   rw [gensTermValue?, genEnum?, h]
+  rfl
 
 /-- **The search succeeds exactly on the member's carrier.** -/
 theorem exists_gensTermValue?_eq_some_iff {i x : ℕ} :
@@ -292,6 +307,71 @@ theorem applyPotentialPart_recursiveIn :
           Part (L.Term ℕ)).bind fun t ↦ A.partialRealize p.1.codIdx p.1.rangeTuple t :=
     (RecursiveIn.bind hdec.ofOption (A.applyPotentialRealize_recursiveIn).to₂).to₂
   exact RecursiveIn.bind hcode hinner
+
+/-! ### Correctness against a realizer
+
+Two named layers, deliberately kept apart from the `Nat.rfind` layer above.
+`partialRealize_rangeTuple_eq_some` is pure term-homomorphism reasoning: it says nothing about the
+search, only that realizing a source-bounded term against the range tuple *is* applying the
+realizer. `applyPotentialPart_mem_realizer` then does nothing but thread the search's output into
+it.
+
+The realizer is an **explicit** argument throughout. By `PartialRealizes.unique` there is at most
+one, so an existential would lose no information — but it would force every consumer to reopen the
+choice, and the conjugated pipeline needs to name the map it is transporting. -/
+
+variable {A}
+
+/-- **The target half applies the realizer.** Realizing a term bounded by the source member's
+recorded generators against `F`'s range tuple halts, with the realizer's value at the source
+realization.
+
+Both sides restrict `t` to the *same* fixed-width term — the `VarsBelow` certificate `ht` is
+shared, and only the length equation differs (`rfl` on the source side, `hf.length` on the target
+side). That is what makes the two realizations comparable at all. -/
+theorem partialRealize_rangeTuple_eq_some {F : PotentialEmbeddingData}
+    {f : (A.memberAt F.domIdx).domain ↪[L] (A.memberAt F.codIdx).domain}
+    (hf : A.PartialRealizes F f) {t : L.Term ℕ}
+    (ht : Term.VarsBelow (A.gens F.domIdx).length t) :
+    A.partialRealize F.codIdx F.rangeTuple t =
+      Part.some ((f ⟨A.gensRealize F.domIdx t, gensRealize_mem_domainAt ht⟩ :
+        (A.memberAt F.codIdx).domain) : ℕ) := by
+  have hcoord := hf.choose_spec
+  -- The source value, read inside the source member: the restricted term at the generator view.
+  have hsrc : (⟨A.gensRealize F.domIdx t, gensRealize_mem_domainAt ht⟩ :
+      (A.memberAt F.domIdx).domain) =
+        (t.restrictVar fun x ↦ (⟨x.1, ht x.1 x.2⟩ : Fin (A.gens F.domIdx).length)).realize
+          (A.gensView F.domIdx) := by
+    letI : L.Structure ℕ := A.structureAt F.domIdx
+    refine (Subtype.ext ?_).symm
+    rw [(A.memberAt F.domIdx).realize_domain_val (A.gensView F.domIdx) _]
+    exact (Term.realize_envFun_restrictVar (L := L) rfl t ht).symm
+  -- The target evaluation: the same restricted term at the range tuple's view.
+  rw [partialRealize_eq_realize_restrictVar hf.partialWellFormed.carrierValid hf.length.symm t ht,
+    hsrc, ← HomClass.realize_term (L := L) f,
+    (A.memberAt F.codIdx).realize_domain_val (⇑f ∘ A.gensView F.domIdx) _]
+  exact congrArg Part.some (congrArg
+    (fun v : Fin (A.gens F.domIdx).length → ℕ ↦
+      @Term.realize L ℕ (A.structureAt F.codIdx) _ v
+        (t.restrictVar fun x ↦ (⟨x.1, ht x.1 x.2⟩ : Fin (A.gens F.domIdx).length)))
+    (funext fun x ↦ (hcoord x).symm))
+
+/-- **The application computes the realizer.** On any element of the source member's carrier,
+`applyPotentialPart` halts with the realizer's value there.
+
+Membership, not equality of `Part`s: the search returns the *least* code, and nothing here needs
+to know which one that is. -/
+theorem applyPotentialPart_mem_realizer {F : PotentialEmbeddingData}
+    {f : (A.memberAt F.domIdx).domain ↪[L] (A.memberAt F.codIdx).domain}
+    (hf : A.PartialRealizes F f) {x : ℕ} (hx : x ∈ (A.memberAt F.domIdx).domain) :
+    ((f ⟨x, hx⟩ : (A.memberAt F.codIdx).domain) : ℕ) ∈ A.applyPotentialPart F x := by
+  obtain ⟨m, hm⟩ := Part.dom_iff_mem.1 (gensTermCode_dom_iff.2 hx)
+  obtain ⟨t, hdec, hrel⟩ := gensTermValue?_eq_some_iff.1 (gensTermValue?_of_mem_gensTermCode hm)
+  have ht : Term.VarsBelow (A.gens F.domIdx).length t :=
+    (Term.boundedDecode_eq_some_iff.1 hdec).2
+  refine Part.mem_bind_iff.2 ⟨m, hm, Part.mem_bind_iff.2 ⟨t, Part.mem_ofOption.2 hdec, ?_⟩⟩
+  rw [partialRealize_rangeTuple_eq_some hf ht]
+  exact Part.mem_some_iff.2 (congrArg _ (congrArg _ (Subtype.ext hrel.symm)))
 
 end PartialAgeIn
 
