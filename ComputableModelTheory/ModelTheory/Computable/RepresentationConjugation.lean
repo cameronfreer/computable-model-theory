@@ -35,6 +35,30 @@ about actual data, matching `applyPotentialPart`, which has no exact-domain theo
 is stated at named indices* through `PartialRealizesAt`, whose index equations are ordinary
 conjuncts — the returned datum is opaque, and `PartialRealizes` would need those equations to
 hold definitionally.
+
+## What this machinery does not reach: CAP
+
+`PartialCJEPIn` and the actual-span content of amalgamation transport along a representation
+isomorphism. `PartialCAPIn` does not, and the gap is deliberate rather than pending.
+
+Its *unconditional* clause promises `PartialWellFormed` of the right leg on arbitrary input,
+where transport can offer nothing: `conjugateDataPart_dom` needs a realizer, and
+`not_partialWellFormed_of_empty_codomain` shows some index pairs admit no well-formed datum at
+all, so no total builder over index pairs exists either. There is also a convergence mismatch —
+an input transformation would have to halt on every carrier-valid span while preserving
+actualness on actual ones; `conjugateDataPart` preserves actualness but converges only on actual
+data, a direct tuple map converges on carrier-valid data but need not preserve actualness once
+generator tuples differ, and racing them cannot safely choose.
+
+**This blocks the pointwise transport; it does not refute the implication.** Nothing here rules
+out `A.PartialCAPIn E → B.PartialCAPIn E` by some altogether different selector choosing another
+apex. The statement is therefore recorded as unsupported, not false, and no theorem asserts
+either direction. The `PartialCAPIn` contract is unchanged.
+
+Two honest recovery routes, neither taken here: specialize to the all-ℕ fragment, where
+default-padded total transport is available and the empty-codomain obstruction cannot arise; or
+add an explicit code-compatibility hypothesis — uniformly generator-respecting isomorphisms —
+strictly stronger than `RepresentationIsoIn`, and kept out of the ordinary notion.
 -/
 
 open Encodable Part FirstOrder Language
@@ -96,6 +120,12 @@ theorem gensPreimage_of_gens_nil (σ : PartialCeIsoIn E (A.memberAt d) (B.member
 /-- On the diagonal this is a cover's recorded generator preimage. -/
 theorem gensPreimage_isoAt (r : RepresentationCoverIn E A B) (i : ℕ) :
     gensPreimage (r.isoAt i) = r.targetGensPreimage i := rfl
+
+/-- Through a *backward* cover's inverse it is instead that cover's recorded generator **image**.
+Both identifications hold on the nose, which is what lets the mixed composites inherit the
+covers' uniform computability rather than needing their own. -/
+theorem gensPreimage_isoAt_symm (s : RepresentationCoverIn E B A) (e : ℕ) :
+    gensPreimage (s.isoAt e).symm = s.sourceGensImage e := rfl
 
 /-! ### The transport -/
 
@@ -379,6 +409,103 @@ theorem transportInto_recursiveIn (hOE : O ⊆ E) (c e : ℕ) :
 theorem transportOutOf_recursiveIn (hOE : O ⊆ E) (e a : ℕ) :
     RecursiveIn E (r.transportOutOf e a) :=
   conjugateDataPart_recursiveIn hOE _ _
+
+/-! #### Uniformity in the indices
+
+The fixed-end statements above are not enough for a selector, which must vary its indices with
+its input. Uniformity comes from the covers' `toFun_uniform` / `invFun_uniform` fields — a family
+of per-index proofs would not supply it — and it reaches each composite through the two
+identifications `gensPreimage_isoAt` and `gensPreimage_isoAt_symm`, which hold on the nose. Each
+composite therefore runs one cover's traversal at its source end and the *other* cover's at its
+target end, exactly as its type says. -/
+
+private def transportIntoTriple (r : RepresentationIsoIn E A B)
+    (z : ((ℕ × ℕ) × PotentialEmbeddingData) × List ℕ) : ℕ × ℕ × Tuple ℕ :=
+  (r.forward.indexMap z.1.1.1, z.1.1.2, z.2)
+
+private def transportOutOfTriple (r : RepresentationIsoIn E A B)
+    (z : ((ℕ × ℕ) × PotentialEmbeddingData) × List ℕ) : ℕ × ℕ × Tuple ℕ :=
+  (z.1.1.1, r.forward.indexMap z.1.1.2, z.2)
+
+private theorem transportIntoPack_computableIn :
+    ComputableIn E fun z : ((ℕ × ℕ) × PotentialEmbeddingData) × List ℕ ↦
+      PotentialEmbeddingData.ofTriple (r.forward.indexMap z.1.1.1, z.1.1.2, z.2) :=
+  ComputableIn.comp (O := E) (α := ((ℕ × ℕ) × PotentialEmbeddingData) × List ℕ)
+    (β := ℕ × ℕ × Tuple ℕ) (σ := PotentialEmbeddingData)
+    (f := PotentialEmbeddingData.ofTriple) (g := r.transportIntoTriple)
+    PotentialEmbeddingData.ofTriple_computableIn
+    ((((r.forward.indexMap_computableIn.comp
+          (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst))).pair
+        ((ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst)).pair
+          ComputableIn.snd))).of_eq fun _ ↦ rfl)
+
+private theorem transportOutOfPack_computableIn :
+    ComputableIn E fun z : ((ℕ × ℕ) × PotentialEmbeddingData) × List ℕ ↦
+      PotentialEmbeddingData.ofTriple (z.1.1.1, r.forward.indexMap z.1.1.2, z.2) :=
+  ComputableIn.comp (O := E) (α := ((ℕ × ℕ) × PotentialEmbeddingData) × List ℕ)
+    (β := ℕ × ℕ × Tuple ℕ) (σ := PotentialEmbeddingData)
+    (f := PotentialEmbeddingData.ofTriple) (g := r.transportOutOfTriple)
+    PotentialEmbeddingData.ofTriple_computableIn
+    ((((ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst)).pair
+        ((r.forward.indexMap_computableIn.comp
+          (ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst))).pair
+          ComputableIn.snd))).of_eq fun _ ↦ rfl)
+
+private theorem applyStage_recursiveIn (hOE : O ⊆ E) :
+    RecursiveIn E fun z : PotentialEmbeddingData × List ℕ ↦
+      listMapPart (A.applyPotentialPart z.1) z.2 :=
+  RecursiveIn.listMapPart₂ (g := fun F : PotentialEmbeddingData ↦ A.applyPotentialPart F)
+    (RecursiveIn.mono hOE A.applyPotentialPart_recursiveIn)
+
+/-- **Transport into a queried index is uniform in both indices and the data.** -/
+theorem transportInto_uniform_recursiveIn (hOE : O ⊆ E) :
+    RecursiveIn E fun q : (ℕ × ℕ) × PotentialEmbeddingData ↦
+      r.transportInto q.1.1 q.1.2 q.2 := by
+  have hstage₁ : RecursiveIn E fun q : (ℕ × ℕ) × PotentialEmbeddingData ↦
+      listMapPart (A.applyPotentialPart q.2) (r.forward.targetGensPreimage q.1.1) :=
+    RecursiveIn.comp (O := E) (α := (ℕ × ℕ) × PotentialEmbeddingData)
+      (β := PotentialEmbeddingData × List ℕ) (σ := List ℕ)
+      (f := fun z : PotentialEmbeddingData × List ℕ ↦ listMapPart (A.applyPotentialPart z.1) z.2)
+      (g := fun q : (ℕ × ℕ) × PotentialEmbeddingData ↦
+        (q.2, r.forward.targetGensPreimage q.1.1))
+      (applyStage_recursiveIn (A := A) hOE)
+      (ComputableIn.snd.pair ((r.forward.targetGensPreimage_computableIn hOE).comp
+        (ComputableIn.fst.comp ComputableIn.fst)))
+  have hstage₂ : RecursiveIn E fun z : ((ℕ × ℕ) × PotentialEmbeddingData) × List ℕ ↦
+      r.backward.invTuplePart z.1.1.2 z.2 :=
+    RecursiveIn.comp (O := E) (α := ((ℕ × ℕ) × PotentialEmbeddingData) × List ℕ)
+      (β := ℕ × List ℕ) (σ := List ℕ)
+      (f := fun p : ℕ × List ℕ ↦ r.backward.invTuplePart p.1 p.2)
+      (g := fun z : ((ℕ × ℕ) × PotentialEmbeddingData) × List ℕ ↦ (z.1.1.2, z.2))
+      r.backward.invTuplePart_recursiveIn
+      ((ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst)).pair ComputableIn.snd)
+  exact (RecursiveIn.map (RecursiveIn.bind hstage₁ hstage₂.to₂)
+    r.transportIntoPack_computableIn.to₂).of_eq fun _ ↦ rfl
+
+/-- **Transport out of a queried index is uniform in both indices and the data.** -/
+theorem transportOutOf_uniform_recursiveIn (hOE : O ⊆ E) :
+    RecursiveIn E fun q : (ℕ × ℕ) × PotentialEmbeddingData ↦
+      r.transportOutOf q.1.1 q.1.2 q.2 := by
+  have hstage₁ : RecursiveIn E fun q : (ℕ × ℕ) × PotentialEmbeddingData ↦
+      listMapPart (A.applyPotentialPart q.2) (r.backward.sourceGensImage q.1.1) :=
+    RecursiveIn.comp (O := E) (α := (ℕ × ℕ) × PotentialEmbeddingData)
+      (β := PotentialEmbeddingData × List ℕ) (σ := List ℕ)
+      (f := fun z : PotentialEmbeddingData × List ℕ ↦ listMapPart (A.applyPotentialPart z.1) z.2)
+      (g := fun q : (ℕ × ℕ) × PotentialEmbeddingData ↦
+        (q.2, r.backward.sourceGensImage q.1.1))
+      (applyStage_recursiveIn (A := A) hOE)
+      (ComputableIn.snd.pair ((r.backward.sourceGensImage_computableIn hOE).comp
+        (ComputableIn.fst.comp ComputableIn.fst)))
+  have hstage₂ : RecursiveIn E fun z : ((ℕ × ℕ) × PotentialEmbeddingData) × List ℕ ↦
+      r.forward.toTuplePart z.1.1.2 z.2 :=
+    RecursiveIn.comp (O := E) (α := ((ℕ × ℕ) × PotentialEmbeddingData) × List ℕ)
+      (β := ℕ × List ℕ) (σ := List ℕ)
+      (f := fun p : ℕ × List ℕ ↦ r.forward.toTuplePart p.1 p.2)
+      (g := fun z : ((ℕ × ℕ) × PotentialEmbeddingData) × List ℕ ↦ (z.1.1.2, z.2))
+      r.forward.toTuplePart_recursiveIn
+      ((ComputableIn.snd.comp (ComputableIn.fst.comp ComputableIn.fst)).pair ComputableIn.snd)
+  exact (RecursiveIn.map (RecursiveIn.bind hstage₁ hstage₂.to₂)
+    r.transportOutOfPack_computableIn.to₂).of_eq fun _ ↦ rfl
 
 end RepresentationIsoIn
 

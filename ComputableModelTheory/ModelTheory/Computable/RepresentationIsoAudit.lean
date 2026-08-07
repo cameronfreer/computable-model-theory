@@ -362,6 +362,27 @@ theorem test_no_wellFormed_into_empty_member (F : PotentialEmbeddingData)
   · rw [ha]
     exact not_mem_mixedGraphAge_zero
 
+/-- **Both mixed composites are uniform in their indices**, which is what a selector needs — the
+fixed-end statement is not enough. Uniformity comes from the covers' uniformity fields. -/
+theorem test_transport_uniform_recursiveIn {L : Language} [L.EffectiveLanguage]
+    {A B : PartialAgeIn O L} (r : RepresentationIsoIn O A B) (hOE : O ⊆ O) :
+    (RecursiveIn O fun q : (ℕ × ℕ) × PotentialEmbeddingData ↦
+        r.transportInto q.1.1 q.1.2 q.2) ∧
+      (RecursiveIn O fun q : (ℕ × ℕ) × PotentialEmbeddingData ↦
+        r.transportOutOf q.1.1 q.1.2 q.2) :=
+  ⟨r.transportInto_uniform_recursiveIn hOE, r.transportOutOf_uniform_recursiveIn hOE⟩
+
+/-- **Each composite's source stage is one of the covers' own generator tuples**, on the nose —
+a forward cover's preimage in one case, a backward cover's image in the other. This is what lets
+uniformity be inherited rather than rebuilt, and it fails to typecheck if either end is taken
+from the wrong cover. -/
+theorem test_gensPreimage_identifications {L : Language} [L.EffectiveLanguage]
+    {A B : PartialAgeIn O L} (r : RepresentationCoverIn O A B)
+    (s : RepresentationCoverIn O B A) (i e : ℕ) :
+    gensPreimage (r.isoAt i) = r.targetGensPreimage i ∧
+      gensPreimage (s.isoAt e).symm = s.sourceGensImage e :=
+  ⟨rfl, rfl⟩
+
 /-- **Both mixed composites are partial recursive in the map oracle.** -/
 theorem test_transport_recursiveIn {L : Language} [L.EffectiveLanguage] {A B : PartialAgeIn O L}
     (r : RepresentationIsoIn O A B) (hOE : O ⊆ O) (c e a : ℕ) :
@@ -391,3 +412,5 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_transportOutOf_lands_at_query
 #assert_standard_axioms FirstOrder.Language.test_transport_recursiveIn
 #assert_standard_axioms FirstOrder.Language.test_no_wellFormed_into_empty_member
+#assert_standard_axioms FirstOrder.Language.test_transport_uniform_recursiveIn
+#assert_standard_axioms FirstOrder.Language.test_gensPreimage_identifications
