@@ -3,7 +3,7 @@ Copyright (c) 2026 Cameron Freer. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
-import ComputableModelTheory.ModelTheory.Computable.RepresentationConjugation
+import ComputableModelTheory.ModelTheory.Computable.RepresentationWitnessTransport
 import ComputableModelTheory.ModelTheory.Computable.GraphExample
 import ComputableModelTheory.Util.AssertAxioms
 
@@ -383,6 +383,26 @@ theorem test_gensPreimage_identifications {L : Language} [L.EffectiveLanguage]
       gensPreimage (s.isoAt e).symm = s.sourceGensImage e :=
   ⟨rfl, rfl⟩
 
+/-! ### Gate 8: witness transport
+
+CJEP transports; CHP does not, and the module header of `RepresentationWitnessTransport` records
+why. The row below is bidirectional, which is the form downstream invariance arguments need. -/
+
+/-- **CJEP is invariant under representation isomorphism, in both directions.** -/
+theorem test_PartialCJEPIn_transport_iff {L : Language} [L.EffectiveLanguage]
+    {A B : PartialAgeIn O L} (r : RepresentationIsoIn O A B) (hOE : O ⊆ O) :
+    A.PartialCJEPIn O ↔ B.PartialCJEPIn O :=
+  PartialAgeIn.PartialCJEPIn.transport_iff r hOE
+
+/-- **Both transported legs share one apex.** This is what makes the result a *joint* embedding
+rather than two unrelated ones: the source apex is carried forward once, by the forward cover. -/
+theorem test_transportJoint_shared_apex {L : Language} [L.EffectiveLanguage]
+    {A B : PartialAgeIn O L} (r : RepresentationIsoIn O A B) (i j : ℕ)
+    (J K : PartialJointEmbeddingData) (hK : K ∈ r.transportJoint i j J) :
+    K.apexIdx = r.forward.indexMap J.apexIdx := by
+  obtain ⟨-, -, -, -, rfl⟩ := r.mem_transportJoint_iff.1 hK
+  rfl
+
 /-- **Both mixed composites are partial recursive in the map oracle.** -/
 theorem test_transport_recursiveIn {L : Language} [L.EffectiveLanguage] {A B : PartialAgeIn O L}
     (r : RepresentationIsoIn O A B) (hOE : O ⊆ O) (c e a : ℕ) :
@@ -414,3 +434,5 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_no_wellFormed_into_empty_member
 #assert_standard_axioms FirstOrder.Language.test_transport_uniform_recursiveIn
 #assert_standard_axioms FirstOrder.Language.test_gensPreimage_identifications
+#assert_standard_axioms FirstOrder.Language.test_PartialCJEPIn_transport_iff
+#assert_standard_axioms FirstOrder.Language.test_transportJoint_shared_apex
