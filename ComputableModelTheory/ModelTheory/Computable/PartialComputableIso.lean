@@ -168,6 +168,22 @@ theorem conjugate_toEquiv {P Q P' Q' : PartialCePresentationIn O L}
     conjugate σ τ f (σ.toEquiv x) = τ.toEquiv (f x) := by
   rw [conjugate_apply, Equiv.symm_apply_apply]
 
+/-- **Conjugation composes**, along any isomorphism chosen at the shared middle. The middle
+cancels: `ρ` is inserted and immediately removed, so the choice of `ρ` does not affect the result.
+
+This is what lets a commuting square transport. Both composites of a square share their source and
+target ends, so conjugating each by the *same* pair of end isomorphisms turns one equation between
+composites into another — with no coherence condition relating the middles, which in a two-cover
+setting there would be no way to supply. -/
+theorem conjugate_comp {P Q W P' Q' W' : PartialCePresentationIn O L}
+    (σ : PartialCeIsoIn E P P') (ρ : PartialCeIsoIn E Q Q') (τ : PartialCeIsoIn E W W')
+    (f : P.domain ↪[L] Q.domain) (g : Q.domain ↪[L] W.domain) :
+    conjugate σ τ (g.comp f) = (conjugate ρ τ g).comp (conjugate σ ρ f) := by
+  refine DFunLike.ext _ _ fun y ↦ ?_
+  show τ.toEquiv (g (f (σ.toEquiv.symm y))) =
+    τ.toEquiv (g (ρ.toEquiv.symm (ρ.toEquiv (f (σ.toEquiv.symm y)))))
+  rw [Equiv.symm_apply_apply]
+
 /-- **Composition.** Genuine reusable single-member API: the forward maps compose by `bind`,
 the backward maps compose in the reverse order. -/
 def trans {W : PartialCePresentationIn O L} (e : PartialCeIsoIn E P Q)

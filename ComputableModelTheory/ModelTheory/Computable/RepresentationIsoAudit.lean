@@ -403,6 +403,18 @@ theorem test_transportJoint_shared_apex {L : Language} [L.EffectiveLanguage]
   obtain ⟨-, -, -, -, rfl⟩ := r.mem_transportJoint_iff.1 hK
   rfl
 
+/-- **Conjugation composes, and the middle cancels.** Two *different* middle isomorphisms give
+the same composite. That is precisely why a commuting square transports with no coherence
+condition relating the middles — which a two-cover setting has no way to supply. -/
+theorem test_conjugate_comp_middle_irrelevant {L : Language} [L.EffectiveLanguage]
+    {P Q W P' Q' W' : PartialCePresentationIn O L}
+    (σ : PartialCeIsoIn O P P') (ρ₁ ρ₂ : PartialCeIsoIn O Q Q') (τ : PartialCeIsoIn O W W')
+    (f : P.domain ↪[L] Q.domain) (g : Q.domain ↪[L] W.domain) :
+    (PartialCeIsoIn.conjugate ρ₁ τ g).comp (PartialCeIsoIn.conjugate σ ρ₁ f) =
+      (PartialCeIsoIn.conjugate ρ₂ τ g).comp (PartialCeIsoIn.conjugate σ ρ₂ f) :=
+  (PartialCeIsoIn.conjugate_comp σ ρ₁ τ f g).symm.trans
+    (PartialCeIsoIn.conjugate_comp σ ρ₂ τ f g)
+
 /-- **Both mixed composites are partial recursive in the map oracle.** -/
 theorem test_transport_recursiveIn {L : Language} [L.EffectiveLanguage] {A B : PartialAgeIn O L}
     (r : RepresentationIsoIn O A B) (hOE : O ⊆ O) (c e a : ℕ) :
@@ -436,3 +448,4 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_gensPreimage_identifications
 #assert_standard_axioms FirstOrder.Language.test_PartialCJEPIn_transport_iff
 #assert_standard_axioms FirstOrder.Language.test_transportJoint_shared_apex
+#assert_standard_axioms FirstOrder.Language.test_conjugate_comp_middle_irrelevant
