@@ -184,6 +184,24 @@ theorem conjugate_comp {P Q W P' Q' W' : PartialCePresentationIn O L}
     τ.toEquiv (g (ρ.toEquiv.symm (ρ.toEquiv (f (σ.toEquiv.symm y)))))
   rw [Equiv.symm_apply_apply]
 
+/-- **Commuting squares transport.** Conjugating all four legs of a commuting square preserves the
+equation between its two composites.
+
+The two paths run through *different* middle objects, and are conjugated by different middle
+isomorphisms `ρ₁`, `ρ₂` — no relation between them is assumed or needed, because each cancels
+inside its own path. Only the shared source `σ` and apex `τ` are common to both, which is exactly
+what an amalgamation square supplies. -/
+theorem conjugate_square {D M₁ M₂ Ap D' M₁' M₂' Ap' : PartialCePresentationIn O L}
+    (σ : PartialCeIsoIn E D D') (ρ₁ : PartialCeIsoIn E M₁ M₁')
+    (ρ₂ : PartialCeIsoIn E M₂ M₂') (τ : PartialCeIsoIn E Ap Ap')
+    {fl : D.domain ↪[L] M₁.domain} {fr : D.domain ↪[L] M₂.domain}
+    {gl : M₁.domain ↪[L] Ap.domain} {gr : M₂.domain ↪[L] Ap.domain}
+    (hsq : gl.comp fl = gr.comp fr) :
+    (conjugate ρ₁ τ gl).comp (conjugate σ ρ₁ fl) =
+      (conjugate ρ₂ τ gr).comp (conjugate σ ρ₂ fr) :=
+  (conjugate_comp σ ρ₁ τ fl gl).symm.trans
+    ((congrArg (conjugate σ τ) hsq).trans (conjugate_comp σ ρ₂ τ fr gr))
+
 /-- **Composition.** Genuine reusable single-member API: the forward maps compose by `bind`,
 the backward maps compose in the reverse order. -/
 def trans {W : PartialCePresentationIn O L} (e : PartialCeIsoIn E P Q)

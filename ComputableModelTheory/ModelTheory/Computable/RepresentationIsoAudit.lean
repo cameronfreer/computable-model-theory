@@ -415,6 +415,19 @@ theorem test_conjugate_comp_middle_irrelevant {L : Language} [L.EffectiveLanguag
   (PartialCeIsoIn.conjugate_comp σ ρ₁ τ f g).symm.trans
     (PartialCeIsoIn.conjugate_comp σ ρ₂ τ f g)
 
+/-- **An amalgamation square survives conjugation.** The two paths run through different middle
+members and are conjugated by unrelated middle isomorphisms; only the source and apex ends are
+shared. Nothing relates `ρ₁` to `ρ₂`, which is what a two-cover setting can actually supply. -/
+theorem test_conjugate_square {L : Language} [L.EffectiveLanguage]
+    {D M₁ M₂ Ap D' M₁' M₂' Ap' : PartialCePresentationIn O L}
+    (σ : PartialCeIsoIn O D D') (ρ₁ : PartialCeIsoIn O M₁ M₁') (ρ₂ : PartialCeIsoIn O M₂ M₂')
+    (τ : PartialCeIsoIn O Ap Ap') {fl : D.domain ↪[L] M₁.domain} {fr : D.domain ↪[L] M₂.domain}
+    {gl : M₁.domain ↪[L] Ap.domain} {gr : M₂.domain ↪[L] Ap.domain}
+    (hsq : gl.comp fl = gr.comp fr) :
+    (PartialCeIsoIn.conjugate ρ₁ τ gl).comp (PartialCeIsoIn.conjugate σ ρ₁ fl) =
+      (PartialCeIsoIn.conjugate ρ₂ τ gr).comp (PartialCeIsoIn.conjugate σ ρ₂ fr) :=
+  PartialCeIsoIn.conjugate_square σ ρ₁ ρ₂ τ hsq
+
 /-- **Both mixed composites are partial recursive in the map oracle.** -/
 theorem test_transport_recursiveIn {L : Language} [L.EffectiveLanguage] {A B : PartialAgeIn O L}
     (r : RepresentationIsoIn O A B) (hOE : O ⊆ O) (c e a : ℕ) :
@@ -449,3 +462,4 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_PartialCJEPIn_transport_iff
 #assert_standard_axioms FirstOrder.Language.test_transportJoint_shared_apex
 #assert_standard_axioms FirstOrder.Language.test_conjugate_comp_middle_irrelevant
+#assert_standard_axioms FirstOrder.Language.test_conjugate_square
