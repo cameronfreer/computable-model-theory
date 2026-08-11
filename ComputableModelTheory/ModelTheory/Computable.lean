@@ -13,6 +13,7 @@ import ComputableModelTheory.ModelTheory.Computable.ChainShiftExample
 import ComputableModelTheory.ModelTheory.Computable.CeStructureLimit
 import ComputableModelTheory.ModelTheory.Computable.ChainPresentation
 import ComputableModelTheory.ModelTheory.Computable.ComputableIso
+import ComputableModelTheory.ModelTheory.Computable.ConstantExample
 import ComputableModelTheory.ModelTheory.Computable.DecidablePresentation
 import ComputableModelTheory.ModelTheory.Computable.Diagram
 import ComputableModelTheory.ModelTheory.Computable.GeneratedPresentation

@@ -27,18 +27,24 @@ The query is *input*. A transport, by contrast, produces a datum whose range tup
 the selected member's generators, and the source family's witness controls only `A.gens` — nothing
 relates those to `B.gens (forward.indexMap c)`, not even in length.
 
-The failure is not subtle. Over a one-constant language with the singleton structure `{5}`, let `A`
-record member `i` with `List.replicate i 5` and let `B` record every member with `[5]`. Both
-present the same class, and constant index maps make them representation-isomorphic with identity
-structure maps. `A` has CHP — select the member whose generator length matches the query — while
-`B` fails it outright at the valid query `s = []`, since every candidate has exactly one recorded
-generator and the length equation is unsatisfiable.
+**This is a theorem, not a caveat.** `CHPSeparationAudit` proves
 
-So CHP transport is not stated here. If it is needed later it should carry an explicit cover
-condition, `∀ i, r.sourceGensImage i = B.gens (r.indexMap i)` — genuine generator-respecting
-equality, not equality of lengths — and bidirectional invariance would need it on both covers.
-That hypothesis is strictly stronger than `RepresentationIsoIn` and belongs outside it: CHMM
-Definition 2.3 deliberately does not contain it.
+`∃ A B, Nonempty (RepresentationIsoIn E A B) ∧ MappedPartialCHPIn E A ∧ ¬ MappedPartialCHPIn E B`
+
+over the one-constant language with the constant interpreted as `7`, where every member has
+carrier `{7}` whatever its recorded generators. `A` records `i` copies of `7` at member `i` and
+`B` records `[7]` at every member; the domain-restricted identity at constant index maps is a
+representation isomorphism, `A` has CHP by answering a query `s` with the member of width
+`s.length`, and `B` fails at the carrier-valid query `s = []` because the length equation reads
+`1 = 0`. The two families have identical carriers everywhere, so the separation is not a carrier
+artifact — it is precisely a difference of recorded generator widths.
+
+So no strengthening of the transport machinery can establish general CHP invariance; it is false.
+If a *conditional* form is needed later it must carry an explicit cover condition,
+`∀ i, r.sourceGensImage i = B.gens (r.indexMap i)` — genuine generator-respecting equality, not
+equality of lengths, which the counterexample already defeats — and bidirectional invariance would
+need it on both covers. That hypothesis is strictly stronger than `RepresentationIsoIn` and
+belongs outside it: CHMM Definition 2.3 deliberately does not contain it.
 
 `PartialCAPIn` is unsupported for the separate reasons recorded in `RepresentationConjugation`.
 -/

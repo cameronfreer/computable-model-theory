@@ -5,6 +5,7 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Computable.TupleReindex
 import ComputableModelTheory.ModelTheory.Computable.SuccExample
+import ComputableModelTheory.ModelTheory.Computable.ConstantExample
 import ComputableModelTheory.ModelTheory.Computable.GraphExample
 import ComputableModelTheory.Util.AssertAxioms
 
@@ -124,57 +125,6 @@ theorem test_succ_generated_not_mem :
   omega
 
 end SuccessorFixture
-
-/-! ### The constant language: one constant, interpreted as `7` -/
-
-/-- The functions of the constant language: a single constant symbol. -/
-inductive ConstFunctions : ℕ → Type
-  | c : ConstFunctions 0
-
-/-- The language with one constant symbol and no relations. -/
-def constLang : Language :=
-  ⟨ConstFunctions, fun _ ↦ Empty⟩
-
-instance (n : ℕ) : IsEmpty (constLang.Functions (n + 1)) := ⟨fun f ↦ nomatch f⟩
-
-instance (n : ℕ) : IsEmpty (constLang.Relations n) := ⟨fun r ↦ r.elim⟩
-
-instance : IsEmpty constLang.RelationSymbol := ⟨fun s ↦ s.2.elim⟩
-
-/-- The constant language has a single function symbol. -/
-def constFunctionSymbolEquiv : constLang.FunctionSymbol ≃ Unit where
-  toFun _ := ()
-  invFun _ := ⟨0, ConstFunctions.c⟩
-  left_inv s := by rcases s with ⟨n, f⟩; cases f; rfl
-  right_inv _ := rfl
-
-instance : Primcodable constLang.FunctionSymbol :=
-  Primcodable.ofEquiv _ constFunctionSymbolEquiv
-
-instance : Primcodable constLang.RelationSymbol :=
-  Primcodable.ofEquiv Empty (Equiv.equivEmpty _)
-
-instance : EffectiveLanguage constLang where
-  primrec_functionArity :=
-    (Primrec.const 0).of_eq fun s ↦ by rcases s with ⟨n, f⟩; cases f; rfl
-  primrec_relationArity := Primrec.of_isEmpty _
-
-/-- The constant structure on ℕ: the constant is `7`. -/
-@[reducible] def constStructure : constLang.Structure ℕ where
-  funMap | .c => fun _ ↦ 7
-  RelMap := fun r _ ↦ r.elim
-
-instance : IsEmpty (RelationApplicationData constLang ℕ) :=
-  ⟨fun d ↦ isEmptyElim d.symbol⟩
-
-theorem constIsComputable {O : Set (ℕ →. ℕ)} :
-    @IsComputableStructureIn O constLang _ constStructure :=
-  @IsComputableStructureIn.mk O constLang _ constStructure
-    ((ComputableIn.const 7).of_eq fun d ↦
-      match d with
-      | ⟨0, .c, _⟩ => rfl
-      | ⟨_ + 1, f, _⟩ => isEmptyElim f)
-    ⟨fun d ↦ isEmptyElim d, (Computable.of_isEmpty _).computableIn⟩
 
 section ConstantFixture
 
