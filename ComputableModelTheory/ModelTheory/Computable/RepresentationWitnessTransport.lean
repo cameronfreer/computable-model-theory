@@ -40,11 +40,21 @@ representation isomorphism, `A` has CHP by answering a query `s` with the member
 artifact — it is precisely a difference of recorded generator widths.
 
 So no strengthening of the transport machinery can establish general CHP invariance; it is false.
-If a *conditional* form is needed later it must carry an explicit cover condition,
-`∀ i, r.sourceGensImage i = B.gens (r.indexMap i)` — genuine generator-respecting equality, not
-equality of lengths, which the counterexample already defeats — and bidirectional invariance would
-need it on both covers. That hypothesis is strictly stronger than `RepresentationIsoIn` and
-belongs outside it: CHMM Definition 2.3 deliberately does not contain it.
+
+What the fixture leaves **open** is which side condition restores it. It witnesses failure through
+a *generator-width mismatch*: its covers change generator lengths, so it satisfies neither
+generator equality nor length equality, and a counterexample refutes only hypotheses it satisfies.
+
+`GeneratorCompatible r := ∀ i, r.sourceGensImage i = B.gens (r.indexMap i)` is **sufficient** for
+the intended transport proof — under it the transported embedding carries the selected member's
+generators onto the original query — and bidirectional invariance would need it on both covers.
+It is not known to be necessary: whether length equality alone suffices is undecided here, and a
+weaker effective alignment condition, such as a uniformly supplied automorphism matching the
+tuples, might serve as well. Settling that needs a different fixture and should wait for a
+consumer.
+
+Any such hypothesis is strictly stronger than `RepresentationIsoIn` and belongs outside it: CHMM
+Definition 2.3 deliberately does not contain it.
 
 `PartialCAPIn` is unsupported for the separate reasons recorded in `RepresentationConjugation`.
 -/

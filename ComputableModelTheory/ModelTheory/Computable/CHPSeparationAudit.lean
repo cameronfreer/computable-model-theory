@@ -27,11 +27,18 @@ asks. `chpWide` has CHP: answer a query `s` with the member of width `s.length`.
 CHP outright at the carrier-valid query `s = []`, since every candidate has exactly one recorded
 generator and the required length equation `1 = 0` is unsatisfiable.
 
-The moral is precise: `PartialAgeIn.MappedPartialCHPIn` pins the range tuple to a query supplied from *outside*,
-and a representation isomorphism carries no information about recorded generator tuples — not even
-their lengths. A transport controls the image of the selected member's generators and cannot force
-that image to be the query. Length compatibility alone would not repair this; the fix, if ever
-needed, is genuine generator equality on the relevant cover.
+The moral is precise: `PartialAgeIn.MappedPartialCHPIn` pins the range tuple to a query supplied
+from *outside*, and a bare representation isomorphism carries no information about recorded
+generator tuples — not even their lengths. A transport controls the image of the selected member's
+generators and cannot force that image to be the query.
+
+**What this fixture does not settle.** It refutes CHP invariance under *unrestricted*
+`RepresentationIsoIn`, and nothing more. Its covers change generator lengths, so it satisfies
+neither generator equality nor length equality; a counterexample refutes only hypotheses it
+satisfies. Generator equality is *sufficient* for the intended conditional transport, but whether
+length equality alone suffices is undecided here — showing it does not would need a second
+fixture, one whose covers preserve widths while recording generator tuples of different types.
+Deferred until something needs it.
 -/
 
 open Encodable Part FirstOrder Language
