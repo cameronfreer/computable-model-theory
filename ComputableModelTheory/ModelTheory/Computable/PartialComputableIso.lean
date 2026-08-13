@@ -184,6 +184,22 @@ theorem conjugate_comp {P Q W P' Q' W' : PartialCePresentationIn O L}
     τ.toEquiv (g (ρ.toEquiv.symm (ρ.toEquiv (f (σ.toEquiv.symm y)))))
   rw [Equiv.symm_apply_apply]
 
+@[simp] theorem symm_toEquiv : e.symm.toEquiv = e.toEquiv.symm := rfl
+
+/-- **Conjugating back undoes conjugating.** Transporting an embedding along `σ`, `τ` and then
+along their inverses returns it unchanged.
+
+This is what lets a transported square be read back at the *original* realizers rather than at
+conjugated copies of them: the source-end round trip cancels, so the square's outer legs are the
+maps one already had. -/
+theorem conjugate_symm_conjugate {P Q P' Q' : PartialCePresentationIn O L}
+    (σ : PartialCeIsoIn E P P') (τ : PartialCeIsoIn E Q Q')
+    (f : P.domain ↪[L] Q.domain) :
+    conjugate σ.symm τ.symm (conjugate σ τ f) = f := by
+  refine DFunLike.ext _ _ fun x ↦ ?_
+  show τ.toEquiv.symm (τ.toEquiv (f (σ.toEquiv.symm (σ.toEquiv x)))) = f x
+  rw [Equiv.symm_apply_apply, Equiv.symm_apply_apply]
+
 /-- **Commuting squares transport.** Conjugating all four legs of a commuting square preserves the
 equation between its two composites.
 

@@ -428,6 +428,22 @@ theorem test_conjugate_square {L : Language} [L.EffectiveLanguage]
       (PartialCeIsoIn.conjugate ρ₂ τ gr).comp (PartialCeIsoIn.conjugate σ ρ₂ fr) :=
   PartialCeIsoIn.conjugate_square σ ρ₁ ρ₂ τ hsq
 
+/-- **Conjugating back undoes conjugating.** The source-end round trip cancels, so a transported
+square can be read at the *original* realizers rather than at conjugated copies of them. -/
+theorem test_conjugate_symm_conjugate {L : Language} [L.EffectiveLanguage]
+    {P Q P' Q' : PartialCePresentationIn O L} (σ : PartialCeIsoIn O P P')
+    (τ : PartialCeIsoIn O Q Q') (f : P.domain ↪[L] Q.domain) :
+    PartialCeIsoIn.conjugate σ.symm τ.symm (PartialCeIsoIn.conjugate σ τ f) = f :=
+  PartialCeIsoIn.conjugate_symm_conjugate σ τ f
+
+/-- **A transported diagram is well-shaped for the ORIGINAL span**, with no round-trip equation.
+The middle indices come from the span itself, never from `r.backward.indexMap`. -/
+theorem test_transportDiagramPart_wellShapedFor {L : Language} [L.EffectiveLanguage]
+    {A B : PartialAgeIn O L} (r : RepresentationIsoIn O A B) (S : PotentialSpanData)
+    (D E' : AmalgamationDiagramData) (hE : E' ∈ r.transportDiagramPart S D) :
+    E'.WellShapedFor S :=
+  r.transportDiagramPart_wellShapedFor hE
+
 /-- **Both mixed composites are partial recursive in the map oracle.** -/
 theorem test_transport_recursiveIn {L : Language} [L.EffectiveLanguage] {A B : PartialAgeIn O L}
     (r : RepresentationIsoIn O A B) (hOE : O ⊆ O) (c e a : ℕ) :
@@ -463,3 +479,5 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_transportJoint_shared_apex
 #assert_standard_axioms FirstOrder.Language.test_conjugate_comp_middle_irrelevant
 #assert_standard_axioms FirstOrder.Language.test_conjugate_square
+#assert_standard_axioms FirstOrder.Language.test_conjugate_symm_conjugate
+#assert_standard_axioms FirstOrder.Language.test_transportDiagramPart_wellShapedFor

@@ -239,6 +239,68 @@ theorem transportJoint_recursiveIn (hOE : O ⊆ E) :
   -- is a different term and forces `whnf` to chase the whole pipeline
   exact RecursiveIn.bind hL (RecursiveIn.map hR r.jointPack_computableIn.to₂).to₂
 
+/-! ### Spans and diagrams
+
+The actual-span content of amalgamation transport. Nothing is totalized and nothing is selected:
+these are `Part`-valued, and the assembly theorem below is membership-parametric, so a caller
+supplies whichever members it has rather than being handed a canonical choice.
+
+**The middle indices come from `S`, never from `r.backward.indexMap`.** There is no round-trip law
+that would let them be reconstructed, and taking them from the original span is also what makes
+B-side well-shapedness land on the nose rather than up to an index equation. -/
+
+/-- **Pull a B-span back to `A`**, by conjugating both legs along the backward cover. -/
+noncomputable def transportSpanPart (S : PotentialSpanData) : Part PotentialSpanData :=
+  (r.backward.conjugatePart S.left).bind fun L ↦
+    (r.backward.conjugatePart S.right).map fun R ↦ PotentialSpanData.ofPair (L, R)
+
+theorem mem_transportSpanPart_iff {S T : PotentialSpanData} :
+    T ∈ r.transportSpanPart S ↔
+      ∃ L ∈ r.backward.conjugatePart S.left, ∃ R ∈ r.backward.conjugatePart S.right,
+        T = PotentialSpanData.ofPair (L, R) := by
+  rw [transportSpanPart]
+  constructor
+  · intro h
+    obtain ⟨L, hL, h'⟩ := Part.mem_bind_iff.1 h
+    obtain ⟨R, hR, rfl⟩ := (Part.mem_map_iff _).1 h'
+    exact ⟨L, hL, R, hR, rfl⟩
+  · rintro ⟨L, hL, R, hR, rfl⟩
+    exact Part.mem_bind_iff.2 ⟨L, hL, (Part.mem_map_iff _).2 ⟨R, hR, rfl⟩⟩
+
+/-- **Push an `A`-diagram forward to `B`**, at the original span's middle indices and a single
+shared apex. Both legs are pushed to `r.forward.indexMap` of the *same* `A` apex — read off the
+left leg, so the shared apex is structural rather than a hypothesis. -/
+noncomputable def transportDiagramPart (S : PotentialSpanData) (D : AmalgamationDiagramData) :
+    Part AmalgamationDiagramData :=
+  (r.transportOutOf S.left.codIdx D.leftToApex.codIdx D.leftToApex).bind fun GL ↦
+    (r.transportOutOf S.right.codIdx D.leftToApex.codIdx D.rightToApex).map fun GR ↦
+      AmalgamationDiagramData.ofPair (GL, GR)
+
+theorem mem_transportDiagramPart_iff {S : PotentialSpanData}
+    {D E' : AmalgamationDiagramData} :
+    E' ∈ r.transportDiagramPart S D ↔
+      ∃ GL ∈ r.transportOutOf S.left.codIdx D.leftToApex.codIdx D.leftToApex,
+        ∃ GR ∈ r.transportOutOf S.right.codIdx D.leftToApex.codIdx D.rightToApex,
+          E' = AmalgamationDiagramData.ofPair (GL, GR) := by
+  rw [transportDiagramPart]
+  constructor
+  · intro h
+    obtain ⟨GL, hGL, h'⟩ := Part.mem_bind_iff.1 h
+    obtain ⟨GR, hGR, rfl⟩ := (Part.mem_map_iff _).1 h'
+    exact ⟨GL, hGL, GR, hGR, rfl⟩
+  · rintro ⟨GL, hGL, GR, hGR, rfl⟩
+    exact Part.mem_bind_iff.2 ⟨GL, hGL, (Part.mem_map_iff _).2 ⟨GR, hGR, rfl⟩⟩
+
+/-- **The transported diagram is well-shaped for the original span**, with no round-trip equation:
+each leg's domain index is the span leg's codomain index by construction, and both apexes are
+`r.forward.indexMap` of the one `A` apex. -/
+theorem transportDiagramPart_wellShapedFor {S : PotentialSpanData}
+    {D E' : AmalgamationDiagramData} (hE : E' ∈ r.transportDiagramPart S D) :
+    E'.WellShapedFor S := by
+  obtain ⟨GL, hGL, GR, hGR, rfl⟩ := r.mem_transportDiagramPart_iff.1 hE
+  exact ⟨(r.transportOutOf_indices hGL).1, (r.transportOutOf_indices hGR).1,
+    ((r.transportOutOf_indices hGL).2).trans ((r.transportOutOf_indices hGR).2).symm⟩
+
 end RepresentationIsoIn
 
 /-! ### The transport theorem
