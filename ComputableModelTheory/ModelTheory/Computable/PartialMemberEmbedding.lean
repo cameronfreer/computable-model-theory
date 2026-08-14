@@ -237,6 +237,25 @@ theorem PartialRealizesAt.unique {F : PotentialEmbeddingData} {d a : ℕ}
   obtain ⟨-, -, hleng, hgk⟩ := hg
   exact memberEmbedding_ext_of_gens fun k ↦ Subtype.ext ((hfk k).trans (hgk k).symm)
 
+/-- An indexed realizer witnesses actualness. The indices are variables, so they substitute away
+and the realizer becomes one at the data's own indices. -/
+theorem PartialRealizesAt.partialIsEmbedding {F : PotentialEmbeddingData} {d a : ℕ}
+    {f : (B.memberAt d).domain ↪[L] (B.memberAt a).domain}
+    (h : B.PartialRealizesAt F d a f) : B.PartialIsEmbedding F := by
+  obtain ⟨rfl, rfl, h'⟩ := h
+  exact ⟨f, h'⟩
+
+/-- Read a realizer at *named* indices, given equations placing them. The transport along the
+equations is explicit in the statement because the realizer's type mentions the indices; consumers
+that already substituted get it definitionally. -/
+theorem PartialRealizes.realizesAt_of_eq {F : PotentialEmbeddingData}
+    {f : (B.memberAt F.domIdx).domain ↪[L] (B.memberAt F.codIdx).domain}
+    (h : B.PartialRealizes F f) {d a : ℕ} (hd : F.domIdx = d) (ha : F.codIdx = a) :
+    B.PartialRealizesAt F d a (ha ▸ hd ▸ f) := by
+  subst hd
+  subst ha
+  exact ⟨rfl, rfl, h⟩
+
 /-- Semantic commutativity of an amalgamation square: there are realizers for all four legs —
 the span's two and the diagram's two — whose composites agree as member embeddings. The apex
 and middle indices are named, so both composites live in the same type.
