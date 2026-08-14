@@ -301,6 +301,54 @@ theorem transportDiagramPart_wellShapedFor {S : PotentialSpanData}
   exact ⟨(r.transportOutOf_indices hGL).1, (r.transportOutOf_indices hGR).1,
     ((r.transportOutOf_indices hGL).2).trans ((r.transportOutOf_indices hGR).2).symm⟩
 
+/-! #### Realization, at explicit realizers
+
+Stated with the maps named, not merely `PartialIsEmbedding`. The assembly has to feed actual maps
+to `conjugate_square`, and an existential wrapper would force every consumer to reopen the choice
+— the same discipline the element-level transport already follows. -/
+
+/-- Both legs of a transported span are realized by the conjugates of the original realizers. -/
+theorem transportSpanPart_realizesAt {S T : PotentialSpanData}
+    {fl : (B.memberAt S.left.domIdx).domain ↪[L] (B.memberAt S.left.codIdx).domain}
+    {fr : (B.memberAt S.right.domIdx).domain ↪[L] (B.memberAt S.right.codIdx).domain}
+    (hfl : B.PartialRealizes S.left fl) (hfr : B.PartialRealizes S.right fr)
+    (hT : T ∈ r.transportSpanPart S) :
+    A.PartialRealizesAt T.left (r.backward.indexMap S.left.domIdx)
+        (r.backward.indexMap S.left.codIdx) (r.backward.conjEmbedding fl) ∧
+      A.PartialRealizesAt T.right (r.backward.indexMap S.right.domIdx)
+        (r.backward.indexMap S.right.codIdx) (r.backward.conjEmbedding fr) := by
+  obtain ⟨L, hL, R, hR, rfl⟩ := r.mem_transportSpanPart_iff.1 hT
+  exact ⟨r.backward.conjugatePart_realizesAt hfl hL,
+    r.backward.conjugatePart_realizesAt hfr hR⟩
+
+/-- Both legs of a transported diagram are realized by the conjugates of the `A`-side realizers.
+
+The three index arguments are **variables with equations**, not the compound expressions
+themselves: that is what lets them be substituted away inside, where the `transportOutOf`
+statements apply on the nose. Consumers get them from `PartialCommutes`, which already names its
+indices this way. -/
+theorem transportDiagramPart_realizesAt {S : PotentialSpanData}
+    {D E' : AmalgamationDiagramData} {m₁ m₂ apex : ℕ}
+    {gl : (A.memberAt m₁).domain ↪[L] (A.memberAt apex).domain}
+    {gr : (A.memberAt m₂).domain ↪[L] (A.memberAt apex).domain}
+    (hgl : A.PartialRealizesAt D.leftToApex m₁ apex gl)
+    (hgr : A.PartialRealizesAt D.rightToApex m₂ apex gr)
+    (hm₁ : m₁ = r.backward.indexMap S.left.codIdx)
+    (hm₂ : m₂ = r.backward.indexMap S.right.codIdx)
+    (hapex : apex = D.leftToApex.codIdx)
+    (hE : E' ∈ r.transportDiagramPart S D) :
+    B.PartialRealizesAt E'.leftToApex S.left.codIdx (r.forward.indexMap apex)
+        (PartialCeIsoIn.conjugate (r.backward.isoAt S.left.codIdx).symm
+          (r.forward.isoAt apex) (hm₁ ▸ gl)) ∧
+      B.PartialRealizesAt E'.rightToApex S.right.codIdx (r.forward.indexMap apex)
+        (PartialCeIsoIn.conjugate (r.backward.isoAt S.right.codIdx).symm
+          (r.forward.isoAt apex) (hm₂ ▸ gr)) := by
+  subst hm₁
+  subst hm₂
+  subst hapex
+  obtain ⟨GL, hGL, GR, hGR, rfl⟩ := r.mem_transportDiagramPart_iff.1 hE
+  exact ⟨r.transportOutOf_realizesAt hgl hGL, r.transportOutOf_realizesAt hgr hGR⟩
+
 end RepresentationIsoIn
 
 /-! ### The transport theorem
