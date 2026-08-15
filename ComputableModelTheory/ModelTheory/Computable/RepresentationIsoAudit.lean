@@ -455,6 +455,24 @@ theorem test_PartialAmalgamation_transport {L : Language} [L.EffectiveLanguage]
     B.PartialAmalgamation S E' :=
   PartialAgeIn.PartialAmalgamation.transport r hS hT hD hE
 
+/-- **The existential form derives its own witness.** No halting hypothesis: the same data that
+makes the transport meaningful already makes the diagram transport halt. -/
+theorem test_PartialAmalgamation_transport_exists {L : Language} [L.EffectiveLanguage]
+    {A B : PartialAgeIn O L} (r : RepresentationIsoIn O A B) {S T : PotentialSpanData}
+    {D : AmalgamationDiagramData} (hS : B.PartialSpanActual S)
+    (hT : T ∈ r.transportSpanPart S) (hD : A.PartialAmalgamation T D) :
+    ∃ E', B.PartialAmalgamation S E' :=
+  PartialAgeIn.PartialAmalgamation.transport_exists r hS hT hD
+
+/-- **An actual span transports**, and an amalgamating diagram over it does too. One-way halting;
+neither claims an exact domain. -/
+theorem test_transport_dom {L : Language} [L.EffectiveLanguage] {A B : PartialAgeIn O L}
+    (r : RepresentationIsoIn O A B) {S T : PotentialSpanData} {D : AmalgamationDiagramData}
+    (hS : B.PartialSpanActual S) (hT : T ∈ r.transportSpanPart S)
+    (hD : A.PartialAmalgamation T D) :
+    (r.transportSpanPart S).Dom ∧ (r.transportDiagramPart S D).Dom :=
+  ⟨r.transportSpanPart_dom hS, r.transportDiagramPart_dom hT hD⟩
+
 /-- **Both mixed composites are partial recursive in the map oracle.** -/
 theorem test_transport_recursiveIn {L : Language} [L.EffectiveLanguage] {A B : PartialAgeIn O L}
     (r : RepresentationIsoIn O A B) (hOE : O ⊆ O) (c e a : ℕ) :
@@ -493,3 +511,5 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_conjugate_symm_conjugate
 #assert_standard_axioms FirstOrder.Language.test_transportDiagramPart_wellShapedFor
 #assert_standard_axioms FirstOrder.Language.test_PartialAmalgamation_transport
+#assert_standard_axioms FirstOrder.Language.test_PartialAmalgamation_transport_exists
+#assert_standard_axioms FirstOrder.Language.test_transport_dom

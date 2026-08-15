@@ -318,6 +318,35 @@ private theorem conjugatePart_realizesAt_of_realizesAt {X Y : PartialAgeIn O L}
   obtain ⟨rfl, rfl, hf⟩ := hF
   exact c.conjugatePart_realizesAt hf hG
 
+/-! #### Halting
+
+One-way sufficient conditions, not exact-domain theorems: they say when the transports *do* halt
+and claim nothing about when they do not. That distinction is the whole reason
+`PartialAmalgamation.transport` can be stated membership-parametrically while its existential form
+still derives its own witness. Neither uses `.get` or totalizes anything. -/
+
+/-- **An actual span transports.** Both legs are actual, so both conjugations halt. -/
+theorem transportSpanPart_dom {S : PotentialSpanData} (hS : B.PartialSpanActual S) :
+    (r.transportSpanPart S).Dom := by
+  obtain ⟨-, hSl, hSr⟩ := hS
+  obtain ⟨PL, hPL⟩ := Part.dom_iff_mem.1 (r.backward.conjugatePart_dom hSl)
+  obtain ⟨PR, hPR⟩ := Part.dom_iff_mem.1 (r.backward.conjugatePart_dom hSr)
+  exact Part.dom_iff_mem.2 ⟨_, r.mem_transportSpanPart_iff.2 ⟨PL, hPL, PR, hPR, rfl⟩⟩
+
+/-- **An amalgamating diagram transports.** The span transport pins both middle indices, the
+amalgamation supplies actualness of both output legs and the shape equations, and together those
+are exactly the hypotheses `transportOutOf_dom` asks for. -/
+theorem transportDiagramPart_dom {S T : PotentialSpanData} {D : AmalgamationDiagramData}
+    (hT : T ∈ r.transportSpanPart S) (hD : A.PartialAmalgamation T D) :
+    (r.transportDiagramPart S D).Dom := by
+  obtain ⟨PL, hPL, PR, hPR, rfl⟩ := r.mem_transportSpanPart_iff.1 hT
+  obtain ⟨hDws, hDl, hDr, -⟩ := hD
+  obtain ⟨GL, hGL⟩ := Part.dom_iff_mem.1 (r.transportOutOf_dom hDl
+    (hDws.1.trans (r.backward.conjugatePart_indices hPL).2) rfl)
+  obtain ⟨GR, hGR⟩ := Part.dom_iff_mem.1 (r.transportOutOf_dom hDr
+    (hDws.2.1.trans (r.backward.conjugatePart_indices hPR).2) hDws.2.2.symm)
+  exact Part.dom_iff_mem.2 ⟨_, r.mem_transportDiagramPart_iff.2 ⟨GL, hGL, GR, hGR, rfl⟩⟩
+
 /-! #### Realization, at explicit realizers
 
 Stated with the maps named, not merely `PartialIsEmbedding`. The assembly has to feed actual maps
@@ -467,14 +496,15 @@ theorem PartialAmalgamation.transport {A B : PartialAgeIn O L} (r : Representati
     (PartialAgeIn.partialCommutes_iff_of_realizers hflB hfrB hEl hEr).2 hsqB⟩
 
 /-- **Existential form**, for callers that do not need to name the transported diagram. The
-halting hypothesis is explicit rather than derived: `transportDiagramPart` has no exact-domain
-theorem, for the same reason `applyPotentialPart` does not. -/
+diagram's existence is *derived*, not assumed: `transportDiagramPart_dom` already follows from the
+same hypotheses. -/
 theorem PartialAmalgamation.transport_exists {A B : PartialAgeIn O L}
     (r : RepresentationIsoIn E A B) {S T : PotentialSpanData} {D : AmalgamationDiagramData}
     (hS : B.PartialSpanActual S) (hT : T ∈ r.transportSpanPart S)
-    (hD : A.PartialAmalgamation T D) (hE : ∃ E', E' ∈ r.transportDiagramPart S D) :
-    ∃ E', B.PartialAmalgamation S E' :=
-  hE.imp fun _ h ↦ PartialAmalgamation.transport r hS hT hD h
+    (hD : A.PartialAmalgamation T D) :
+    ∃ E', B.PartialAmalgamation S E' := by
+  obtain ⟨E', hE'⟩ := Part.dom_iff_mem.1 (r.transportDiagramPart_dom hT hD)
+  exact ⟨E', PartialAmalgamation.transport r hS hT hD hE'⟩
 
 /-- **Both directions.** The reverse is the same theorem at `r.symm`. -/
 theorem PartialCJEPIn.transport_iff {A B : PartialAgeIn O L} (r : RepresentationIsoIn E A B)
