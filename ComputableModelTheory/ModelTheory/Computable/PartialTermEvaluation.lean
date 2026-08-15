@@ -185,18 +185,26 @@ theorem primrec_stepPlan :
   exact (Primrec.sumCasesOn (Primrec.snd.comp Primrec.fst) hinl hinr).of_eq fun x ↦ by
     rcases x with ⟨⟨env, g | s⟩, acc⟩ <;> rfl
 
-namespace PartialAgeIn
+/-! ## The machine at a single presentation
 
-variable (A : PartialAgeIn O L)
+The machine reads only the presentation's partial evaluator, so it belongs here rather than at the
+family layer: a family's machine at member `i` is this one at `A.memberAt i`, definitionally. That
+matters beyond tidiness — a **single computable structure** is a presentation and not a family, so
+the canonical representation of an age (CHMM Definition 2.4) can run exactly this machine, which a
+family-indexed one could not serve. -/
+
+namespace PartialCePresentationIn
+
+variable (P : PartialCePresentationIn O L)
 
 /-! ### The partial value-stack machine -/
 
-/-- One step of the partial value-stack machine at member `i`: a variable pushes its
+/-- One step of the partial value-stack machine: a variable pushes its
 environment entry and is **undefined** off the end of the environment; a function symbol
-consumes its arity in values through the uniform application data and calls the family's
-partial evaluator. Arity mismatch — in particular argument underflow — leaves the step
+consumes its arity in values through the uniform application data and calls the
+presentation's partial evaluator. Arity mismatch — in particular argument underflow — leaves the step
 undefined; there is no resetting fallback. -/
-def partialValueStep (i : ℕ) (env : Tuple ℕ) (g : ℕ ⊕ (Σ j, L.Functions j))
+def partialValueStep (env : Tuple ℕ) (g : ℕ ⊕ (Σ j, L.Functions j))
     (acc : List ℕ) : Part (List ℕ) :=
   match g with
   | Sum.inl n => ((env[n]? : Option ℕ) : Part ℕ).map (· :: acc)
@@ -204,78 +212,77 @@ def partialValueStep (i : ℕ) (env : Tuple ℕ) (g : ℕ ⊕ (Σ j, L.Functions
     (((FunctionApplicationData.ofSymbolArgs? ((s, acc.take s.1) :
         L.FunctionSymbol × List ℕ) : Option (FunctionApplicationData L ℕ)) :
       Part (FunctionApplicationData L ℕ)).bind
-        fun d ↦ (A.funEval i d).map (· :: acc.drop s.1))
+        fun d ↦ (P.funEval d).map (· :: acc.drop s.1))
 
 /-- The partial value-stack machine: the partial fold of the step over the symbol list. -/
-def partialValueStack (i : ℕ) (env : Tuple ℕ)
-    (l : List (ℕ ⊕ (Σ j, L.Functions j))) : Part (List ℕ) :=
-  foldrPart (A.partialValueStep i env) [] l
+def partialValueStack (env : Tuple ℕ) (l : List (ℕ ⊕ (Σ j, L.Functions j))) : Part (List ℕ) :=
+  foldrPart (P.partialValueStep env) [] l
 
 /-- Partial uniform term evaluation: run the machine on the term's code and accept only a
 one-value stack. -/
-def partialRealize (i : ℕ) (env : Tuple ℕ) (t : L.Term ℕ) : Part ℕ :=
-  (A.partialValueStack i env t.listEncode).bind fun vs ↦
+def partialRealize (env : Tuple ℕ) (t : L.Term ℕ) : Part ℕ :=
+  (P.partialValueStack env t.listEncode).bind fun vs ↦
     ((soleStackValue vs : Option ℕ) : Part ℕ)
 
 @[simp]
-theorem partialValueStack_nil (i : ℕ) (env : Tuple ℕ) :
-    A.partialValueStack i env [] = Part.some [] :=
+theorem partialValueStack_nil (env : Tuple ℕ) :
+    P.partialValueStack env [] = Part.some [] :=
   rfl
 
-theorem partialValueStack_cons (i : ℕ) (env : Tuple ℕ) (g : ℕ ⊕ (Σ j, L.Functions j))
+theorem partialValueStack_cons (env : Tuple ℕ) (g : ℕ ⊕ (Σ j, L.Functions j))
     (l : List (ℕ ⊕ (Σ j, L.Functions j))) :
-    A.partialValueStack i env (g :: l) =
-      (A.partialValueStack i env l).bind fun acc ↦ A.partialValueStep i env g acc :=
+    P.partialValueStack env (g :: l) =
+      (P.partialValueStack env l).bind fun acc ↦ P.partialValueStep env g acc :=
   foldrPart_cons _ _ _ _
 
 /-! ### On-domain correctness -/
 
-variable {A}
+variable {P}
 
-/-- A bounded term realizes into the member's carrier over an on-domain environment: the
+/-- A bounded term realizes into the presentation's carrier over an on-domain environment: the
 generation law's derived domain-closure, run up the term. -/
-theorem realize_mem_domainAt {i : ℕ} {env : Tuple ℕ}
-    (henv : ∀ x ∈ env, x ∈ A.domainAt i) :
+theorem realize_mem_domainAt {env : Tuple ℕ}
+    (henv : ∀ x ∈ env, x ∈ P.domain) :
     ∀ {t : L.Term ℕ}, Term.VarsBelow env.length t →
-      @Term.realize L ℕ (A.structureAt i) ℕ (ComputableAgeIn.envFun env) t ∈
-        A.domainAt i := by
-  letI : L.Structure ℕ := A.structureAt i
+      @Term.realize L ℕ (P.str) ℕ (ComputableAgeIn.envFun env) t ∈
+        P.domain := by
+  letI : L.Structure ℕ := P.str
   intro t
   induction t with
   | var n =>
     intro ht
     have hn : n < env.length := Term.varsBelow_var_iff.1 ht
-    show ComputableAgeIn.envFun env n ∈ A.domainAt i
+    show ComputableAgeIn.envFun env n ∈ P.domain
     rw [ComputableAgeIn.envFun, List.getElem?_eq_getElem hn, Option.getD_some]
     exact henv _ (List.getElem_mem hn)
   | @func n f ts ih =>
     intro ht
     rw [Term.realize_func]
-    exact A.domainAt_closed f fun k ↦ ih k (ht.func_arg k)
+    exact P.domain_closed _ f _ fun k ↦ ih k (ht.func_arg k)
 
 /-- The machine equation, in the form the induction needs: running the machine on a term's
 code prepended to any tail pushes exactly the term's value onto the tail's stack. -/
-theorem partialValueStack_listEncode_append {i : ℕ} {env : Tuple ℕ}
-    (henv : ∀ x ∈ env, x ∈ A.domainAt i) :
+theorem partialValueStack_listEncode_append {env : Tuple ℕ}
+    (henv : ∀ x ∈ env, x ∈ P.domain) :
     ∀ (t : L.Term ℕ), Term.VarsBelow env.length t →
       ∀ l : List (ℕ ⊕ (Σ j, L.Functions j)),
-        A.partialValueStack i env (t.listEncode ++ l) =
-          (A.partialValueStack i env l).map fun acc ↦
-            @Term.realize L ℕ (A.structureAt i) ℕ (ComputableAgeIn.envFun env) t :: acc := by
-  letI : L.Structure ℕ := A.structureAt i
+        P.partialValueStack env (t.listEncode ++ l) =
+          (P.partialValueStack env l).map fun acc ↦
+            @Term.realize L ℕ (P.str) ℕ (ComputableAgeIn.envFun env) t :: acc := by
+  letI : L.Structure ℕ := P.str
   intro t
   induction t with
   | var n =>
     intro ht l
     have hn : n < env.length := Term.varsBelow_var_iff.1 ht
-    have hstep : ∀ acc : List ℕ, A.partialValueStep i env (Sum.inl n) acc =
+    have hstep : ∀ acc : List ℕ, P.partialValueStep env (Sum.inl n) acc =
         Part.some (ComputableAgeIn.envFun env n :: acc) := by
       intro acc
       show ((env[n]? : Option ℕ) : Part ℕ).map (· :: acc) = _
       rw [List.getElem?_eq_getElem hn]
       show Part.some (env[n] :: acc) = _
       rw [ComputableAgeIn.envFun, List.getElem?_eq_getElem hn, Option.getD_some]
-    rw [Term.listEncode, List.singleton_append, A.partialValueStack_cons]
+    rw [Term.listEncode, List.singleton_append, P.partialValueStack_cons]
     simp only [hstep]
     exact Part.bind_some_eq_map _ _
   | @func n f ts ih =>
@@ -283,14 +290,14 @@ theorem partialValueStack_listEncode_append {i : ℕ} {env : Tuple ℕ}
     set v : ℕ → ℕ := ComputableAgeIn.envFun env with hv
     set vs : List ℕ := (List.finRange n).map fun j ↦ (ts j).realize v with hvs
     have hvslen : vs.length = n := by simp [hvs]
-    have hvsdom : ∀ x ∈ vs, x ∈ A.domainAt i := by
+    have hvsdom : ∀ x ∈ vs, x ∈ P.domain := by
       intro x hx
       obtain ⟨j, -, rfl⟩ := List.mem_map.1 hx
       exact realize_mem_domainAt henv (ht.func_arg j)
     -- the arguments already on the stack, for any tail
     have hinner : ∀ js : List (Fin n),
-        A.partialValueStack i env ((js.flatMap fun j ↦ (ts j).listEncode) ++ l) =
-          (A.partialValueStack i env l).map fun acc ↦
+        P.partialValueStack env ((js.flatMap fun j ↦ (ts j).listEncode) ++ l) =
+          (P.partialValueStack env l).map fun acc ↦
             (js.map fun j ↦ (ts j).realize v) ++ acc := by
       intro js
       induction js with
@@ -303,7 +310,7 @@ theorem partialValueStack_listEncode_append {i : ℕ} {env : Tuple ℕ}
         rfl
     -- one function step on a stack whose top holds exactly the arguments
     have hstep : ∀ acc : List ℕ,
-        A.partialValueStep i env (Sum.inr (⟨n, f⟩ : Σ j, L.Functions j)) (vs ++ acc) =
+        P.partialValueStep env (Sum.inr (⟨n, f⟩ : Σ j, L.Functions j)) (vs ++ acc) =
           Part.some ((Term.func f ts).realize v :: acc) := by
       intro acc
       have harity : vs.length = FunctionSymbol.arity (⟨n, f⟩ : L.FunctionSymbol) := hvslen
@@ -312,74 +319,74 @@ theorem partialValueStack_listEncode_append {i : ℕ} {env : Tuple ℕ}
       show (((FunctionApplicationData.ofSymbolArgs?
           (((⟨n, f⟩ : L.FunctionSymbol), (vs ++ acc).take n)) :
         Option (FunctionApplicationData L ℕ)) : Part (FunctionApplicationData L ℕ)).bind
-          fun d ↦ (A.funEval i d).map (· :: (vs ++ acc).drop n)) = _
+          fun d ↦ (P.funEval d).map (· :: (vs ++ acc).drop n)) = _
       rw [show ((vs ++ acc).take n) = vs from htake, show ((vs ++ acc).drop n) = acc from hdrop,
         FunctionApplicationData.ofSymbolArgs?_of_length_eq _ harity]
       set d : FunctionApplicationData L ℕ :=
         FunctionApplicationData.equivSubtype.symm ⟨((⟨n, f⟩ : L.FunctionSymbol), vs), harity⟩
         with hd
-      have hdargs : ∀ k, d.args k ∈ A.domainAt i := by
+      have hdargs : ∀ k, d.args k ∈ P.domain := by
         intro k
         exact hvsdom _ (vs.get_mem _)
-      have hfun : A.funEval i d = Part.some d.funMap :=
-        Part.eq_some_iff.2 (A.funEval_correct i d fun k ↦ hdargs k)
+      have hfun : P.funEval d = Part.some d.funMap :=
+        Part.eq_some_iff.2 (P.funEval_correct d fun k ↦ hdargs k)
       have hdval : d.funMap = (Term.func f ts).realize v := by
         rw [hd, Term.realize_func]
         exact FunctionApplicationData.funMap_equivSubtype_symm_map_finRange f
           (fun j ↦ (ts j).realize v) harity
-      show (Part.some d).bind (fun e ↦ (A.funEval i e).map (· :: acc)) = _
+      show (Part.some d).bind (fun e ↦ (P.funEval e).map (· :: acc)) = _
       rw [Part.bind_some, hfun, hdval]
       rfl
-    rw [Term.listEncode, List.cons_append, A.partialValueStack_cons, hinner (List.finRange n),
+    rw [Term.listEncode, List.cons_append, P.partialValueStack_cons, hinner (List.finRange n),
       Part.bind_map]
     simp only [← hvs, hstep]
     exact Part.bind_some_eq_map _ _
 
 /-- The machine equation: on an on-domain environment and a bounded term, the stack halts
 with exactly one value, the term's realization. -/
-theorem partialValueStack_listEncode {i : ℕ} {env : Tuple ℕ} {t : L.Term ℕ}
-    (henv : ∀ x ∈ env, x ∈ A.domainAt i) (ht : Term.VarsBelow env.length t) :
-    A.partialValueStack i env t.listEncode =
-      Part.some [@Term.realize L ℕ (A.structureAt i) ℕ (ComputableAgeIn.envFun env) t] := by
+theorem partialValueStack_listEncode {env : Tuple ℕ} {t : L.Term ℕ}
+    (henv : ∀ x ∈ env, x ∈ P.domain) (ht : Term.VarsBelow env.length t) :
+    P.partialValueStack env t.listEncode =
+      Part.some [@Term.realize L ℕ (P.str) ℕ (ComputableAgeIn.envFun env) t] := by
   have h := partialValueStack_listEncode_append henv t ht []
-  rw [List.append_nil, A.partialValueStack_nil] at h
+  rw [List.append_nil, P.partialValueStack_nil] at h
   rw [h]
   rfl
 
 /-- Partial evaluation halts with the ordinary realization, on an on-domain environment
 and a bounded term. -/
-theorem partialRealize_eq_some {i : ℕ} {env : Tuple ℕ} {t : L.Term ℕ}
-    (henv : ∀ x ∈ env, x ∈ A.domainAt i) (ht : Term.VarsBelow env.length t) :
-    A.partialRealize i env t =
-      Part.some (@Term.realize L ℕ (A.structureAt i) ℕ (ComputableAgeIn.envFun env) t) := by
+theorem partialRealize_eq_some {env : Tuple ℕ} {t : L.Term ℕ}
+    (henv : ∀ x ∈ env, x ∈ P.domain) (ht : Term.VarsBelow env.length t) :
+    P.partialRealize env t =
+      Part.some (@Term.realize L ℕ (P.str) ℕ (ComputableAgeIn.envFun env) t) := by
   rw [partialRealize, partialValueStack_listEncode henv ht, Part.bind_some]
   rfl
 
-theorem partialRealize_dom {i : ℕ} {env : Tuple ℕ} {t : L.Term ℕ}
-    (henv : ∀ x ∈ env, x ∈ A.domainAt i) (ht : Term.VarsBelow env.length t) :
-    (A.partialRealize i env t).Dom := by
+theorem partialRealize_dom {env : Tuple ℕ} {t : L.Term ℕ}
+    (henv : ∀ x ∈ env, x ∈ P.domain) (ht : Term.VarsBelow env.length t) :
+    (P.partialRealize env t).Dom := by
   rw [partialRealize_eq_some henv ht]
   trivial
 
-/-- The value stays inside the member's carrier. -/
-theorem partialRealize_mem_domainAt {i : ℕ} {env : Tuple ℕ} {t : L.Term ℕ} {x : ℕ}
-    (henv : ∀ x ∈ env, x ∈ A.domainAt i) (ht : Term.VarsBelow env.length t)
-    (hx : x ∈ A.partialRealize i env t) : x ∈ A.domainAt i := by
+/-- The value stays inside the presentation's carrier. -/
+theorem partialRealize_mem_domainAt {env : Tuple ℕ} {t : L.Term ℕ} {x : ℕ}
+    (henv : ∀ x ∈ env, x ∈ P.domain) (ht : Term.VarsBelow env.length t)
+    (hx : x ∈ P.partialRealize env t) : x ∈ P.domain := by
   rw [partialRealize_eq_some henv ht, Part.mem_some_iff] at hx
   exact hx ▸ realize_mem_domainAt henv ht
 
 /-! ### The converse: halting certifies bounded variables -/
 
 /-- A halting run of the machine bounds every variable it read. -/
-theorem lt_length_of_dom_of_mem {i : ℕ} {env : Tuple ℕ} :
-    ∀ {l : List (ℕ ⊕ (Σ j, L.Functions j))}, (A.partialValueStack i env l).Dom →
+theorem lt_length_of_dom_of_mem {env : Tuple ℕ} :
+    ∀ {l : List (ℕ ⊕ (Σ j, L.Functions j))}, (P.partialValueStack env l).Dom →
       ∀ {n : ℕ}, Sum.inl n ∈ l → n < env.length := by
   intro l
   induction l with
   | nil => intro _ n hn; exact absurd hn (List.not_mem_nil)
   | cons g l ih =>
     intro h n hn
-    rw [A.partialValueStack_cons] at h
+    rw [P.partialValueStack_cons] at h
     obtain ⟨y, hy⟩ := Part.dom_iff_mem.1 h
     obtain ⟨acc, hacc, hstep⟩ := Part.mem_bind_iff.1 hy
     rcases List.mem_cons.1 hn with rfl | hn'
@@ -388,9 +395,9 @@ theorem lt_length_of_dom_of_mem {i : ℕ} {env : Tuple ℕ} :
       exact hlt
     · exact ih (Part.dom_iff_mem.2 ⟨acc, hacc⟩) hn'
 
-theorem partialValueStack_dom_of_partialRealize_dom {i : ℕ} {env : Tuple ℕ}
-    {t : L.Term ℕ} (h : (A.partialRealize i env t).Dom) :
-    (A.partialValueStack i env t.listEncode).Dom := by
+theorem partialValueStack_dom_of_partialRealize_dom {env : Tuple ℕ}
+    {t : L.Term ℕ} (h : (P.partialRealize env t).Dom) :
+    (P.partialValueStack env t.listEncode).Dom := by
   obtain ⟨y, hy⟩ := Part.dom_iff_mem.1 h
   obtain ⟨vs, hvs, -⟩ := Part.mem_bind_iff.1 hy
   exact Part.dom_iff_mem.2 ⟨vs, hvs⟩
@@ -398,28 +405,240 @@ theorem partialValueStack_dom_of_partialRealize_dom {i : ℕ} {env : Tuple ℕ}
 /-- Halting certifies that the term's variables lie below the environment length. This
 characterizes the term traversal under the given environment; it makes no claim about the
 stored evaluators off-domain. -/
-theorem varsBelow_of_partialRealize_dom {i : ℕ} {env : Tuple ℕ} {t : L.Term ℕ}
-    (h : (A.partialRealize i env t).Dom) : Term.VarsBelow env.length t := fun v hv ↦
+theorem varsBelow_of_partialRealize_dom {env : Tuple ℕ} {t : L.Term ℕ}
+    (h : (P.partialRealize env t).Dom) : Term.VarsBelow env.length t := fun v hv ↦
   lt_length_of_dom_of_mem (partialValueStack_dom_of_partialRealize_dom h)
     ((Term.mem_varFinset_iff_inl_mem_listEncode t v).1 hv)
+
+/-- Halting is exactly bounded variables, on an on-domain environment. -/
+theorem partialRealize_dom_iff {env : Tuple ℕ} {t : L.Term ℕ}
+    (henv : ∀ x ∈ env, x ∈ P.domain) :
+    (P.partialRealize env t).Dom ↔ Term.VarsBelow env.length t :=
+  ⟨varsBelow_of_partialRealize_dom, partialRealize_dom henv⟩
+
+/-! ### The `Fin`-variable bridge -/
+
+/-- Relabeled `Fin`-variable terms evaluate to ordinary realization at the tuple view. -/
+theorem partialRealize_relabel_view {env : Tuple ℕ} {k : ℕ}
+    (henv : ∀ x ∈ env, x ∈ P.domain) (hk : env.length = k) (t : L.Term (Fin k)) :
+    P.partialRealize env (t.relabel Fin.val) =
+      Part.some (@Term.realize L ℕ (P.str) _
+        (fun x : Fin k ↦ env.view (Fin.cast hk.symm x)) t) := by
+  letI : L.Structure ℕ := P.str
+  rw [partialRealize_eq_some henv (hk ▸ Term.varsBelow_relabel_val t)]
+  exact congrArg _ (Term.realize_envFun_relabel_val hk t)
+
+/-- Bounded natural-variable terms evaluate to the realization of their restriction. -/
+theorem partialRealize_eq_realize_restrictVar {env : Tuple ℕ} {k : ℕ}
+    (henv : ∀ x ∈ env, x ∈ P.domain) (hk : env.length = k) (t : L.Term ℕ)
+    (hvb : Term.VarsBelow k t) :
+    P.partialRealize env t =
+      Part.some (@Term.realize L ℕ (P.str) _
+        (fun x : Fin k ↦ env.view (Fin.cast hk.symm x))
+        (t.restrictVar fun x ↦ (⟨x.1, hvb x.1 x.2⟩ : Fin k))) := by
+  letI : L.Structure ℕ := P.str
+  rw [partialRealize_eq_some henv (hk ▸ hvb)]
+  exact congrArg _ (Term.realize_envFun_restrictVar hk t hvb)
+
+/-! ### Uniform computability at a single presentation
+
+Uniform in the environment and the term, with the presentation fixed. The family-level version
+below is uniform in the member index as well; neither derives from the other, since a family
+cannot be recovered from one presentation and an index cannot be dropped from a family. -/
+
+variable (P)
+
+/-- Each machine step is a total plan followed by a single guarded evaluator call. -/
+theorem partialValueStep_eq (env : Tuple ℕ) (g : ℕ ⊕ (Σ j, L.Functions j)) (acc : List ℕ) :
+    P.partialValueStep env g acc =
+      ((stepPlan env g acc : Option (Option (FunctionApplicationData L ℕ) × ℕ × List ℕ)) :
+        Part (Option (FunctionApplicationData L ℕ) × ℕ × List ℕ)).bind fun p ↦
+        (Option.casesOn (motive := fun _ ↦ Part ℕ) p.1 (Part.some p.2.1)
+          P.funEval).map (· :: p.2.2) := by
+  cases g with
+  | inl n =>
+    show ((env[n]? : Option ℕ) : Part ℕ).map (· :: acc) = _
+    rcases h : env[n]? with - | x <;> simp [stepPlan, h]
+  | inr s =>
+    show (((FunctionApplicationData.ofSymbolArgs? ((s, acc.take s.1) :
+        L.FunctionSymbol × List ℕ) : Option (FunctionApplicationData L ℕ)) :
+      Part (FunctionApplicationData L ℕ)).bind
+        fun d ↦ (P.funEval d).map (· :: acc.drop s.1)) = _
+    rcases h : FunctionApplicationData.ofSymbolArgs? ((s, acc.take s.1) :
+      L.FunctionSymbol × List ℕ) with - | d <;> simp [stepPlan, h]
+
+/-- The machine step is partial recursive uniformly in the environment, the symbol, and the
+stack. -/
+theorem partialValueStep_recursiveIn :
+    RecursiveIn O fun x : (Tuple ℕ × (ℕ ⊕ (Σ j, L.Functions j))) × List ℕ ↦
+      P.partialValueStep x.1.1 x.1.2 x.2 := by
+  have hplan : ComputableIn O fun x : (Tuple ℕ × (ℕ ⊕ (Σ j, L.Functions j))) × List ℕ ↦
+      stepPlan x.1.1 x.1.2 x.2 :=
+    (primrec_stepPlan (L := L)).to_comp.computableIn
+  have hcall : RecursiveIn O fun y : ((Tuple ℕ × (ℕ ⊕ (Σ j, L.Functions j))) × List ℕ) ×
+      (Option (FunctionApplicationData L ℕ) × ℕ × List ℕ) ↦
+      Option.casesOn (motive := fun _ ↦ Part ℕ) y.2.1 (Part.some y.2.2.1) P.funEval :=
+    RecursiveIn.option_casesOn_right
+      ((Primrec.fst.comp Primrec.snd).to_comp.computableIn)
+      ((Primrec.fst.comp (Primrec.snd.comp Primrec.snd)).to_comp.computableIn)
+      ((P.funEval_recursiveIn.comp ComputableIn.snd).to₂)
+  have hstep : RecursiveIn O fun y : ((Tuple ℕ × (ℕ ⊕ (Σ j, L.Functions j))) × List ℕ) ×
+      (Option (FunctionApplicationData L ℕ) × ℕ × List ℕ) ↦
+      (Option.casesOn (motive := fun _ ↦ Part ℕ) y.2.1 (Part.some y.2.2.1)
+        P.funEval).map (· :: y.2.2.2) :=
+    RecursiveIn.map hcall
+      (((Computable.list_cons.computableIn₂ (O := O)).comp ComputableIn.snd
+        ((Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp
+          Primrec.fst))).to_comp.computableIn)).to₂)
+  exact (RecursiveIn.bind (ComputableIn.ofOption hplan) hstep.to₂).of_eq fun x ↦
+    (P.partialValueStep_eq x.1.1 x.1.2 x.2).symm
+
+/-- The machine is partial recursive uniformly in the environment and the symbol list. -/
+theorem partialValueStack_recursiveIn :
+    RecursiveIn O fun p : Tuple ℕ × List (ℕ ⊕ (Σ j, L.Functions j)) ↦
+      P.partialValueStack p.1 p.2 :=
+  (RecursiveIn.foldrPart₂ (δ := Tuple ℕ)
+    (g := fun d b acc ↦ P.partialValueStep d b acc) (init := fun _ ↦ ([] : List ℕ))
+    P.partialValueStep_recursiveIn.to₂ (ComputableIn.const [])).of_eq fun _ ↦ rfl
+
+/-- Partial term evaluation is partial recursive uniformly in the environment and the term.
+Its exact domain, on an on-domain environment, is `partialRealize_dom_iff`. -/
+theorem partialRealize_recursiveIn :
+    RecursiveIn O fun p : Tuple ℕ × L.Term ℕ ↦ P.partialRealize p.1 p.2 := by
+  have hcode : ComputableIn O fun p : Tuple ℕ × L.Term ℕ ↦
+      ((p.1, p.2.listEncode) : Tuple ℕ × List (ℕ ⊕ (Σ j, L.Functions j))) :=
+    ComputableIn.pair (O := O) (α := Tuple ℕ × L.Term ℕ) (β := Tuple ℕ)
+      (γ := List (ℕ ⊕ (Σ j, L.Functions j)))
+      (f := fun p ↦ p.1) (g := fun p ↦ p.2.listEncode)
+      (ComputableIn.fst (O := O) (α := Tuple ℕ) (β := L.Term ℕ))
+      (ComputableIn.comp (O := O) (α := Tuple ℕ × L.Term ℕ) (β := L.Term ℕ)
+        (σ := List (ℕ ⊕ (Σ j, L.Functions j)))
+        (f := Term.listEncode) (g := fun p ↦ p.2)
+        (Term.primrec_listEncode.to_comp.computableIn)
+        (ComputableIn.snd (O := O) (α := Tuple ℕ) (β := L.Term ℕ)))
+  have hstack : RecursiveIn O fun p : Tuple ℕ × L.Term ℕ ↦
+      P.partialValueStack p.1 p.2.listEncode :=
+    RecursiveIn.comp (O := O) (α := Tuple ℕ × L.Term ℕ)
+      (β := Tuple ℕ × List (ℕ ⊕ (Σ j, L.Functions j))) (σ := List ℕ)
+      (f := fun q : Tuple ℕ × List (ℕ ⊕ (Σ j, L.Functions j)) ↦ P.partialValueStack q.1 q.2)
+      (g := fun p : Tuple ℕ × L.Term ℕ ↦ (p.1, p.2.listEncode))
+      P.partialValueStack_recursiveIn hcode
+  exact RecursiveIn.bind (O := O) (α := Tuple ℕ × L.Term ℕ) (β := List ℕ) (σ := ℕ)
+    (f := fun p ↦ P.partialValueStack p.1 p.2.listEncode)
+    (g := fun _ vs ↦ ((soleStackValue vs : Option ℕ) : Part ℕ)) hstack
+    ((ComputableIn.ofOption (O := O) (α := (Tuple ℕ × L.Term ℕ) × List ℕ) (β := ℕ)
+      (f := fun y ↦ soleStackValue y.2)
+      ((primrec_soleStackValue.comp Primrec.snd).to_comp.computableIn)).to₂)
+
+end PartialCePresentationIn
+
+namespace PartialAgeIn
+
+variable (A : PartialAgeIn O L)
+
+/-! ## The family-level machine
+
+The machine at member `i` **is** the member's machine: `memberAt` copies the family's structure
+data and evaluators at `i`, so every definition and every on-domain correctness theorem here is the
+single-presentation statement applied at `A.memberAt i` — definitionally, with no transport. Only
+uniformity in `i` is genuinely family-level, and that is the section after this one. -/
+
+/-- One step of the partial value-stack machine at member `i`. -/
+noncomputable def partialValueStep (i : ℕ) (env : Tuple ℕ) (g : ℕ ⊕ (Σ j, L.Functions j))
+    (acc : List ℕ) : Part (List ℕ) :=
+  (A.memberAt i).partialValueStep env g acc
+
+/-- The partial value-stack machine at member `i`. -/
+noncomputable def partialValueStack (i : ℕ) (env : Tuple ℕ)
+    (l : List (ℕ ⊕ (Σ j, L.Functions j))) : Part (List ℕ) :=
+  (A.memberAt i).partialValueStack env l
+
+/-- Partial uniform term evaluation at member `i`. -/
+noncomputable def partialRealize (i : ℕ) (env : Tuple ℕ) (t : L.Term ℕ) : Part ℕ :=
+  (A.memberAt i).partialRealize env t
+
+@[simp]
+theorem partialValueStack_nil (i : ℕ) (env : Tuple ℕ) :
+    A.partialValueStack i env [] = Part.some [] :=
+  rfl
+
+theorem partialValueStack_cons (i : ℕ) (env : Tuple ℕ) (g : ℕ ⊕ (Σ j, L.Functions j))
+    (l : List (ℕ ⊕ (Σ j, L.Functions j))) :
+    A.partialValueStack i env (g :: l) =
+      (A.partialValueStack i env l).bind fun acc ↦ A.partialValueStep i env g acc :=
+  (A.memberAt i).partialValueStack_cons env g l
+
+variable {A}
+
+/-- A bounded term realizes into the member's carrier over an on-domain environment. -/
+theorem realize_mem_domainAt {i : ℕ} {env : Tuple ℕ}
+    (henv : ∀ x ∈ env, x ∈ A.domainAt i) :
+    ∀ {t : L.Term ℕ}, Term.VarsBelow env.length t →
+      @Term.realize L ℕ (A.structureAt i) ℕ (ComputableAgeIn.envFun env) t ∈
+        A.domainAt i :=
+  PartialCePresentationIn.realize_mem_domainAt (P := A.memberAt i) henv
+
+theorem partialValueStack_listEncode_append {i : ℕ} {env : Tuple ℕ}
+    (henv : ∀ x ∈ env, x ∈ A.domainAt i) :
+    ∀ (t : L.Term ℕ), Term.VarsBelow env.length t →
+      ∀ l : List (ℕ ⊕ (Σ j, L.Functions j)),
+        A.partialValueStack i env (t.listEncode ++ l) =
+          (A.partialValueStack i env l).map fun acc ↦
+            @Term.realize L ℕ (A.structureAt i) ℕ (ComputableAgeIn.envFun env) t :: acc :=
+  PartialCePresentationIn.partialValueStack_listEncode_append (P := A.memberAt i) henv
+
+theorem partialValueStack_listEncode {i : ℕ} {env : Tuple ℕ} {t : L.Term ℕ}
+    (henv : ∀ x ∈ env, x ∈ A.domainAt i) (ht : Term.VarsBelow env.length t) :
+    A.partialValueStack i env t.listEncode =
+      Part.some [@Term.realize L ℕ (A.structureAt i) ℕ (ComputableAgeIn.envFun env) t] :=
+  PartialCePresentationIn.partialValueStack_listEncode (P := A.memberAt i) henv ht
+
+/-- Partial evaluation halts with the ordinary realization, on an on-domain environment
+and a bounded term. -/
+theorem partialRealize_eq_some {i : ℕ} {env : Tuple ℕ} {t : L.Term ℕ}
+    (henv : ∀ x ∈ env, x ∈ A.domainAt i) (ht : Term.VarsBelow env.length t) :
+    A.partialRealize i env t =
+      Part.some (@Term.realize L ℕ (A.structureAt i) ℕ (ComputableAgeIn.envFun env) t) :=
+  PartialCePresentationIn.partialRealize_eq_some (P := A.memberAt i) henv ht
+
+theorem partialRealize_dom {i : ℕ} {env : Tuple ℕ} {t : L.Term ℕ}
+    (henv : ∀ x ∈ env, x ∈ A.domainAt i) (ht : Term.VarsBelow env.length t) :
+    (A.partialRealize i env t).Dom :=
+  PartialCePresentationIn.partialRealize_dom (P := A.memberAt i) henv ht
+
+theorem partialRealize_mem_domainAt {i : ℕ} {env : Tuple ℕ} {t : L.Term ℕ} {x : ℕ}
+    (henv : ∀ x ∈ env, x ∈ A.domainAt i) (ht : Term.VarsBelow env.length t)
+    (hx : x ∈ A.partialRealize i env t) : x ∈ A.domainAt i :=
+  PartialCePresentationIn.partialRealize_mem_domainAt (P := A.memberAt i) henv ht hx
+
+theorem lt_length_of_dom_of_mem {i : ℕ} {env : Tuple ℕ}
+    {l : List (ℕ ⊕ (Σ j, L.Functions j))} (h : (A.partialValueStack i env l).Dom)
+    {n : ℕ} (hn : Sum.inl n ∈ l) : n < env.length :=
+  PartialCePresentationIn.lt_length_of_dom_of_mem (P := A.memberAt i) h hn
+
+theorem partialValueStack_dom_of_partialRealize_dom {i : ℕ} {env : Tuple ℕ}
+    {t : L.Term ℕ} (h : (A.partialRealize i env t).Dom) :
+    (A.partialValueStack i env t.listEncode).Dom :=
+  PartialCePresentationIn.partialValueStack_dom_of_partialRealize_dom (P := A.memberAt i) h
+
+/-- Halting certifies that the term's variables lie below the environment length. -/
+theorem varsBelow_of_partialRealize_dom {i : ℕ} {env : Tuple ℕ} {t : L.Term ℕ}
+    (h : (A.partialRealize i env t).Dom) : Term.VarsBelow env.length t :=
+  PartialCePresentationIn.varsBelow_of_partialRealize_dom (P := A.memberAt i) h
 
 /-- Halting is exactly bounded variables, on an on-domain environment. -/
 theorem partialRealize_dom_iff {i : ℕ} {env : Tuple ℕ} {t : L.Term ℕ}
     (henv : ∀ x ∈ env, x ∈ A.domainAt i) :
     (A.partialRealize i env t).Dom ↔ Term.VarsBelow env.length t :=
-  ⟨varsBelow_of_partialRealize_dom, partialRealize_dom henv⟩
-
-/-! ### The `Fin`-variable bridge -/
+  PartialCePresentationIn.partialRealize_dom_iff (P := A.memberAt i) henv
 
 /-- Relabeled `Fin`-variable terms evaluate to ordinary realization at the tuple view. -/
 theorem partialRealize_relabel_view {i : ℕ} {env : Tuple ℕ} {k : ℕ}
     (henv : ∀ x ∈ env, x ∈ A.domainAt i) (hk : env.length = k) (t : L.Term (Fin k)) :
     A.partialRealize i env (t.relabel Fin.val) =
       Part.some (@Term.realize L ℕ (A.structureAt i) _
-        (fun x : Fin k ↦ env.view (Fin.cast hk.symm x)) t) := by
-  letI : L.Structure ℕ := A.structureAt i
-  rw [partialRealize_eq_some henv (hk ▸ Term.varsBelow_relabel_val t)]
-  exact congrArg _ (Term.realize_envFun_relabel_val hk t)
+        (fun x : Fin k ↦ env.view (Fin.cast hk.symm x)) t) :=
+  PartialCePresentationIn.partialRealize_relabel_view (P := A.memberAt i) henv hk t
 
 /-- Bounded natural-variable terms evaluate to the realization of their restriction. -/
 theorem partialRealize_eq_realize_restrictVar {i : ℕ} {env : Tuple ℕ} {k : ℕ}
@@ -428,10 +647,9 @@ theorem partialRealize_eq_realize_restrictVar {i : ℕ} {env : Tuple ℕ} {k : �
     A.partialRealize i env t =
       Part.some (@Term.realize L ℕ (A.structureAt i) _
         (fun x : Fin k ↦ env.view (Fin.cast hk.symm x))
-        (t.restrictVar fun x ↦ (⟨x.1, hvb x.1 x.2⟩ : Fin k))) := by
-  letI : L.Structure ℕ := A.structureAt i
-  rw [partialRealize_eq_some henv (hk ▸ hvb)]
-  exact congrArg _ (Term.realize_envFun_restrictVar hk t hvb)
+        (t.restrictVar fun x ↦ (⟨x.1, hvb x.1 x.2⟩ : Fin k))) :=
+  PartialCePresentationIn.partialRealize_eq_realize_restrictVar (P := A.memberAt i) henv hk t hvb
+
 
 /-! ### Uniform computability
 
