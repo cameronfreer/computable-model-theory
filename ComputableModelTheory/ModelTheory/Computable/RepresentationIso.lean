@@ -326,6 +326,47 @@ theorem targetGensPreimage_of_gens_nil {i : ℕ} (h : B.gens (r.indexMap i) = []
   rw [h, r.invTuplePart_nil] at this
   exact Part.mem_some_iff.1 this
 
+/-! #### Generator compatibility
+
+CHMM Definition 2.3 does **not** ask an isomorphism of representations to carry recorded
+generators to recorded generators: the cover sequence records *some* tuple `d⃗ᵢ ∈ B_{jᵢ}`, and
+nothing ties it to `B`'s own `gens jᵢ`. `GeneratorCompatible` is exactly that missing tie.
+
+It is deliberately a predicate on a **single cover**, not a field of `RepresentationIsoIn`. The
+dependency it discharges is directional — transporting a hereditary-property selector from `X` to
+`Y` constrains only the cover running `X → Y`, since that cover is what determines the *returned*
+member whose recorded generators the contract measures. Bundling it into the bidirectional wrapper
+would demand it in both directions and hide which one any given theorem needs. -/
+
+/-- **The recorded generators are matched on the nose.** The image of the source member's
+generators is the matched member's own recorded generator tuple, rather than merely some tuple
+of that member.
+
+Sufficient for hereditary-property transport, and not known necessary: a uniformly supplied
+alignment weaker than equality could serve. See `CHPSeparationAudit` for what unrestricted covers
+fail to preserve. -/
+def GeneratorCompatible : Prop :=
+  ∀ i, r.sourceGensImage i = B.gens (r.indexMap i)
+
+variable {r}
+
+/-- Compatibility transfers the length equation to the matched member's recorded generators. -/
+theorem GeneratorCompatible.gens_length (h : r.GeneratorCompatible) (i : ℕ) :
+    (B.gens (r.indexMap i)).length = (A.gens i).length := by
+  rw [← h i]
+  exact r.sourceGensImage_length i
+
+/-- Compatibility, coordinatewise: the matched member's `n`-th recorded generator is the
+isomorphism's value at the source's `n`-th recorded generator. -/
+theorem GeneratorCompatible.gens_get (h : r.GeneratorCompatible) (i : ℕ) {n : ℕ}
+    (h₁ : n < (A.gens i).length) (h₂ : n < (B.gens (r.indexMap i)).length) :
+    (B.gens (r.indexMap i)).get ⟨n, h₂⟩ ∈ (r.isoAt i).toFun ((A.gens i).get ⟨n, h₁⟩) := by
+  have h₂' : n < (r.sourceGensImage i).length := by rw [h i]; exact h₂
+  have := r.sourceGensImage_get i h₁ h₂'
+  rwa [List.get_of_eq (h i)] at this
+
+variable (r)
+
 /-! #### Computability
 
 `O ⊆ E` enters exactly here, and only to read presentation data: the source generators, and the

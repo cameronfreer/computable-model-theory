@@ -241,6 +241,51 @@ theorem test_chp_families_differ (i : ℕ) :
     ((chpWide (O := O)).gens i).length = i ∧ ((chpNarrow (O := O)).gens i).length = 1 :=
   ⟨List.length_replicate, rfl⟩
 
+/-! ### Where the conditional transport's hypothesis sits
+
+The separation above and `MappedPartialCHPIn.transport` have to be compatible, and the only thing
+that can reconcile them is that this fixture **violates** generator compatibility. The two rows
+below pin that down from opposite sides: the fixture's forward cover is not compatible, and a cover
+that is compatible exists — so the hypothesis is neither vacuous nor implied by Definition 2.3. -/
+
+/-- The separating fixture violates exactly the hypothesis the conditional transport needs. At
+index `0` the wide family records no generators at all, while the narrow family records `[7]`. -/
+theorem test_chpIso_forward_not_generatorCompatible :
+    ¬ (chpIso (O := O)).forward.GeneratorCompatible := by
+  intro hcompat
+  have h0 := hcompat 0
+  rw [(chpIso (O := O)).forward.sourceGensImage_of_gens_nil (i := 0) rfl] at h0
+  have hnil : ([] : List ℕ) = [7] := h0
+  exact absurd hnil (by simp)
+
+/-- A cover along the **identity** index map, between any two of these families. -/
+noncomputable def constIdCover :
+    RepresentationCoverIn O (constAgeOf g₁ hg₁ h₁) (constAgeOf g₂ hg₂ h₂) where
+  indexMap := id
+  indexMap_computableIn := ComputableIn.id
+  isoAt i := constIdIso (g₂ := g₂) (hg₂ := hg₂) (h₂ := h₂) i i
+  toFun_uniform := (constAgeOf g₁ hg₁ h₁).idFun_recursiveIn.of_eq fun _ ↦ rfl
+  invFun_uniform := (constAgeOf g₁ hg₁ h₁).idFun_recursiveIn.of_eq fun _ ↦ rfl
+
+/-- **Compatibility is satisfiable, nontrivially.** The identity cover of `chpWide` — whose
+generator widths are unbounded, so this is not the degenerate all-empty case — is generator
+compatible, and the conditional transport therefore fires on it. -/
+theorem test_constIdCover_generatorCompatible :
+    (constIdCover (g₁ := fun i ↦ List.replicate i 7) (hg₁ := replicate_computableIn)
+      (h₁ := fun _ _ hx ↦ List.eq_of_mem_replicate hx)
+      (g₂ := fun i ↦ List.replicate i 7) (hg₂ := replicate_computableIn)
+      (h₂ := fun _ _ hx ↦ List.eq_of_mem_replicate hx) (O := O)).GeneratorCompatible := by
+  intro i
+  refine List.ext_get (RepresentationCoverIn.sourceGensImage_length _ i) fun n h₂ h₁ ↦ ?_
+  exact ((chpWide (O := O)).mem_idFun.1
+    (RepresentationCoverIn.sourceGensImage_get _ i h₁ h₂)).1
+
+/-- The conditional transport runs end to end on a compatible cover. -/
+theorem test_chp_transports_along_compatible_cover :
+    PartialAgeIn.MappedPartialCHPIn O (chpWide (O := O)) :=
+  PartialAgeIn.MappedPartialCHPIn.transport constIdCover constIdCover
+    test_constIdCover_generatorCompatible chpWide_chp
+
 end
 
 end FirstOrder.Language
@@ -250,3 +295,6 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_chp_not_invariant
 #assert_standard_axioms FirstOrder.Language.test_chp_families_same_carriers
 #assert_standard_axioms FirstOrder.Language.test_chp_families_differ
+#assert_standard_axioms FirstOrder.Language.test_chpIso_forward_not_generatorCompatible
+#assert_standard_axioms FirstOrder.Language.test_constIdCover_generatorCompatible
+#assert_standard_axioms FirstOrder.Language.test_chp_transports_along_compatible_cover

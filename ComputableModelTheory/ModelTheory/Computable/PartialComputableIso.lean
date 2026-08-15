@@ -141,6 +141,19 @@ noncomputable def toEquiv : P.domain ≃[L] Q.domain where
 
 @[simp] theorem toEquiv_apply (x : P.domain) : e.toEquiv x = e.toSubtypeFun x := rfl
 
+/-- **Reading the induced equivalence off the partial map.** Any halting forward value *is* the
+equivalence's value, so a coordinate equation stated on `toFun` — which is how covers and
+generator images record theirs — crosses into the semantic layer without unfolding
+`toSubtypeFun`. -/
+theorem toEquiv_coe_of_mem_toFun {x y : ℕ} (hx : x ∈ P.domain) (h : y ∈ e.toFun x) :
+    ((e.toEquiv ⟨x, hx⟩ : Q.domain) : ℕ) = y :=
+  e.toFun_unique (e.toSubtypeFun_mem ⟨x, hx⟩) h
+
+/-- The same at the subtype layer, where it can be rewritten with. -/
+theorem toEquiv_eq_of_mem_toFun {x y : ℕ} (hx : x ∈ P.domain) (hy : y ∈ Q.domain)
+    (h : y ∈ e.toFun x) : e.toEquiv ⟨x, hx⟩ = ⟨y, hy⟩ :=
+  Subtype.ext (e.toEquiv_coe_of_mem_toFun hx h)
+
 /-! ### Two-ended conjugation
 
 Transporting an embedding needs an isomorphism at **each end**, and the two are supplied

@@ -46,16 +46,22 @@ What the fixture leaves **open** is which side condition restores it. It witness
 a *generator-width mismatch*: its covers change generator lengths, so it satisfies neither
 generator equality nor length equality, and a counterexample refutes only hypotheses it satisfies.
 
-`GeneratorCompatible r := ∀ i, r.sourceGensImage i = B.gens (r.indexMap i)` is **sufficient** for
-the intended transport proof — under it the transported embedding carries the selected member's
-generators onto the original query — and bidirectional invariance would need it on both covers.
-It is not known to be necessary: whether length equality alone suffices is undecided here, and a
-weaker effective alignment condition, such as a uniformly supplied automorphism matching the
-tuples, might serve as well. Settling that needs a different fixture and should wait for a
-consumer.
+`RepresentationCoverIn.GeneratorCompatible` is **sufficient**, and `MappedPartialCHPIn.transport`
+below proves it: under it the transported embedding carries the selected member's generators onto
+the original query. It is not known to be necessary — whether length equality alone suffices is
+undecided here, and a weaker effective alignment condition, such as a uniformly supplied
+automorphism matching the tuples, might serve as well. Settling that needs a different fixture.
 
-Any such hypothesis is strictly stronger than `RepresentationIsoIn` and belongs outside it: CHMM
-Definition 2.3 deliberately does not contain it.
+The dependency is **directional**, which is why the transport takes its two covers as separate
+arguments rather than a `RepresentationIsoIn`: transporting from `X` to `Y` needs compatibility on
+the cover running `X → Y` and *nothing* on the cover running `Y → X`. The first determines the
+returned member, whose recorded generators the contract measures; the second only carries the query
+in, and a query is a free tuple. An `iff` would need both, and they stay unbundled — CHMM
+Definition 2.3 deliberately contains neither, so any such hypothesis belongs outside
+`RepresentationIsoIn`.
+
+The transport needs **no oracle inclusion**. Traversal only runs the stored maps and the
+transported selector never reads presentation data, unlike `sourceGensImage_computableIn`.
 
 `PartialCAPIn` is unsupported for the separate reasons recorded in `RepresentationConjugation`.
 -/
@@ -456,6 +462,71 @@ theorem PartialCJEPIn.transport {A B : PartialAgeIn O L} (r : RepresentationIsoI
         (r.transportLeg_realizesAt (f := Fi) ⟨hlenL, hFi⟩ hGL) (by rw [hK]; rfl) (by rw [hK]; rfl),
       partialRealizesAt_coords
         (r.transportLeg_realizesAt (f := Fj) ⟨hlenR, hFj⟩ hGR) (by rw [hK]; rfl) (by rw [hK]; rfl)⟩
+
+/-- **The paper-exact hereditary property transports, given generator compatibility on the cover
+running in the same direction as the transport.**
+
+The directional dependency is structural, so the two covers are taken as *separate arguments*
+rather than as a `RepresentationIsoIn`: `pull` carries the query — a tuple supplied from outside —
+into `A`, and constrains nothing, while `push` determines the returned `B`-member, whose *recorded*
+generators are exactly what the contract measures. Only `push` needs compatibility.
+
+Compatibility cannot be dropped, and is not implied by CHMM Definition 2.3: see
+`CHPSeparationAudit` for a pair of representations related by an unrestricted isomorphism where
+one has the property and the other does not.
+
+No oracle inclusion is needed. Tuple traversal only runs the stored maps, and the transported
+selector never reads presentation data — contrast `sourceGensImage_computableIn`, where reading
+recorded generators is what forces `O ⊆ E`. -/
+theorem MappedPartialCHPIn.transport {A B : PartialAgeIn O L}
+    (pull : RepresentationCoverIn E B A) (push : RepresentationCoverIn E A B)
+    (hpush : push.GeneratorCompatible) (h : A.MappedPartialCHPIn E) :
+    B.MappedPartialCHPIn E := by
+  obtain ⟨selA, hselA, hspecA⟩ := h
+  refine ⟨fun e s ↦ (pull.toTuplePart e s).bind fun s' ↦
+    (selA (pull.indexMap e) s').map push.indexMap, ?_, ?_⟩
+  · have hpull : RecursiveIn E fun q : (ℕ × List ℕ) × List ℕ ↦ selA (pull.indexMap q.1.1) q.2 :=
+      hselA.comp (((pull.indexMap_computableIn.comp ComputableIn.fst).comp
+        ComputableIn.fst).pair ComputableIn.snd)
+    have hidx : ComputableIn E fun q : ((ℕ × List ℕ) × List ℕ) × ℕ ↦ push.indexMap q.2 :=
+      push.indexMap_computableIn.comp ComputableIn.snd
+    -- shaped as `bind (fun s' ↦ map)`, matching the selector; reassociating to `(bind).map`
+    -- sends `whnf` chasing the whole pipeline
+    exact RecursiveIn.bind
+      (pull.toTuplePart_recursiveIn) (RecursiveIn.map hpull hidx.to₂).to₂
+  · intro e s hs
+    have hdom : (pull.toTuplePart e s).Dom := pull.toTuplePart_dom_iff.2 hs
+    have hmem : (pull.toTuplePart e s).get hdom ∈ pull.toTuplePart e s := Part.get_mem _
+    set s' := (pull.toTuplePart e s).get hdom with hs'def
+    have hall : List.Forall₂ (fun x y ↦ y ∈ (pull.isoAt e).toFun x) s s' :=
+      pull.mem_toTuplePart_iff.1 hmem
+    have hs'dom : ∀ y ∈ s', y ∈ A.domainAt (pull.indexMap e) :=
+      pull.mem_domainAt_of_mem_toTuplePart hmem
+    obtain ⟨c, hc, hlen, F, hF⟩ := hspecA (pull.indexMap e) s' hs'dom
+    have hlenB : (B.gens (push.indexMap c)).length = s.length := by
+      rw [hpush.gens_length c, hlen, hall.length_eq]
+    refine ⟨push.indexMap c, Part.mem_bind_iff.2 ⟨s', hmem, (Part.mem_map_iff _).2 ⟨c, hc, rfl⟩⟩,
+      hlenB, PartialCeIsoIn.conjugate (push.isoAt c) (pull.isoAt e).symm F, fun k ↦ ?_⟩
+    have h₁ : (k : ℕ) < (A.gens c).length := by rw [← hpush.gens_length c]; exact k.2
+    have hns : (k : ℕ) < s.length := by rw [← hlenB]; exact k.2
+    have hns' : (k : ℕ) < s'.length := by rw [← hlen]; exact h₁
+    have hsrc : (⟨(B.gens (push.indexMap c)).get k, B.gens_mem_domainAt k⟩ :
+        (B.memberAt (push.indexMap c)).domain)
+        = (push.isoAt c).toEquiv ⟨(A.gens c).get ⟨k, h₁⟩, A.gens_mem_domainAt _⟩ :=
+      ((push.isoAt c).toEquiv_eq_of_mem_toFun _ _ (hpush.gens_get c h₁ k.2)).symm
+    rw [hsrc, PartialCeIsoIn.conjugate_toEquiv,
+      show F ⟨(A.gens c).get ⟨k, h₁⟩, A.gens_mem_domainAt _⟩
+          = ⟨s'.get ⟨k, hns'⟩, hs'dom _ (List.get_mem _ _)⟩ from Subtype.ext (hF ⟨k, h₁⟩)]
+    exact (pull.isoAt e).symm.toEquiv_coe_of_mem_toFun _
+      ((pull.isoAt e).invFun_toFun (hall.get hns hns'))
+
+/-- The bidirectional wrapper. Compatibility is demanded on `forward` **only** — the cover
+running in the same direction as the transport — and never on both; the transported direction is
+what fixes which field appears, and `RepresentationIsoIn` deliberately does not carry either. -/
+theorem MappedPartialCHPIn.transport_of_iso {A B : PartialAgeIn O L}
+    (r : RepresentationIsoIn E A B) (hforward : r.forward.GeneratorCompatible)
+    (h : A.MappedPartialCHPIn E) : B.MappedPartialCHPIn E :=
+  MappedPartialCHPIn.transport r.backward r.forward hforward h
 
 /-- **Amalgamation transports on actual spans.**
 
