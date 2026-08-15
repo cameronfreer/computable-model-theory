@@ -5,6 +5,7 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Computable.RepresentationConjugation
 import ComputableModelTheory.ModelTheory.Computable.PartialCJEP
+import ComputableModelTheory.ModelTheory.Computable.PartialCAP
 import ComputableModelTheory.ModelTheory.Computable.PartialTheorem28
 
 /-!
@@ -301,6 +302,22 @@ theorem transportDiagramPart_wellShapedFor {S : PotentialSpanData}
   exact ⟨(r.transportOutOf_indices hGL).1, (r.transportOutOf_indices hGR).1,
     ((r.transportOutOf_indices hGL).2).trans ((r.transportOutOf_indices hGR).2).symm⟩
 
+/-- The indexed form of `conjugatePart_realizesAt`. Mathematically it is the same theorem, but
+naming the source and target indices as **variables** is what makes two separately transported legs
+share a source *definitionally* — the span's two legs share a `B`-side domain only up to
+`WellShaped`, and reading both at one named `dB` before conjugating is what stops that equation
+from becoming a cast inside `conjugate_square`.
+
+Private: it isolates one dependent transport and has no consumer outside this file yet. -/
+private theorem conjugatePart_realizesAt_of_realizesAt {X Y : PartialAgeIn O L}
+    (c : RepresentationCoverIn E X Y) {F G : PotentialEmbeddingData} {d a : ℕ}
+    {f : (X.memberAt d).domain ↪[L] (X.memberAt a).domain}
+    (hF : X.PartialRealizesAt F d a f) (hG : G ∈ c.conjugatePart F) :
+    Y.PartialRealizesAt G (c.indexMap d) (c.indexMap a)
+      (PartialCeIsoIn.conjugate (c.isoAt d) (c.isoAt a) f) := by
+  obtain ⟨rfl, rfl, hf⟩ := hF
+  exact c.conjugatePart_realizesAt hf hG
+
 /-! #### Realization, at explicit realizers
 
 Stated with the maps named, not merely `PartialIsEmbedding`. The assembly has to feed actual maps
@@ -317,9 +334,9 @@ theorem transportSpanPart_realizesAt {S T : PotentialSpanData}
         (r.backward.indexMap S.left.codIdx) (r.backward.conjEmbedding fl) ∧
       A.PartialRealizesAt T.right (r.backward.indexMap S.right.domIdx)
         (r.backward.indexMap S.right.codIdx) (r.backward.conjEmbedding fr) := by
-  obtain ⟨L, hL, R, hR, rfl⟩ := r.mem_transportSpanPart_iff.1 hT
-  exact ⟨r.backward.conjugatePart_realizesAt hfl hL,
-    r.backward.conjugatePart_realizesAt hfr hR⟩
+  obtain ⟨PL, hPL, PR, hPR, rfl⟩ := r.mem_transportSpanPart_iff.1 hT
+  exact ⟨r.backward.conjugatePart_realizesAt hfl hPL,
+    r.backward.conjugatePart_realizesAt hfr hPR⟩
 
 /-- Both legs of a transported diagram are realized by the conjugates of the `A`-side realizers.
 
@@ -410,6 +427,54 @@ theorem PartialCJEPIn.transport {A B : PartialAgeIn O L} (r : RepresentationIsoI
         (r.transportLeg_realizesAt (f := Fi) ⟨hlenL, hFi⟩ hGL) (by rw [hK]; rfl) (by rw [hK]; rfl),
       partialRealizesAt_coords
         (r.transportLeg_realizesAt (f := Fj) ⟨hlenR, hFj⟩ hGR) (by rw [hK]; rfl) (by rw [hK]; rfl)⟩
+
+/-- **Amalgamation transports on actual spans.**
+
+`hS` is not redundant: membership in `transportSpanPart S` does *not* imply the span is actual,
+since the partial transport inherits `applyPotentialPart`'s lack of an exact-domain theorem and may
+halt accidentally on malformed data.
+
+Membership-parametric in both transported objects — a caller supplies whichever members it has,
+rather than being handed a canonical choice. Nothing is totalized and no oracle inclusion appears:
+this is semantics only. -/
+theorem PartialAmalgamation.transport {A B : PartialAgeIn O L} (r : RepresentationIsoIn E A B)
+    {S T : PotentialSpanData} {D E' : AmalgamationDiagramData}
+    (hS : B.PartialSpanActual S) (hT : T ∈ r.transportSpanPart S)
+    (hD : A.PartialAmalgamation T D) (hE : E' ∈ r.transportDiagramPart S D) :
+    B.PartialAmalgamation S E' := by
+  obtain ⟨hws, hSl, hSr⟩ := hS
+  obtain ⟨fl, hfl⟩ := hSl
+  obtain ⟨fr, hfr⟩ := hSr
+  obtain ⟨hDws, hDl, hDr, hDcomm⟩ := hD
+  obtain ⟨PL, hPL, PR, hPR, rfl⟩ := r.mem_transportSpanPart_iff.1 hT
+  -- both `B`-side legs read at the *one* named source `S.left.domIdx`
+  have hflB : B.PartialRealizesAt S.left S.left.domIdx S.left.codIdx fl := ⟨rfl, rfl, hfl⟩
+  have hfrB := hfr.realizesAt_of_eq hws.symm rfl
+  -- their `A`-side images then share a source definitionally
+  have hTl := RepresentationIsoIn.conjugatePart_realizesAt_of_realizesAt r.backward hflB hPL
+  have hTr := RepresentationIsoIn.conjugatePart_realizesAt_of_realizesAt r.backward hfrB hPR
+  -- the `A`-side output realizers, placed at those same indices
+  have hglA := hDl.choose_spec.realizesAt_of_eq (hDws.1.trans hTl.2.1) rfl
+  have hgrA := hDr.choose_spec.realizesAt_of_eq (hDws.2.1.trans hTr.2.1) hDws.2.2.symm
+  -- uniqueness happens inside this step, not by hand
+  have hsqA := (PartialAgeIn.partialCommutes_iff_of_realizers hTl hTr hglA hgrA).1 hDcomm
+  have hsqB := PartialCeIsoIn.conjugate_square
+    (r.backward.isoAt S.left.domIdx).symm (r.backward.isoAt S.left.codIdx).symm
+    (r.backward.isoAt S.right.codIdx).symm (r.forward.isoAt D.leftToApex.codIdx) hsqA
+  rw [PartialCeIsoIn.conjugate_symm_conjugate, PartialCeIsoIn.conjugate_symm_conjugate] at hsqB
+  obtain ⟨hEl, hEr⟩ := r.transportDiagramPart_realizesAt hglA hgrA rfl rfl rfl hE
+  exact ⟨r.transportDiagramPart_wellShapedFor hE, hEl.partialIsEmbedding, hEr.partialIsEmbedding,
+    (PartialAgeIn.partialCommutes_iff_of_realizers hflB hfrB hEl hEr).2 hsqB⟩
+
+/-- **Existential form**, for callers that do not need to name the transported diagram. The
+halting hypothesis is explicit rather than derived: `transportDiagramPart` has no exact-domain
+theorem, for the same reason `applyPotentialPart` does not. -/
+theorem PartialAmalgamation.transport_exists {A B : PartialAgeIn O L}
+    (r : RepresentationIsoIn E A B) {S T : PotentialSpanData} {D : AmalgamationDiagramData}
+    (hS : B.PartialSpanActual S) (hT : T ∈ r.transportSpanPart S)
+    (hD : A.PartialAmalgamation T D) (hE : ∃ E', E' ∈ r.transportDiagramPart S D) :
+    ∃ E', B.PartialAmalgamation S E' :=
+  hE.imp fun _ h ↦ PartialAmalgamation.transport r hS hT hD h
 
 /-- **Both directions.** The reverse is the same theorem at `r.symm`. -/
 theorem PartialCJEPIn.transport_iff {A B : PartialAgeIn O L} (r : RepresentationIsoIn E A B)

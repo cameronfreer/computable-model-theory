@@ -444,6 +444,17 @@ theorem test_transportDiagramPart_wellShapedFor {L : Language} [L.EffectiveLangu
     E'.WellShapedFor S :=
   r.transportDiagramPart_wellShapedFor hE
 
+/-- **Amalgamation transports on actual spans.** Membership-parametric in both transported
+objects, and `hS` is not redundant — membership in `transportSpanPart` does not imply actualness,
+since the partial transport may halt accidentally on malformed data. -/
+theorem test_PartialAmalgamation_transport {L : Language} [L.EffectiveLanguage]
+    {A B : PartialAgeIn O L} (r : RepresentationIsoIn O A B) {S T : PotentialSpanData}
+    {D E' : AmalgamationDiagramData} (hS : B.PartialSpanActual S)
+    (hT : T ∈ r.transportSpanPart S) (hD : A.PartialAmalgamation T D)
+    (hE : E' ∈ r.transportDiagramPart S D) :
+    B.PartialAmalgamation S E' :=
+  PartialAgeIn.PartialAmalgamation.transport r hS hT hD hE
+
 /-- **Both mixed composites are partial recursive in the map oracle.** -/
 theorem test_transport_recursiveIn {L : Language} [L.EffectiveLanguage] {A B : PartialAgeIn O L}
     (r : RepresentationIsoIn O A B) (hOE : O ⊆ O) (c e a : ℕ) :
@@ -481,3 +492,4 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_conjugate_square
 #assert_standard_axioms FirstOrder.Language.test_conjugate_symm_conjugate
 #assert_standard_axioms FirstOrder.Language.test_transportDiagramPart_wellShapedFor
+#assert_standard_axioms FirstOrder.Language.test_PartialAmalgamation_transport
