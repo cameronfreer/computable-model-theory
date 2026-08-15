@@ -84,6 +84,32 @@ namespace CePresentationIn
 
 variable (P : CePresentationIn O L)
 
+/-- **Lifting to a stronger oracle.** Every computability field is monotone in the oracle and
+nothing else changes, so a presentation computable in `O` is computable in any `E ⊇ O`. Needed
+wherever presentation data has to meet data computable in a *map* oracle — a chain built from a
+CJEP selector, for instance, lives at the selector's oracle. -/
+def mono {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) : CePresentationIn E L where
+  str := P.str
+  enum := P.enum
+  enum_computableIn := RecursiveIn.mono hOE P.enum_computableIn
+  domain_closed := P.domain_closed
+  funEval := P.funEval
+  funEval_recursiveIn := RecursiveIn.mono hOE P.funEval_recursiveIn
+  funEval_correct := P.funEval_correct
+  relEval := P.relEval
+  relEval_recursiveIn := RecursiveIn.mono hOE P.relEval_recursiveIn
+  relEval_correct := P.relEval_correct
+
+@[simp] theorem mono_str {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) : (P.mono hOE).str = P.str := rfl
+
+@[simp] theorem mono_enum {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) : (P.mono hOE).enum = P.enum := rfl
+
+@[simp] theorem mono_funEval {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) :
+    (P.mono hOE).funEval = P.funEval := rfl
+
+@[simp] theorem mono_relEval {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) :
+    (P.mono hOE).relEval = P.relEval := rfl
+
 /-- The domain of a c.e. presentation: the range of its enumeration. -/
 def domain : Set ℕ :=
   Set.range P.enum

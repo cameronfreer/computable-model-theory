@@ -78,19 +78,30 @@ theorem firstEnumeratedValue_mem (n : ℕ) :
     K.firstEnumeratedValue d hne n ∈ K.domainAt (d n) :=
   ⟨_, K.enum?_firstSomeStep d hne n⟩
 
+/-! ### Computability, and where the oracle boundary sits
+
+The schedule a consumer supplies is computable in the **map** oracle `E` (it comes from a CJEP
+selector), while the family's enumeration is computable in the **presentation** oracle `O`. Both
+statements below therefore live at `E` and take `O ⊆ E` explicitly: reading presentation data is
+exactly what forces the inclusion, as it does for `sourceGensImage_computableIn`. -/
+
 /-- The step search is computable, uniformly in the schedule. -/
-theorem firstSomeStep_computableIn (hd : ComputableIn O d) :
-    ComputableIn O (K.firstSomeStep d hne) := by
-  have hf : ComputableIn₂ O fun (n m : ℕ) ↦ (K.enum? (d n) m).isSome :=
+theorem firstSomeStep_computableIn {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) (hd : ComputableIn E d) :
+    ComputableIn E (K.firstSomeStep d hne) := by
+  have henum : ComputableIn E fun p : ℕ × ℕ ↦ K.enum? p.1 p.2 :=
+    RecursiveIn.mono hOE K.enum?_computableIn
+  have hf : ComputableIn₂ E fun (n m : ℕ) ↦ (K.enum? (d n) m).isSome :=
     (Primrec.option_isSome.to_comp.computableIn.comp
-      (K.enum?_computableIn.comp ((hd.comp ComputableIn.fst).pair ComputableIn.snd))).to₂
+      (henum.comp ((hd.comp ComputableIn.fst).pair ComputableIn.snd))).to₂
   exact ComputableIn.find hf (K.exists_enum?_isSome d hne)
 
 /-- And so is the extracted witness. -/
-theorem firstEnumeratedValue_computableIn (hd : ComputableIn O d) :
-    ComputableIn O (K.firstEnumeratedValue d hne) := by
-  have henum : ComputableIn O fun n ↦ K.enum? (d n) (K.firstSomeStep d hne n) :=
-    K.enum?_computableIn.comp ((hd.pair (K.firstSomeStep_computableIn d hne hd)))
+theorem firstEnumeratedValue_computableIn {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E)
+    (hd : ComputableIn E d) : ComputableIn E (K.firstEnumeratedValue d hne) := by
+  have henum' : ComputableIn E fun p : ℕ × ℕ ↦ K.enum? p.1 p.2 :=
+    RecursiveIn.mono hOE K.enum?_computableIn
+  have henum : ComputableIn E fun n ↦ K.enum? (d n) (K.firstSomeStep d hne n) :=
+    henum'.comp ((hd.pair (K.firstSomeStep_computableIn d hne hOE hd)))
   exact (ComputableIn.option_casesOn henum (ComputableIn.const 0)
     ComputableIn.snd.to₂).of_eq fun n ↦ by
       rw [firstEnumeratedValue]

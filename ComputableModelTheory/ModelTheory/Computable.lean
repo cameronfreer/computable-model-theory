@@ -5,6 +5,7 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.Computability.OraclePred
 import ComputableModelTheory.ModelTheory.Computable.AgeChainSchedule
+import ComputableModelTheory.ModelTheory.Computable.AgeChainSteps
 import ComputableModelTheory.ModelTheory.Computable.AgeChainWitness
 import ComputableModelTheory.ModelTheory.Computable.AtomicEquiv
 import ComputableModelTheory.ModelTheory.Computable.AtomicEquivComputability

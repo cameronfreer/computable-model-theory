@@ -143,8 +143,8 @@ theorem test_firstEnumeratedValue_mem (n : ℕ) :
 theorem test_witness_computableIn :
     ComputableIn O ((lateAge (O := O)).firstSomeStep id lateAge_nonempty) ∧
       ComputableIn O ((lateAge (O := O)).firstEnumeratedValue id lateAge_nonempty) :=
-  ⟨(lateAge (O := O)).firstSomeStep_computableIn id lateAge_nonempty ComputableIn.id,
-    (lateAge (O := O)).firstEnumeratedValue_computableIn id lateAge_nonempty ComputableIn.id⟩
+  ⟨(lateAge (O := O)).firstSomeStep_computableIn id lateAge_nonempty (subset_refl O) ComputableIn.id,
+    (lateAge (O := O)).firstEnumeratedValue_computableIn id lateAge_nonempty (subset_refl O) ComputableIn.id⟩
 
 end
 
