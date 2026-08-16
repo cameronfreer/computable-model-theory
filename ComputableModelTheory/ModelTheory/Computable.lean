@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
 import ComputableModelTheory.Computability.OraclePred
+import ComputableModelTheory.ModelTheory.Computable.AgeChain
 import ComputableModelTheory.ModelTheory.Computable.AgeChainSchedule
 import ComputableModelTheory.ModelTheory.Computable.AgeChainSteps
 import ComputableModelTheory.ModelTheory.Computable.AgeChainWitness
