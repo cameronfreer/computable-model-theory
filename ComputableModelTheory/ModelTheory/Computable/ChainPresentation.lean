@@ -33,15 +33,6 @@ namespace CeStructureChainIn
 variable {O : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
 variable (D : CeStructureChainIn O L)
 
-/-- Uniform stage-evaluator computability: the stage presentations' partial evaluators
-are partial recursive **uniformly in the stage**. Per-stage recursiveness does not
-imply this, so it is explicit input data, like the certificate itself. -/
-structure UniformEvaluatorsIn (D : CeStructureChainIn O L) : Prop where
-  funEval_uniform : RecursiveIn O
-    fun q : ℕ × FunctionApplicationData L ℕ ↦ (D.stageAt q.1).funEval q.2
-  relEval_uniform : RecursiveIn O
-    fun q : ℕ × RelationApplicationData L ℕ ↦ (D.stageAt q.1).relEval q.2
-
 variable (cert : D.toDomainChain.DecidableStagesCertificate)
 
 /-! ### Canonical pairs and canonical codes -/

@@ -391,6 +391,21 @@ theorem limFunGraph_iff_of_limEquiv {n : ℕ} (f : L.Functions n)
       (fun k ↦ D.toDomainChain.limEquiv_symm (heq k)) hout' hout
       (D.toDomainChain.limEquiv_symm houteq)⟩
 
+/-! ### Uniform stage evaluators
+
+Certificate-independent, so it belongs here rather than beside the certified coded
+presentation: the uncertified Level-1 limit needs it too. Per-stage recursiveness does
+**not** imply uniformity, which is why this is explicit input data rather than a derived
+fact. -/
+
+/-- Uniform stage-evaluator computability: the stage presentations' partial evaluators
+are partial recursive **uniformly in the stage**. -/
+structure UniformEvaluatorsIn (D : CeStructureChainIn O L) : Prop where
+  funEval_uniform : RecursiveIn O
+    fun q : ℕ × FunctionApplicationData L ℕ ↦ (D.stageAt q.1).funEval q.2
+  relEval_uniform : RecursiveIn O
+    fun q : ℕ × RelationApplicationData L ℕ ↦ (D.stageAt q.1).relEval q.2
+
 end CeStructureChainIn
 
 end FirstOrder.Language

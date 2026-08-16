@@ -130,6 +130,23 @@ theorem cjepChain_stage_domain (hspec : K.JointSpec sel)
       K.domainAt (cjepSchedule sel baseIdx n) :=
   scheduledStage_domain (hOE := hOE) n
 
+include hne hOE in
+/-- **The chain's stage evaluators are uniformly partial recursive.** Certificate-independent, and
+a direct composition: the stage evaluators *are* the family's, read at the scheduled index. This is
+explicit input data for every limit construction, since per-stage recursiveness never implies
+uniformity. -/
+theorem cjepChain_uniformEvaluators (hspec : K.JointSpec sel)
+    (hsel : ComputableIn E fun p : ℕ × ℕ ↦ sel p.1 p.2) :
+    (cjepChain K sel baseIdx hne hOE hspec hsel).UniformEvaluatorsIn where
+  funEval_uniform := by
+    have hd : ComputableIn E (cjepSchedule sel baseIdx) := cjepSchedule_computableIn sel baseIdx hsel
+    exact ((RecursiveIn.mono hOE K.funEval_recursiveIn).comp
+      ((hd.comp ComputableIn.fst).pair ComputableIn.snd)).of_eq fun _ ↦ rfl
+  relEval_uniform := by
+    have hd : ComputableIn E (cjepSchedule sel baseIdx) := cjepSchedule_computableIn sel baseIdx hsel
+    exact ((RecursiveIn.mono hOE K.relEval_recursiveIn).comp
+      ((hd.comp ComputableIn.fst).pair ComputableIn.snd)).of_eq fun _ ↦ rfl
+
 end PartialAgeIn
 
 end FirstOrder.Language

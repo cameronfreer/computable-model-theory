@@ -108,6 +108,33 @@ theorem test_stageIntoPart_recursiveIn :
     RecursiveIn O fun p : ℕ × ℕ ↦ C.stageIntoPart p.1 p.2 :=
   C.stageIntoPart_recursiveIn
 
+/-! ### The shared transport boundary -/
+
+/-- **Transport halts on every coded tuple, with no `Accepted` guard.** Every natural number has a
+valid raw representative, not only the accepted ones — which is why both evaluator pipelines can be
+unconditional and acceptedness enters only when the carrier is identified. -/
+theorem test_transportRawArgsPart_dom_unconditional (args : List ℕ) :
+    (C.transportRawArgsPart args).Dom :=
+  C.transportRawArgsPart_dom args
+
+/-- The transported values share one stage — the common stage the evaluators then run at. -/
+theorem test_transportRawArgsPart_common_stage {args out : List ℕ}
+    (h : out ∈ C.transportRawArgsPart args) :
+    ∀ y ∈ out, y ∈ C.domainAt (C.rawStageBound args) :=
+  C.mem_domainAt_of_mem_transportRawArgsPart h
+
+/-- And the bound really does dominate every argument's own stage. -/
+theorem test_le_rawStageBound {args : List ℕ} {a : ℕ} (ha : a ∈ args) :
+    (C.rawRep a).1 ≤ C.rawStageBound args :=
+  C.le_rawStageBound ha
+
+/-- The traversal is partial recursive, and specified by `Forall₂` rather than by a fold. -/
+theorem test_transportRawArgsPart_recursiveIn :
+    RecursiveIn O C.transportRawArgsPart ∧
+      ∀ {args out : List ℕ}, out ∈ C.transportRawArgsPart args ↔
+        List.Forall₂ (fun a y ↦ y ∈ C.transportRawArg args a) args out :=
+  ⟨C.transportRawArgsPart_recursiveIn, C.mem_transportRawArgsPart_iff⟩
+
 end CeDomainChainIn
 
 #assert_standard_axioms CeDomainChainIn.test_rawRep_valid
@@ -123,3 +150,7 @@ end CeDomainChainIn
 #assert_standard_axioms CeDomainChainIn.test_stageIntoPart_spec
 #assert_standard_axioms CeDomainChainIn.test_stageIntoPart_injOn
 #assert_standard_axioms CeDomainChainIn.test_stageIntoPart_recursiveIn
+#assert_standard_axioms CeDomainChainIn.test_transportRawArgsPart_dom_unconditional
+#assert_standard_axioms CeDomainChainIn.test_transportRawArgsPart_common_stage
+#assert_standard_axioms CeDomainChainIn.test_le_rawStageBound
+#assert_standard_axioms CeDomainChainIn.test_transportRawArgsPart_recursiveIn
