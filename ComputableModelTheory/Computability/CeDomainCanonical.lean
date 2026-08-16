@@ -363,4 +363,58 @@ theorem mem_domainAt_of_mem_transportRawArgsPart {args out : List ℕ}
   C.mem_domainAt_of_forall₂_transportTo (C.mem_transportRawArgsPart_iff.1 h)
     fun _ ha ↦ C.le_rawStageBound ha
 
+/-! ### Representative-independence of the search
+
+The search's *output* depends only on the class, not on the representative. Downstream this is what
+makes step coherence immediate: transporting a stage element and then canonicalizing agrees with
+canonicalizing directly, because the two inputs are equivalent — no least-search argument has to be
+redone at the structure level. -/
+
+/-- **The search sees only the class.** -/
+theorem mem_canonicalPart_congr {p q : ℕ × ℕ} (hp : C.limMem p) (hq : C.limMem q)
+    (h : C.limEquiv p q) {n : ℕ} (hn : n ∈ C.canonicalPart p) : n ∈ C.canonicalPart q := by
+  rw [canonicalPart, Nat.mem_rfind] at hn ⊢
+  obtain ⟨hntrue, hmin⟩ := hn
+  constructor
+  · obtain ⟨b, hb, hiff⟩ := C.limEquivTest_spec hq (C.rawRep_limMem n)
+    refine (hiff.2 ?_) ▸ hb
+    exact C.limEquiv_trans hq hp (C.rawRep_limMem n) (C.limEquiv_symm h)
+      (C.limEquiv_rawRep_of_mem_canonicalPart hp
+        (by rw [canonicalPart, Nat.mem_rfind]; exact ⟨hntrue, hmin⟩))
+  · intro m hm
+    obtain ⟨b, hb, hiff⟩ := C.limEquivTest_spec hq (C.rawRep_limMem m)
+    cases hbval : b with
+    | false => exact hbval ▸ hb
+    | true =>
+      -- an earlier equivalent index for `q` would be one for `p` too
+      obtain ⟨b', hb', hiff'⟩ := C.limEquivTest_spec hp (C.rawRep_limMem m)
+      have hpm : C.limEquiv p (C.rawRep m) :=
+        C.limEquiv_trans hp hq (C.rawRep_limMem m) h (hiff.1 hbval)
+      have : (true : Bool) = false :=
+        (hiff'.2 hpm) ▸ (Part.mem_unique hb' (hmin hm))
+      exact absurd this (by simp)
+
+/-- The equality form. -/
+theorem canonicalPart_eq_of_limEquiv {p q : ℕ × ℕ} (hp : C.limMem p) (hq : C.limMem q)
+    (h : C.limEquiv p q) : C.canonicalPart p = C.canonicalPart q :=
+  Part.ext fun _ ↦
+    ⟨C.mem_canonicalPart_congr hp hq h, C.mem_canonicalPart_congr hq hp (C.limEquiv_symm h)⟩
+
+/-! ### Coverage
+
+Every accepted code is a stage image, so the extensional carrier is exactly the union of the stage
+images — no element of the limit is named by a code that no stage produces. -/
+
+/-- **An accepted code is the stage-map value of its own representative.** -/
+theorem mem_stageIntoPart_rawRep_of_accepted {c : ℕ} (hc : C.Accepted c) :
+    c ∈ C.stageIntoPart (C.rawRep c).1 (C.rawRep c).2 := by
+  have h : C.canonicalRaw c ∈ C.canonicalPart (C.rawRep c) := C.mem_canonicalPart_canonicalRaw c
+  rw [hc] at h
+  exact h
+
+/-- So every accepted code is covered by some stage. -/
+theorem exists_mem_stageIntoPart_of_accepted {c : ℕ} (hc : C.Accepted c) :
+    ∃ i x, x ∈ C.domainAt i ∧ c ∈ C.stageIntoPart i x :=
+  ⟨(C.rawRep c).1, (C.rawRep c).2, C.rawRep_limMem c, C.mem_stageIntoPart_rawRep_of_accepted hc⟩
+
 end CeDomainChainIn

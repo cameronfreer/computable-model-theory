@@ -135,6 +135,22 @@ theorem test_transportRawArgsPart_recursiveIn :
         List.Forall₂ (fun a y ↦ y ∈ C.transportRawArg args a) args out :=
   ⟨C.transportRawArgsPart_recursiveIn, C.mem_transportRawArgsPart_iff⟩
 
+/-! ### Representative-independence and coverage -/
+
+/-- **The search sees only the class.** This is what will make step coherence immediate: canonicalizing
+a transported element agrees with canonicalizing the original, with no least-search argument redone at
+the structure level. -/
+theorem test_canonicalPart_eq_of_limEquiv {p q : ℕ × ℕ} (hp : C.limMem p) (hq : C.limMem q)
+    (h : C.limEquiv p q) : C.canonicalPart p = C.canonicalPart q :=
+  C.canonicalPart_eq_of_limEquiv hp hq h
+
+/-- **Coverage.** Every accepted code is the stage-map value of its own representative, so the
+extensional carrier is exactly the union of the stage images — no code names an element that no stage
+produces. -/
+theorem test_coverage {c : ℕ} (hc : C.Accepted c) :
+    ∃ i x, x ∈ C.domainAt i ∧ c ∈ C.stageIntoPart i x :=
+  C.exists_mem_stageIntoPart_of_accepted hc
+
 end CeDomainChainIn
 
 #assert_standard_axioms CeDomainChainIn.test_rawRep_valid
@@ -154,3 +170,5 @@ end CeDomainChainIn
 #assert_standard_axioms CeDomainChainIn.test_transportRawArgsPart_common_stage
 #assert_standard_axioms CeDomainChainIn.test_le_rawStageBound
 #assert_standard_axioms CeDomainChainIn.test_transportRawArgsPart_recursiveIn
+#assert_standard_axioms CeDomainChainIn.test_canonicalPart_eq_of_limEquiv
+#assert_standard_axioms CeDomainChainIn.test_coverage
