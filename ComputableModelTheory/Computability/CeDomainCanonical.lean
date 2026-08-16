@@ -34,7 +34,11 @@ comparison halts and raw-surjectivity supplies a successful candidate, which is
 
 **No extra base witness.** `rawRep 0` is valid outright, since the chain's stage enumerations are
 already total — a fact bought once, upstream, when the scheduled stages were totalized. So
-`Accepted 0` comes for free, and with it the fallback a total enumeration of the limit needs.
+`Accepted 0` comes for free, giving nonemptiness of the carrier.
+
+**And no fallback is needed anyway.** Idempotence gives `range_canonicalRaw`: the accepted codes are
+*exactly* the range of `canonicalRaw`, so that function enumerates the carrier outright — no
+membership test, no default value.
 -/
 
 open Encodable Part
@@ -157,10 +161,11 @@ theorem canonicalRaw_idem (n : ℕ) : C.canonicalRaw (C.canonicalRaw n) = C.cano
 /-- A code is **accepted** when it is its own canonical index. Extensionally: no earlier raw index
 is equivalent to it.
 
-Deliberately carries **no** `Decidable` instance. As an equation between naturals it is of course
-classically decidable, but an instance would have to compute `canonicalRaw`, which is an unbounded
-search; whether accepted-ness is decidable *in the oracle* is a separate claim, and this layer does
-not make it. -/
+This unfolds to an equality of naturals, so `Decidable` is available for free; what this layer does
+not expose is a `ComputablePredIn O` API for it. That is a statement about what has been *needed*,
+not an obstruction — `canonicalRaw_computableIn` below makes acceptedness oracle-computable the
+moment a consumer wants it. Unbounded search is not itself a barrier to oracle computability, since
+the search is total on raw codes. -/
 def Accepted (n : ℕ) : Prop :=
   C.canonicalRaw n = n
 
@@ -183,5 +188,73 @@ so `rawRep 0` is valid outright. This is the fallback a total enumeration of the
 is why the extensional limit asks for no base witness of its own. -/
 theorem accepted_zero : C.Accepted 0 :=
   Nat.le_zero.1 (C.canonicalRaw_le 0)
+
+/-- Canonicalization is computable in the oracle: the search is partial recursive and total on raw
+codes, so the totalized version is computable. Unbounded search is no barrier here. -/
+theorem canonicalRaw_computableIn : ComputableIn O C.canonicalRaw :=
+  ((C.canonicalPart_recursiveIn.comp C.rawRep_computableIn).computableIn_get
+    fun n ↦ C.canonicalPart_dom_of_limMem (C.rawRep_limMem n)).of_eq fun _ ↦ rfl
+
+/-- **The accepted codes are exactly the range of canonicalization.** So an enumeration of the
+limit's carrier is `canonicalRaw` itself — no membership test and no fallback value. -/
+theorem range_canonicalRaw : Set.range C.canonicalRaw = {n | C.Accepted n} := by
+  ext n
+  constructor
+  · rintro ⟨m, rfl⟩
+    exact C.accepted_canonicalRaw m
+  · intro hn
+    exact ⟨n, hn⟩
+
+/-- A found index is itself accepted: nothing earlier is equivalent to it either. -/
+theorem accepted_of_mem_canonicalPart {p : ℕ × ℕ} (hp : C.limMem p) {k : ℕ}
+    (hk : k ∈ C.canonicalPart p) : C.Accepted k := by
+  refine Nat.le_antisymm (C.canonicalRaw_le k) (C.le_of_mem_canonicalPart hk ?_)
+  have hchain : C.limEquiv p (C.rawRep (C.canonicalRaw k)) :=
+    C.limEquiv_trans hp (C.rawRep_limMem k) (C.rawRep_limMem (C.canonicalRaw k))
+      (C.limEquiv_rawRep_of_mem_canonicalPart hp hk) (C.limEquiv_canonicalRaw k)
+  obtain ⟨b, hb, hiff⟩ := C.limEquivTest_spec hp (C.rawRep_limMem (C.canonicalRaw k))
+  rwa [hiff.2 hchain] at hb
+
+/-! ### The stage maps
+
+The map carrying a stage element to its canonical code. Partial, for the same reason
+`canonicalPart` is; total exactly where the element is in its stage. -/
+
+/-- Send a stage element to the canonical code of its class. -/
+noncomputable def stageIntoPart (i x : ℕ) : Part ℕ :=
+  C.canonicalPart (i, x)
+
+theorem stageIntoPart_recursiveIn :
+    RecursiveIn O fun p : ℕ × ℕ ↦ C.stageIntoPart p.1 p.2 :=
+  C.canonicalPart_recursiveIn.of_eq fun _ ↦ rfl
+
+theorem stageIntoPart_dom {i x : ℕ} (hx : x ∈ C.domainAt i) : (C.stageIntoPart i x).Dom :=
+  C.canonicalPart_dom_of_limMem hx
+
+/-- The value is an accepted code. -/
+theorem accepted_of_mem_stageIntoPart {i x : ℕ} (hx : x ∈ C.domainAt i) {k : ℕ}
+    (hk : k ∈ C.stageIntoPart i x) : C.Accepted k :=
+  C.accepted_of_mem_canonicalPart (p := (i, x)) hx hk
+
+/-- And it names the element's own class. -/
+theorem limEquiv_of_mem_stageIntoPart {i x : ℕ} (hx : x ∈ C.domainAt i) {k : ℕ}
+    (hk : k ∈ C.stageIntoPart i x) : C.limEquiv (i, x) (C.rawRep k) :=
+  C.limEquiv_rawRep_of_mem_canonicalPart (p := (i, x)) hx hk
+
+/-- Equivalence within a single stage is equality — the transport is the identity there. -/
+theorem eq_of_limEquiv_same_stage {i x y : ℕ} (h : C.limEquiv (i, x) (i, y)) : x = y := by
+  obtain ⟨z, hz₁, hz₂⟩ := h
+  rw [show max i i = i from Nat.max_self i, C.transportTo_self] at hz₁ hz₂
+  have h₁ : z = x := Part.mem_some_iff.1 hz₁
+  have h₂ : z = y := Part.mem_some_iff.1 hz₂
+  rw [← h₁, ← h₂]
+
+/-- **The stage maps are injective on their stage.** Immediate from accepted codes being equivalent
+only when equal. -/
+theorem stageIntoPart_injOn {i x y k : ℕ} (hx : x ∈ C.domainAt i) (hy : y ∈ C.domainAt i)
+    (hkx : k ∈ C.stageIntoPart i x) (hky : k ∈ C.stageIntoPart i y) : x = y := by
+  refine C.eq_of_limEquiv_same_stage (C.limEquiv_trans (p := (i, x)) (q := C.rawRep k)
+    (r := (i, y)) hx (C.rawRep_limMem k) hy (C.limEquiv_of_mem_stageIntoPart hx hkx) ?_)
+  exact C.limEquiv_symm (C.limEquiv_of_mem_stageIntoPart hy hky)
 
 end CeDomainChainIn

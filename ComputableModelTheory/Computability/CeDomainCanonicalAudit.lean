@@ -22,7 +22,9 @@ The rows are chosen so that the two things that could silently go wrong are both
 
 `accepted_zero` is gated separately because of what it costs: **nothing**. The base witness was
 spent upstream making the scheduled stages totalizable, and `rawRep 0` is valid outright, so the
-extensional limit needs no base witness of its own.
+extensional limit needs no base witness of its own. It is a nonemptiness boundary gate, not an
+operational fallback — `range_canonicalRaw` means the carrier is enumerated by `canonicalRaw`
+directly, with no membership test and nothing to fall back to.
 -/
 
 open Encodable Part
@@ -69,15 +71,42 @@ theorem test_accepted_limEquiv_iff {n m : ℕ} (hn : C.Accepted n) (hm : C.Accep
     C.limEquiv (C.rawRep n) (C.rawRep m) ↔ n = m :=
   C.accepted_limEquiv_iff hn hm
 
-/-- **`0` is accepted, at no cost.** The fallback a total enumeration of the limit will need, with
-no base witness of this layer's own. -/
+/-- **`0` is accepted, at no cost** — nonemptiness of the carrier with no base witness of this
+layer's own. Not needed as a fallback: see `range_canonicalRaw`. -/
 theorem test_accepted_zero : C.Accepted 0 :=
   C.accepted_zero
 
-/-- The two effectivity facts the layer supplies. -/
+/-- The effectivity the layer supplies — including that canonicalization itself is **computable**,
+so acceptedness is oracle-computable the moment a consumer needs it. Unbounded search is no barrier
+when the search is total on raw codes. -/
 theorem test_canonical_recursiveIn :
-    ComputableIn O C.rawRep ∧ RecursiveIn O C.canonicalPart :=
-  ⟨C.rawRep_computableIn, C.canonicalPart_recursiveIn⟩
+    ComputableIn O C.rawRep ∧ RecursiveIn O C.canonicalPart ∧ ComputableIn O C.canonicalRaw :=
+  ⟨C.rawRep_computableIn, C.canonicalPart_recursiveIn, C.canonicalRaw_computableIn⟩
+
+/-- **The carrier needs no membership test and no fallback**: the accepted codes are exactly the
+range of canonicalization, so `canonicalRaw` enumerates them outright. -/
+theorem test_range_canonicalRaw : Set.range C.canonicalRaw = {n | C.Accepted n} :=
+  C.range_canonicalRaw
+
+/-! ### The stage maps -/
+
+/-- On its own stage the map halts, returns an **accepted** code, and names the element's class. -/
+theorem test_stageIntoPart_spec {i x : ℕ} (hx : x ∈ C.domainAt i) :
+    (C.stageIntoPart i x).Dom ∧
+      ∀ k ∈ C.stageIntoPart i x, C.Accepted k ∧ C.limEquiv (i, x) (C.rawRep k) :=
+  ⟨C.stageIntoPart_dom hx, fun _ hk ↦
+    ⟨C.accepted_of_mem_stageIntoPart hx hk, C.limEquiv_of_mem_stageIntoPart hx hk⟩⟩
+
+/-- **And it is injective on its stage** — two elements of one stage never share a canonical code.
+This is what makes the stage maps embeddings rather than merely well-defined. -/
+theorem test_stageIntoPart_injOn {i x y k : ℕ} (hx : x ∈ C.domainAt i) (hy : y ∈ C.domainAt i)
+    (hkx : k ∈ C.stageIntoPart i x) (hky : k ∈ C.stageIntoPart i y) : x = y :=
+  C.stageIntoPart_injOn hx hy hkx hky
+
+/-- The stage maps are partial recursive uniformly in the stage. -/
+theorem test_stageIntoPart_recursiveIn :
+    RecursiveIn O fun p : ℕ × ℕ ↦ C.stageIntoPart p.1 p.2 :=
+  C.stageIntoPart_recursiveIn
 
 end CeDomainChainIn
 
@@ -90,3 +119,7 @@ end CeDomainChainIn
 #assert_standard_axioms CeDomainChainIn.test_accepted_limEquiv_iff
 #assert_standard_axioms CeDomainChainIn.test_accepted_zero
 #assert_standard_axioms CeDomainChainIn.test_canonical_recursiveIn
+#assert_standard_axioms CeDomainChainIn.test_range_canonicalRaw
+#assert_standard_axioms CeDomainChainIn.test_stageIntoPart_spec
+#assert_standard_axioms CeDomainChainIn.test_stageIntoPart_injOn
+#assert_standard_axioms CeDomainChainIn.test_stageIntoPart_recursiveIn
