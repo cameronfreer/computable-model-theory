@@ -45,9 +45,15 @@ namespace CeStructureChainIn
 variable {O : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
 variable (D : CeStructureChainIn O L)
 
-/-- The common stage of a coded argument tuple. -/
-abbrev argStage (l : List ℕ) : ℕ :=
+/-- The common stage of a coded argument tuple.
+
+A plain `def`, not an `abbrev`: as a reducible abbreviation it unfolds into the underlying fold
+during the computability proofs, and `whnf` then chases the whole pipeline. -/
+def argStage (l : List ℕ) : ℕ :=
   D.toDomainChain.rawStageBound l
+
+@[simp] theorem argStage_eq (l : List ℕ) :
+    D.argStage l = D.toDomainChain.rawStageBound l := rfl
 
 /-! ### The two pipelines -/
 
@@ -333,6 +339,73 @@ theorem rawRelEvalPart_spec (d : RelationApplicationData L ℕ) :
     (fun k ↦ D.toDomainChain.rawRep_limMem _)
     (fun k ↦ le_argStage_of_rel (D := D) k)
     (fun k ↦ relData_args_transport (D := D) hsrc k)).symm
+
+/-! ### Computability
+
+Given uniform stage evaluators, both pipelines are partial recursive. These proofs mention only the
+pipeline definitions and their computational components — no `LimFunGraph`, no domain closure, no
+acceptedness — which is the semantic/computational separation the whole tranche keeps.
+
+Each proof follows the definition's `bind` nesting exactly. -/
+
+attribute [local irreducible] argStage CeDomainChainIn.transportRawArgsPart
+  CeDomainChainIn.canonicalPart in
+variable (D) in
+theorem rawFunEvalPart_recursiveIn (U : D.UniformEvaluatorsIn) :
+    RecursiveIn O D.rawFunEvalPart := by
+  have hargs : ComputableIn O fun d : FunctionApplicationData L ℕ ↦ d.argsList :=
+    FunctionApplicationData.primrec_argsList.to_comp.computableIn
+  have hstage : ComputableIn O fun d : FunctionApplicationData L ℕ ↦ D.argStage d.argsList :=
+    (D.toDomainChain.rawStageBound_computableIn.comp hargs).of_eq fun _ ↦ (D.argStage_eq _).symm
+  -- the traversal
+  have h1 : RecursiveIn O fun d : FunctionApplicationData L ℕ ↦
+      D.toDomainChain.transportRawArgsPart d.argsList :=
+    D.toDomainChain.transportRawArgsPart_recursiveIn.comp hargs
+  -- the reassembly
+  have h2 : RecursiveIn O fun q : FunctionApplicationData L ℕ × List ℕ ↦
+      ((FunctionApplicationData.ofSymbolArgs? (q.1.toSymbol, q.2) :
+        Option (FunctionApplicationData L ℕ)) : Part (FunctionApplicationData L ℕ)) :=
+    ComputableIn.ofOption
+      (FunctionApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn.comp
+        ((FunctionApplicationData.primrec_toSymbol.to_comp.computableIn.comp
+          ComputableIn.fst).pair ComputableIn.snd))
+  -- the stage evaluator
+  have h3 : RecursiveIn O fun r : (FunctionApplicationData L ℕ × List ℕ) ×
+      FunctionApplicationData L ℕ ↦ (D.stageAt (D.argStage r.1.1.argsList)).funEval r.2 :=
+    U.funEval_uniform.comp
+      ((hstage.comp (ComputableIn.fst.comp ComputableIn.fst)).pair ComputableIn.snd)
+  -- the canonicalization
+  have h4 : RecursiveIn O fun w : ((FunctionApplicationData L ℕ × List ℕ) ×
+      FunctionApplicationData L ℕ) × ℕ ↦
+      D.toDomainChain.canonicalPart (D.argStage w.1.1.1.argsList, w.2) :=
+    D.toDomainChain.canonicalPart_recursiveIn.comp
+      ((hstage.comp (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst))).pair
+        ComputableIn.snd)
+  exact RecursiveIn.bind h1 (RecursiveIn.bind h2 (RecursiveIn.bind h3 h4.to₂).to₂).to₂
+
+attribute [local irreducible] argStage CeDomainChainIn.transportRawArgsPart in
+variable (D) in
+theorem rawRelEvalPart_recursiveIn (U : D.UniformEvaluatorsIn) :
+    RecursiveIn O D.rawRelEvalPart := by
+  have hargs : ComputableIn O fun d : RelationApplicationData L ℕ ↦ d.argsList :=
+    RelationApplicationData.primrec_argsList.to_comp.computableIn
+  have hstage : ComputableIn O fun d : RelationApplicationData L ℕ ↦ D.argStage d.argsList :=
+    (D.toDomainChain.rawStageBound_computableIn.comp hargs).of_eq fun _ ↦ (D.argStage_eq _).symm
+  have h1 : RecursiveIn O fun d : RelationApplicationData L ℕ ↦
+      D.toDomainChain.transportRawArgsPart d.argsList :=
+    D.toDomainChain.transportRawArgsPart_recursiveIn.comp hargs
+  have h2 : RecursiveIn O fun q : RelationApplicationData L ℕ × List ℕ ↦
+      ((RelationApplicationData.ofSymbolArgs? (q.1.toSymbol, q.2) :
+        Option (RelationApplicationData L ℕ)) : Part (RelationApplicationData L ℕ)) :=
+    ComputableIn.ofOption
+      (RelationApplicationData.primrec_ofSymbolArgs?.to_comp.computableIn.comp
+        ((RelationApplicationData.primrec_toSymbol.to_comp.computableIn.comp
+          ComputableIn.fst).pair ComputableIn.snd))
+  have h3 : RecursiveIn O fun r : (RelationApplicationData L ℕ × List ℕ) ×
+      RelationApplicationData L ℕ ↦ (D.stageAt (D.argStage r.1.1.argsList)).relEval r.2 :=
+    U.relEval_uniform.comp
+      ((hstage.comp (ComputableIn.fst.comp ComputableIn.fst)).pair ComputableIn.snd)
+  exact RecursiveIn.bind h1 (RecursiveIn.bind h2 h3.to₂).to₂
 
 end CeStructureChainIn
 
