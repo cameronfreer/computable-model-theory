@@ -232,6 +232,108 @@ theorem accepted_of_mem_rawFunEvalPart {d : FunctionApplicationData L ℕ} {c : 
   exact D.toDomainChain.accepted_of_mem_canonicalPart
     (limMem_rawFunOutput (D := D) hsrc (hlen := hlen) hy) hcan
 
+/-! ### The one place the index bookkeeping happens
+
+`Forall₂`, `argsList`, `List.get` and `List.get_ofFn` meet here and nowhere else. Both semantic
+theorems below consume these twins and never reopen the list/`Fin` boundary. -/
+
+theorem funData_args_transport {d : FunctionApplicationData L ℕ} {src : List ℕ}
+    (hsrc : src ∈ D.toDomainChain.transportRawArgsPart d.argsList)
+    {hlen : src.length = (d.toSymbol).arity} (k : Fin (d.toSymbol).arity) :
+    (FunctionApplicationData.equivSubtype.symm ⟨(d.toSymbol, src), hlen⟩ :
+        FunctionApplicationData L ℕ).args k ∈
+      D.transportTo (D.toDomainChain.rawRep (d.args k)).1 (D.argStage d.argsList)
+        (D.toDomainChain.rawRep (d.args k)).2 := by
+  have hk₁ : (k : ℕ) < d.argsList.length := by
+    rw [FunctionApplicationData.argsList, List.length_ofFn]
+    exact k.isLt
+  have hk₂ : (k : ℕ) < src.length := by
+    rw [hlen]
+    exact k.isLt
+  have hget := transported_get (D := D) hsrc hk₁ hk₂
+  have hargs : d.argsList.get ⟨(k : ℕ), hk₁⟩ = d.args k := by
+    simp [FunctionApplicationData.argsList]
+  rwa [hargs] at hget
+
+theorem relData_args_transport {d : RelationApplicationData L ℕ} {src : List ℕ}
+    (hsrc : src ∈ D.toDomainChain.transportRawArgsPart d.argsList)
+    {hlen : src.length = (d.toSymbol).arity} (k : Fin (d.toSymbol).arity) :
+    (RelationApplicationData.equivSubtype.symm ⟨(d.toSymbol, src), hlen⟩ :
+        RelationApplicationData L ℕ).args k ∈
+      D.transportTo (D.toDomainChain.rawRep (d.args k)).1 (D.argStage d.argsList)
+        (D.toDomainChain.rawRep (d.args k)).2 := by
+  have hk₁ : (k : ℕ) < d.argsList.length := by
+    rw [RelationApplicationData.argsList, List.length_ofFn]
+    exact k.isLt
+  have hk₂ : (k : ℕ) < src.length := by
+    rw [hlen]
+    exact k.isLt
+  have hget := transported_get (D := D) hsrc hk₁ hk₂
+  have hargs : d.argsList.get ⟨(k : ℕ), hk₁⟩ = d.args k := by
+    simp [RelationApplicationData.argsList]
+  rwa [hargs] at hget
+
+/-- Every argument's own stage is at or below the common one. -/
+theorem le_argStage_of_fun {d : FunctionApplicationData L ℕ} (k : Fin d.arity) :
+    (D.toDomainChain.rawRep (d.args k)).1 ≤ D.argStage d.argsList :=
+  D.toDomainChain.le_rawStageBound (List.mem_ofFn.2 ⟨k, rfl⟩)
+
+theorem le_argStage_of_rel {d : RelationApplicationData L ℕ} (k : Fin d.arity) :
+    (D.toDomainChain.rawRep (d.args k)).1 ≤ D.argStage d.argsList :=
+  D.toDomainChain.le_rawStageBound (List.mem_ofFn.2 ⟨k, rfl⟩)
+
+/-! ### The semantics
+
+One-way on the function side, which is all anything currently needs: an accepted-code `iff` is
+derivable later from `limFunGraph_functional` and `accepted_limEquiv_iff`, and adding it now would
+be API without a consumer. -/
+
+/-- **Function soundness.** A returned code names the limit's value of the symbol at the arguments'
+classes. -/
+theorem limFunGraph_of_mem_rawFunEvalPart {d : FunctionApplicationData L ℕ} {c : ℕ}
+    (hc : c ∈ D.rawFunEvalPart d) :
+    D.LimFunGraph d.symbol (fun k ↦ D.toDomainChain.rawRep (d.args k))
+      (D.toDomainChain.rawRep c) := by
+  obtain ⟨src, hsrc, d', hd', y, hy, hcan⟩ := mem_rawFunEvalPart_iff.1 hc
+  obtain ⟨hlen, hd'eq⟩ := exists_funData_of_transported (D := D) hsrc
+  rw [hd'eq, Option.mem_def, Option.some_inj] at hd'
+  subst hd'
+  have hlim := limMem_rawFunOutput (D := D) hsrc (hlen := hlen) hy
+  have hval : y = @FunctionApplicationData.funMap L ℕ
+      (D.stageAt (D.argStage d.argsList)).str
+      (FunctionApplicationData.equivSubtype.symm ⟨(d.toSymbol, src), hlen⟩) :=
+    Part.mem_unique hy ((D.stageAt (D.argStage d.argsList)).funEval_correct _
+      (funData_args_mem_stage (D := D) hsrc (hlen := hlen)))
+  refine ⟨D.argStage d.argsList,
+    fun k ↦ (FunctionApplicationData.equivSubtype.symm ⟨(d.toSymbol, src), hlen⟩ :
+      FunctionApplicationData L ℕ).args k,
+    fun k ↦ le_argStage_of_fun (D := D) k,
+    fun k ↦ funData_args_transport (D := D) hsrc k, ?_⟩
+  rw [show @Structure.funMap L ℕ (D.stageAt (D.argStage d.argsList)).str _ d.symbol
+      (fun k ↦ (FunctionApplicationData.equivSubtype.symm ⟨(d.toSymbol, src), hlen⟩ :
+        FunctionApplicationData L ℕ).args k) = y from hval.symm]
+  exact D.toDomainChain.limEquiv_rawRep_of_mem_canonicalPart hlim hcan
+
+/-- **Relation characterization.** The returned truth value is exactly whether the limit relation
+holds of the arguments' classes. The common-stage argument is not rebuilt: it is
+`limRelHolds_iff_realization` at the stage the pipeline already computed. -/
+theorem rawRelEvalPart_spec (d : RelationApplicationData L ℕ) :
+    ∃ b ∈ D.rawRelEvalPart d,
+      (b = true ↔ D.LimRelHolds d.symbol fun k ↦ D.toDomainChain.rawRep (d.args k)) := by
+  obtain ⟨src, hsrc⟩ :=
+    Part.dom_iff_mem.1 (D.toDomainChain.transportRawArgsPart_dom d.argsList)
+  obtain ⟨hlen, hd'eq⟩ := exists_relData_of_transported (D := D) hsrc
+  set d' : RelationApplicationData L ℕ :=
+    RelationApplicationData.equivSubtype.symm ⟨(d.toSymbol, src), hlen⟩ with hd'
+  obtain ⟨b, hb, hiff⟩ := (D.stageAt (D.argStage d.argsList)).relEval_correct d'
+    (relData_args_mem_stage (D := D) hsrc (hlen := hlen))
+  refine ⟨b, mem_rawRelEvalPart_iff.2 ⟨src, hsrc, d', by rw [hd'eq]; rfl, hb⟩, ?_⟩
+  rw [hiff]
+  exact (D.limRelHolds_iff_realization d.symbol
+    (fun k ↦ D.toDomainChain.rawRep_limMem _)
+    (fun k ↦ le_argStage_of_rel (D := D) k)
+    (fun k ↦ relData_args_transport (D := D) hsrc k)).symm
+
 end CeStructureChainIn
 
 end FirstOrder.Language

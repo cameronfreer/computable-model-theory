@@ -56,6 +56,24 @@ theorem test_limMem_rawFunOutput {d : FunctionApplicationData L ℕ} {src : List
     D.toDomainChain.limMem (D.argStage d.argsList, y) :=
   limMem_rawFunOutput hsrc hy
 
+/-! ### The semantics -/
+
+/-- **Function soundness**: a returned code names the limit's value of the symbol at the arguments'
+classes. One-way on purpose — an accepted-code `iff` is derivable from `limFunGraph_functional` and
+`accepted_limEquiv_iff`, and nothing needs it yet. -/
+theorem test_limFunGraph_of_mem_rawFunEvalPart {d : FunctionApplicationData L ℕ} {c : ℕ}
+    (hc : c ∈ D.rawFunEvalPart d) :
+    D.LimFunGraph d.symbol (fun k ↦ D.toDomainChain.rawRep (d.args k))
+      (D.toDomainChain.rawRep c) :=
+  limFunGraph_of_mem_rawFunEvalPart hc
+
+/-- **Relation characterization**: the returned truth value is exactly whether the limit relation
+holds of the arguments' classes. -/
+theorem test_rawRelEvalPart_spec (d : RelationApplicationData L ℕ) :
+    ∃ b ∈ D.rawRelEvalPart d,
+      (b = true ↔ D.LimRelHolds d.symbol fun k ↦ D.toDomainChain.rawRep (d.args k)) :=
+  D.rawRelEvalPart_spec d
+
 /-! ### Arity zero -/
 
 /-- **The common stage of an empty argument list is `0`.** So constants and nullary relations are
@@ -73,5 +91,7 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_rawRelEvalPart_dom
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_accepted_of_mem_rawFunEvalPart
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_limMem_rawFunOutput
+#assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_limFunGraph_of_mem_rawFunEvalPart
+#assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_rawRelEvalPart_spec
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_argStage_nil
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_transport_nil
