@@ -86,6 +86,33 @@ theorem test_stageCode_funMap {i n : ℕ} (f : L.Functions n) (v : Fin n → ℕ
       @Structure.funMap L ℕ D.limitStr n f (fun k ↦ D.stageCode (hv k)) :=
   D.stageCode_funMap f v hv
 
+/-! ### The bundled stage embeddings -/
+
+/-- **The computational bridge.** The bundled embedding's value is a value of the uniformly partial
+recursive stage map. Without this row the package would carry a semantic embedding and a computable
+map with nothing relating them. -/
+theorem test_stageEmbedding_apply_mem (U : D.UniformEvaluatorsIn) (i : ℕ)
+    (x : (D.stageAt i).domain) :
+    ((D.stageEmbedding U i x : (D.limitPresentation U).domain) : ℕ) ∈
+      D.toDomainChain.stageIntoPart i x.1 :=
+  D.stageEmbedding_apply_mem U i x
+
+/-- **Coherence with the chain steps**, inherited from the search rather than re-derived: the two
+stage maps are equal as `Part`s, so the bundled equality is `Part.mem_unique`. -/
+theorem test_stageEmbedding_step (U : D.UniformEvaluatorsIn) {i x : ℕ}
+    (hx : x ∈ (D.stageAt i).domain) :
+    ∃ y ∈ D.toDomainChain.step i x, ∃ hy : y ∈ (D.stageAt (i + 1)).domain,
+      D.stageEmbedding U i ⟨x, hx⟩ = D.stageEmbedding U (i + 1) ⟨y, hy⟩ :=
+  D.stageEmbedding_step U hx
+
+/-- **Coverage.** Every carrier element is a stage image, so the limit is the union of the stage
+embeddings' ranges. -/
+theorem test_exists_stageEmbedding_eq (U : D.UniformEvaluatorsIn)
+    (c : (D.limitPresentation U).domain) :
+    ∃ (i : ℕ) (x : ℕ) (hx : x ∈ (D.stageAt i).domain),
+      D.stageEmbedding U i ⟨x, hx⟩ = c :=
+  D.exists_stageEmbedding_eq U c
+
 end CeStructureChainIn
 
 end FirstOrder.Language
@@ -98,3 +125,6 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_stageCode_accepted_and_injOn
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_stageCode_relMap_iff
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_stageCode_funMap
+#assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_stageEmbedding_apply_mem
+#assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_stageEmbedding_step
+#assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_exists_stageEmbedding_eq

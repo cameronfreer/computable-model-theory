@@ -417,4 +417,20 @@ theorem exists_mem_stageIntoPart_of_accepted {c : ℕ} (hc : C.Accepted c) :
     ∃ i x, x ∈ C.domainAt i ∧ c ∈ C.stageIntoPart i x :=
   ⟨(C.rawRep c).1, (C.rawRep c).2, C.rawRep_limMem c, C.mem_stageIntoPart_rawRep_of_accepted hc⟩
 
+/-! ### Coherence with the chain steps
+
+At the level of the *search*, not of a chosen value: `canonicalPart` sees only the class, and a
+stage element and its step image are the same class. Everything downstream then follows by
+`Part.mem_unique` rather than by comparing `.get`s. -/
+
+/-- **The stage maps agree along a step.** -/
+theorem stageIntoPart_step {i x : ℕ} (hx : x ∈ C.domainAt i) :
+    ∃ y ∈ C.step i x, y ∈ C.domainAt (i + 1) ∧
+      C.stageIntoPart i x = C.stageIntoPart (i + 1) y := by
+  obtain ⟨y, hy, heq⟩ := C.stageInto_compat hx
+  obtain ⟨y', hy', hy'dom⟩ := C.step_mem i x hx
+  have hyy : y = y' := Part.mem_unique hy hy'
+  subst hyy
+  exact ⟨y, hy, hy'dom, C.canonicalPart_eq_of_limEquiv hx hy'dom heq⟩
+
 end CeDomainChainIn

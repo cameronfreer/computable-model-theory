@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Computable.CeStructureLimitEval
+import ComputableModelTheory.ModelTheory.Computable.ComputableIso
 
 /-!
 # The Level-1 extensional limit presentation
@@ -203,6 +204,75 @@ theorem stageCode_funMap {i n : ℕ} (f : L.Functions n) (v : Fin n → ℕ)
   exact (D.toDomainChain.accepted_limEquiv_iff hacc₁ hacc₂).1
     (D.limFunGraph_functional f (fun k ↦ D.toDomainChain.rawRep_limMem _) hg₁ hg₂
       (D.toDomainChain.rawRep_limMem _) (D.toDomainChain.rawRep_limMem _))
+
+/-! ### The bundled stage embeddings
+
+The induced subtype structures come from `ComputableIso`; that semantic bridge is imported for this
+section alone. Bundling is thin — the three laws are already proved at code level — but
+`stageEmbedding_apply_mem` matters: it is what connects the noncomputable bundled map back to the
+uniformly partial recursive `stageIntoPart`. Without it the package would have a semantic embedding
+and a computable map with no stated relation between them. -/
+
+/-- **The stage embedding.** -/
+noncomputable def stageEmbedding (U : D.UniformEvaluatorsIn) (i : ℕ) :
+    (D.stageAt i).domain ↪[L] (D.limitPresentation U).domain where
+  toFun x := ⟨D.stageCode x.2, by
+    rw [D.limitPresentation_domain]
+    exact D.accepted_stageCode x.2⟩
+  inj' x y h :=
+    Subtype.ext (D.stageCode_injOn x.2 y.2 (congrArg Subtype.val h))
+  map_fun' {n} f v := Subtype.ext (D.stageCode_funMap f (fun k ↦ (v k).1) fun k ↦ (v k).2)
+  map_rel' {n} R v := D.stageCode_relMap_iff R (fun k ↦ (v k).1) fun k ↦ (v k).2
+
+@[simp] theorem stageEmbedding_coe (U : D.UniformEvaluatorsIn) (i : ℕ)
+    (x : (D.stageAt i).domain) :
+    ((D.stageEmbedding U i x : (D.limitPresentation U).domain) : ℕ) = D.stageCode x.2 :=
+  rfl
+
+/-- **The computational bridge.** The bundled embedding's value is a value of the uniformly partial
+recursive stage map — the only statement tying the semantic side of the package to its effective
+side. -/
+theorem stageEmbedding_apply_mem (U : D.UniformEvaluatorsIn) (i : ℕ)
+    (x : (D.stageAt i).domain) :
+    ((D.stageEmbedding U i x : (D.limitPresentation U).domain) : ℕ) ∈
+      D.toDomainChain.stageIntoPart i x.1 :=
+  D.mem_stageIntoPart_stageCode x.2
+
+/-! ### Coherence and coverage
+
+Coherence is inherited from the *search*, not re-derived: `stageIntoPart_step` is an equation
+between `Part`s, so the code-level and bundled forms are both `Part.mem_unique`. -/
+
+/-- **Codes agree along a step.** -/
+theorem stageCode_step {i : ℕ} {x : ℕ} (hx : x ∈ (D.stageAt i).domain) :
+    ∃ y ∈ D.toDomainChain.step i x, ∃ hy : y ∈ (D.stageAt (i + 1)).domain,
+      D.stageCode hx = D.stageCode hy := by
+  obtain ⟨y, hy, hydom, heq⟩ := D.toDomainChain.stageIntoPart_step hx
+  exact ⟨y, hy, hydom, Part.mem_unique (D.mem_stageIntoPart_stageCode hx)
+    (heq ▸ D.mem_stageIntoPart_stageCode hydom)⟩
+
+/-- The bundled form. -/
+theorem stageEmbedding_step (U : D.UniformEvaluatorsIn) {i x : ℕ}
+    (hx : x ∈ (D.stageAt i).domain) :
+    ∃ y ∈ D.toDomainChain.step i x, ∃ hy : y ∈ (D.stageAt (i + 1)).domain,
+      D.stageEmbedding U i ⟨x, hx⟩ = D.stageEmbedding U (i + 1) ⟨y, hy⟩ := by
+  obtain ⟨y, hy, hydom, heq⟩ := D.stageCode_step hx
+  exact ⟨y, hy, hydom, Subtype.ext heq⟩
+
+/-- **Coverage.** Every carrier element is a stage image — with the stage and the element named, so
+the limit is the union of the stage embeddings' ranges. -/
+theorem exists_stageEmbedding_eq (U : D.UniformEvaluatorsIn)
+    (c : (D.limitPresentation U).domain) :
+    ∃ (i : ℕ) (x : ℕ) (hx : x ∈ (D.stageAt i).domain),
+      D.stageEmbedding U i ⟨x, hx⟩ = c := by
+  have hacc : D.toDomainChain.Accepted (c : ℕ) :=
+    (Set.ext_iff.1 (D.limitPresentation_domain U) (c : ℕ)).1 c.2
+  have hmem : (D.toDomainChain.rawRep (c : ℕ)).2 ∈
+      (D.stageAt (D.toDomainChain.rawRep (c : ℕ)).1).domain :=
+    D.toDomainChain.rawRep_limMem _
+  refine ⟨_, _, hmem, Subtype.ext ?_⟩
+  exact Part.mem_unique (D.mem_stageIntoPart_stageCode hmem)
+    (D.toDomainChain.mem_stageIntoPart_rawRep_of_accepted hacc)
 
 end CeStructureChainIn
 
