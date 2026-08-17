@@ -128,6 +128,82 @@ theorem limitStr_relMap_iff_limRelHolds {n : ℕ} (R : L.Relations n) (v : Fin n
   · intro h
     exact (hiff.2 h) ▸ hb
 
+/-! ### The stage maps at code level
+
+The map before any bundling. Naming it, with its four facts, keeps the structural laws below free of
+`Part.get`. -/
+
+/-- The canonical code of a stage element. -/
+noncomputable def stageCode {i x : ℕ} (hx : x ∈ (D.stageAt i).domain) : ℕ :=
+  (D.toDomainChain.stageIntoPart i x).get (D.toDomainChain.stageIntoPart_dom hx)
+
+theorem mem_stageIntoPart_stageCode {i x : ℕ} (hx : x ∈ (D.stageAt i).domain) :
+    D.stageCode hx ∈ D.toDomainChain.stageIntoPart i x :=
+  Part.get_mem _
+
+theorem accepted_stageCode {i x : ℕ} (hx : x ∈ (D.stageAt i).domain) :
+    D.toDomainChain.Accepted (D.stageCode hx) :=
+  D.toDomainChain.accepted_of_mem_stageIntoPart hx (D.mem_stageIntoPart_stageCode hx)
+
+/-- The code names the element's own class. -/
+theorem limEquiv_stageCode {i x : ℕ} (hx : x ∈ (D.stageAt i).domain) :
+    D.toDomainChain.limEquiv (i, x) (D.toDomainChain.rawRep (D.stageCode hx)) :=
+  D.toDomainChain.limEquiv_of_mem_stageIntoPart hx (D.mem_stageIntoPart_stageCode hx)
+
+theorem limMem_stageCode {i x : ℕ} (hx : x ∈ (D.stageAt i).domain) :
+    D.toDomainChain.limMem (i, x) :=
+  hx
+
+/-- **Injective on its stage.** -/
+theorem stageCode_injOn {i x y : ℕ} (hx : x ∈ (D.stageAt i).domain)
+    (hy : y ∈ (D.stageAt i).domain) (h : D.stageCode hx = D.stageCode hy) : x = y :=
+  D.toDomainChain.stageIntoPart_injOn hx hy (D.mem_stageIntoPart_stageCode hx)
+    (h ▸ D.mem_stageIntoPart_stageCode hy)
+
+/-! ### The structural laws
+
+Stated at code level and proved through the semantic boundary only: no `Part.get`, no evaluator
+internals, no common-stage bookkeeping. -/
+
+/-- **Relations transfer both ways.** -/
+theorem stageCode_relMap_iff {i n : ℕ} (R : L.Relations n) (v : Fin n → ℕ)
+    (hv : ∀ k, v k ∈ (D.stageAt i).domain) :
+    @Structure.RelMap L ℕ D.limitStr n R (fun k ↦ D.stageCode (hv k)) ↔
+      @Structure.RelMap L ℕ (D.stageAt i).str n R v := by
+  rw [D.limitStr_relMap_iff_limRelHolds R fun k ↦ D.stageCode (hv k)]
+  rw [D.limRelHolds_iff_of_limEquiv R
+      (v := fun k ↦ D.toDomainChain.rawRep (D.stageCode (hv k)))
+      (v' := fun k ↦ (i, v k))
+      (fun k ↦ D.toDomainChain.rawRep_limMem _) (fun k ↦ hv k)
+      (fun k ↦ D.toDomainChain.limEquiv_symm (D.limEquiv_stageCode (hv k)))]
+  exact D.limRelHolds_stage_iff R v hv
+
+/-- **Functions transfer.** Both candidate outputs are accepted and satisfy the same limit graph, so
+functionality gives `limEquiv` and accepted codes being equivalent only when equal closes it. -/
+theorem stageCode_funMap {i n : ℕ} (f : L.Functions n) (v : Fin n → ℕ)
+    (hv : ∀ k, v k ∈ (D.stageAt i).domain) :
+    D.stageCode ((D.stageAt i).domain_closed n f v hv) =
+      @Structure.funMap L ℕ D.limitStr n f (fun k ↦ D.stageCode (hv k)) := by
+  set c₁ := D.stageCode ((D.stageAt i).domain_closed n f v hv) with hc₁
+  set c₂ := @Structure.funMap L ℕ D.limitStr n f (fun k ↦ D.stageCode (hv k)) with hc₂
+  have hacc₁ : D.toDomainChain.Accepted c₁ := D.accepted_stageCode _
+  have hacc₂ : D.toDomainChain.Accepted c₂ := D.accepted_limitStr_funMap f _
+  have hg₂ : D.LimFunGraph f (fun k ↦ D.toDomainChain.rawRep (D.stageCode (hv k)))
+      (D.toDomainChain.rawRep c₂) := D.limitStr_funMap_limFunGraph f _
+  have hg₁ : D.LimFunGraph f (fun k ↦ D.toDomainChain.rawRep (D.stageCode (hv k)))
+      (D.toDomainChain.rawRep c₁) := by
+    refine D.limFunGraph_of_limEquiv f (v := fun k ↦ (i, v k))
+      (v' := fun k ↦ D.toDomainChain.rawRep (D.stageCode (hv k)))
+      (out := (i, @Structure.funMap L ℕ (D.stageAt i).str n f v))
+      (out' := D.toDomainChain.rawRep c₁)
+      (fun k ↦ hv k) (fun k ↦ D.toDomainChain.rawRep_limMem _)
+      (fun k ↦ D.limEquiv_stageCode (hv k))
+      ((D.stageAt i).domain_closed n f v hv) (D.toDomainChain.rawRep_limMem _)
+      (D.limEquiv_stageCode _) (D.limFunGraph_stage f v)
+  exact (D.toDomainChain.accepted_limEquiv_iff hacc₁ hacc₂).1
+    (D.limFunGraph_functional f (fun k ↦ D.toDomainChain.rawRep_limMem _) hg₁ hg₂
+      (D.toDomainChain.rawRep_limMem _) (D.toDomainChain.rawRep_limMem _))
+
 end CeStructureChainIn
 
 end FirstOrder.Language

@@ -61,6 +61,31 @@ theorem test_relMap_iff_limRelHolds {n : ℕ} (R : L.Relations n) (v : Fin n →
       D.LimRelHolds R fun k ↦ D.toDomainChain.rawRep (v k) :=
   D.limitStr_relMap_iff_limRelHolds R v
 
+/-! ### The stage maps at code level -/
+
+/-- The stage map lands in the carrier, and is **injective on its stage** — which is what will make
+it an embedding rather than merely a well-defined map. -/
+theorem test_stageCode_accepted_and_injOn {i x y : ℕ} (hx : x ∈ (D.stageAt i).domain)
+    (hy : y ∈ (D.stageAt i).domain) :
+    D.toDomainChain.Accepted (D.stageCode hx) ∧
+      (D.stageCode hx = D.stageCode hy → x = y) :=
+  ⟨D.accepted_stageCode hx, D.stageCode_injOn hx hy⟩
+
+/-- **Relations transfer both ways** between a stage and the limit. -/
+theorem test_stageCode_relMap_iff {i n : ℕ} (R : L.Relations n) (v : Fin n → ℕ)
+    (hv : ∀ k, v k ∈ (D.stageAt i).domain) :
+    @Structure.RelMap L ℕ D.limitStr n R (fun k ↦ D.stageCode (hv k)) ↔
+      @Structure.RelMap L ℕ (D.stageAt i).str n R v :=
+  D.stageCode_relMap_iff R v hv
+
+/-- **Functions transfer.** Proved through functionality of the limit graph plus accepted codes
+being equivalent only when equal — no inverse equivalence is constructed. -/
+theorem test_stageCode_funMap {i n : ℕ} (f : L.Functions n) (v : Fin n → ℕ)
+    (hv : ∀ k, v k ∈ (D.stageAt i).domain) :
+    D.stageCode ((D.stageAt i).domain_closed n f v hv) =
+      @Structure.funMap L ℕ D.limitStr n f (fun k ↦ D.stageCode (hv k)) :=
+  D.stageCode_funMap f v hv
+
 end CeStructureChainIn
 
 end FirstOrder.Language
@@ -70,3 +95,6 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_limitPresentation_str
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_funMap_limFunGraph
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_relMap_iff_limRelHolds
+#assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_stageCode_accepted_and_injOn
+#assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_stageCode_relMap_iff
+#assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_stageCode_funMap

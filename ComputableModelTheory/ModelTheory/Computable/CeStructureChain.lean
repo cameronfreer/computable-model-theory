@@ -391,6 +391,32 @@ theorem limFunGraph_iff_of_limEquiv {n : ℕ} (f : L.Functions n)
       (fun k ↦ D.toDomainChain.limEquiv_symm (heq k)) hout' hout
       (D.toDomainChain.limEquiv_symm houteq)⟩
 
+/-! ### Evaluation entirely at one stage
+
+The degenerate case of the limit semantics: a tuple all of whose representatives sit at stage `i`,
+transported to `i` by the identity. Extracted because both the quotient limit and the coded
+presentation need it, and neither should re-derive it inline. -/
+
+/-- A tuple evaluated at its own stage: the limit graph relates it to that stage's value. -/
+theorem limFunGraph_stage {i n : ℕ} (f : L.Functions n) (v : Fin n → ℕ) :
+    D.LimFunGraph f (fun k ↦ (i, v k)) (i, @Structure.funMap L ℕ (D.stageAt i).str n f v) :=
+  ⟨i, v, fun _ ↦ le_rfl,
+    fun k ↦ by
+      show v k ∈ D.transportTo i i (v k)
+      rw [transportTo, CeDomainChainIn.transportTo_self]
+      exact Part.mem_some _,
+    D.toDomainChain.limEquiv_refl _⟩
+
+/-- And the limit relation at its own stage is that stage's relation. -/
+theorem limRelHolds_stage_iff {i n : ℕ} (R : L.Relations n) (v : Fin n → ℕ)
+    (hv : ∀ k, v k ∈ (D.stageAt i).domain) :
+    D.LimRelHolds R (fun k ↦ (i, v k)) ↔ @Structure.RelMap L ℕ (D.stageAt i).str n R v :=
+  D.limRelHolds_iff_realization (v := fun k ↦ (i, v k)) R (fun k ↦ hv k) (fun _ ↦ le_rfl)
+    (fun k ↦ by
+      show v k ∈ D.transportTo i i (v k)
+      rw [transportTo, CeDomainChainIn.transportTo_self]
+      exact Part.mem_some _)
+
 /-! ### Uniform stage evaluators
 
 Certificate-independent, so it belongs here rather than beside the certified coded
