@@ -113,6 +113,29 @@ theorem test_exists_stageEmbedding_eq (U : D.UniformEvaluatorsIn)
       D.stageEmbedding U i ⟨x, hx⟩ = c :=
   D.exists_stageEmbedding_eq U c
 
+/-! ### Lemma 2.9 -/
+
+/-- **Coherence at an arbitrary realized step**, not merely at a chosen one — what transport and
+iteration consumers need, so that none of them repeats the single-valuedness argument. -/
+theorem test_stageEmbedding_step_of_mem (U : D.UniformEvaluatorsIn) {i x y : ℕ}
+    (hx : x ∈ (D.stageAt i).domain) (hy : y ∈ D.toDomainChain.step i x) :
+    ∃ hy' : y ∈ (D.stageAt (i + 1)).domain,
+      D.stageEmbedding U i ⟨x, hx⟩ = D.stageEmbedding U (i + 1) ⟨y, hy'⟩ :=
+  D.stageEmbedding_step_of_mem U hx hy
+
+/-- **CHMM Lemma 2.9 at Level 1**: a computable chain has an effective direct limit with uniformly
+computable stage embeddings, and **no certificate** is required. -/
+theorem test_lemma_2_9 (U : D.UniformEvaluatorsIn) : Nonempty D.LimitIn :=
+  D.exists_limit U
+
+/-- The package carries **both** sides of the map, tied together. A consumer can use the limit
+without knowing how canonicalization is implemented. -/
+theorem test_limit_ties_program_to_embedding (U : D.UniformEvaluatorsIn) (i : ℕ)
+    (x : (D.stageAt i).domain) :
+    (((D.toLimit U).stageEmbedding i x : ((D.toLimit U).presentation).domain) : ℕ) ∈
+      (D.toLimit U).stageMap i x.1 :=
+  (D.toLimit U).stageEmbedding_apply_mem i x
+
 end CeStructureChainIn
 
 end FirstOrder.Language
@@ -128,3 +151,6 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_stageEmbedding_apply_mem
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_stageEmbedding_step
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_exists_stageEmbedding_eq
+#assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_stageEmbedding_step_of_mem
+#assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_lemma_2_9
+#assert_standard_axioms FirstOrder.Language.CeStructureChainIn.test_limit_ties_program_to_embedding

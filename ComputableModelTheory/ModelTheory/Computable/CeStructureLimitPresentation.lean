@@ -274,6 +274,74 @@ theorem exists_stageEmbedding_eq (U : D.UniformEvaluatorsIn)
   exact Part.mem_unique (D.mem_stageIntoPart_stageCode hmem)
     (D.toDomainChain.mem_stageIntoPart_rawRep_of_accepted hacc)
 
+/-- **Coherence at an arbitrary realized step.** The existential form above chooses *a* step value;
+this one accepts whichever value a consumer already has, which is what transport and iteration
+arguments need. Free from the existential plus single-valuedness of `step`, and it matches the
+universal law `stageIntoLimit_step` already provides on the quotient side. -/
+theorem stageEmbedding_step_of_mem (U : D.UniformEvaluatorsIn) {i x y : ℕ}
+    (hx : x ∈ (D.stageAt i).domain) (hy : y ∈ D.toDomainChain.step i x) :
+    ∃ hy' : y ∈ (D.stageAt (i + 1)).domain,
+      D.stageEmbedding U i ⟨x, hx⟩ = D.stageEmbedding U (i + 1) ⟨y, hy'⟩ := by
+  obtain ⟨y₀, hy₀, hy₀dom, heq⟩ := D.stageEmbedding_step U hx
+  have : y = y₀ := Part.mem_unique hy hy₀
+  subst this
+  exact ⟨hy₀dom, heq⟩
+
+/-! ## Lemma 2.9
+
+The package. Both sides of the map are carried: the `Part`-valued program and the bundled semantic
+embedding, tied together by `stageEmbedding_apply_mem`. Each has a canonical definition here, but a
+consumer should be able to use the limit without knowing how canonicalization is implemented.
+
+**No exact domain is claimed for `stageMap`.** On-domain realization is the honest Level-1
+statement; the map may well halt elsewhere, and nothing should depend on where. -/
+
+/-- The Level-1 effective direct limit of a c.e. structure chain. -/
+structure LimitIn (D : CeStructureChainIn O L) where
+  /-- The limit, as a c.e. presentation. -/
+  presentation : CePresentationIn O L
+  /-- The stage maps as programs — partial, with no exact-domain claim. -/
+  stageMap : ℕ → ℕ →. ℕ
+  /-- Uniformly partial recursive in the stage. -/
+  stageMap_recursiveIn : RecursiveIn O fun p : ℕ × ℕ ↦ stageMap p.1 p.2
+  /-- The stage maps as embeddings. -/
+  stageEmbedding : ∀ i, (D.stageAt i).domain ↪[L] presentation.domain
+  /-- **The two sides agree**: the embedding's value is a value of the program. This is the only
+  statement tying the semantic side of the package to the effective one. -/
+  stageEmbedding_apply_mem : ∀ (i : ℕ) (x : (D.stageAt i).domain),
+    ((stageEmbedding i x : presentation.domain) : ℕ) ∈ stageMap i x.1
+  /-- Coherence with the chain, at **any** realized step. -/
+  stageEmbedding_step : ∀ {i x y : ℕ} (hx : x ∈ (D.stageAt i).domain),
+    y ∈ D.toDomainChain.step i x →
+      ∃ hy : y ∈ (D.stageAt (i + 1)).domain,
+        stageEmbedding i ⟨x, hx⟩ = stageEmbedding (i + 1) ⟨y, hy⟩
+  /-- The limit is the union of the stage images. -/
+  coverage : ∀ c : presentation.domain,
+    ∃ (i x : ℕ) (hx : x ∈ (D.stageAt i).domain), stageEmbedding i ⟨x, hx⟩ = c
+
+/-- **CHMM Lemma 2.9, Level 1.** The effective direct limit of a computable chain, with uniformly
+computable stage embeddings — and no certificate. -/
+noncomputable def toLimit (U : D.UniformEvaluatorsIn) : D.LimitIn where
+  presentation := D.limitPresentation U
+  stageMap := D.toDomainChain.stageIntoPart
+  stageMap_recursiveIn := D.toDomainChain.stageIntoPart_recursiveIn
+  stageEmbedding := D.stageEmbedding U
+  stageEmbedding_apply_mem := D.stageEmbedding_apply_mem U
+  stageEmbedding_step := fun hx hy ↦ D.stageEmbedding_step_of_mem U hx hy
+  coverage := D.exists_stageEmbedding_eq U
+
+@[simp] theorem toLimit_presentation (U : D.UniformEvaluatorsIn) :
+    (D.toLimit U).presentation = D.limitPresentation U :=
+  rfl
+
+@[simp] theorem toLimit_stageMap (U : D.UniformEvaluatorsIn) :
+    (D.toLimit U).stageMap = D.toDomainChain.stageIntoPart :=
+  rfl
+
+/-- **Lemma 2.9**, as an existence statement. -/
+theorem exists_limit (U : D.UniformEvaluatorsIn) : Nonempty D.LimitIn :=
+  ⟨D.toLimit U⟩
+
 end CeStructureChainIn
 
 end FirstOrder.Language
