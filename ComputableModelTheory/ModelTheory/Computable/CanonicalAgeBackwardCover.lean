@@ -244,7 +244,7 @@ noncomputable def backwardCover :
   (toLimitEmbedding Z cert).toCanonicalAgeCover (Set.Subset.refl O)
 
 @[simp] theorem backwardCover_indexMap (i : ℕ) :
-    (backwardCover Z cert).indexMap i = encode ((toLimitEmbedding Z cert).imageTuple i) :=
+    (backwardCover Z cert).indexMap i = encode ((toLimitEmbedding Z cert).toSelected.imageTuple i) :=
   rfl
 
 /-- **The backward cover is generator-compatible** — the constructor's theorem, with no new

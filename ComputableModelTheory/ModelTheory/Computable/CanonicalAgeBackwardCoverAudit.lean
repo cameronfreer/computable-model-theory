@@ -100,21 +100,21 @@ theorem test_map_uniform : RecursiveIn O fun p : ℕ × ℕ ↦ omegaMap Z p.1 p
 program's image of `K.gens i`. -/
 theorem test_target_index_is_computed (i : ℕ) :
     List.Forall₂ (fun x y ↦ y ∈ omegaMap Z i x) (K.gens i)
-        ((toLimitEmbedding Z cert).imageTuple i) ∧
-      (backwardCover Z cert).indexMap i = encode ((toLimitEmbedding Z cert).imageTuple i) :=
-  ⟨(toLimitEmbedding Z cert).forall₂_imageTuple i, rfl⟩
+        ((toLimitEmbedding Z cert).toSelected.imageTuple i) ∧
+      (backwardCover Z cert).indexMap i = encode ((toLimitEmbedding Z cert).toSelected.imageTuple i) :=
+  ⟨(toLimitEmbedding Z cert).toSelected.forall₂_imageTuple i, rfl⟩
 
 /-- **The cover cannot silently use `i`.** Returning the input index is equivalent to the image
 tuple being `allTupleFor i` — a checkable statement about the construction's output, not an
 assumption about it. -/
 theorem test_indexMap_eq_self_iff (i : ℕ) :
     (backwardCover Z cert).indexMap i = i ↔
-      (toLimitEmbedding Z cert).imageTuple i = allTupleFor i := by
+      (toLimitEmbedding Z cert).toSelected.imageTuple i = allTupleFor i := by
   rw [backwardCover_indexMap]
   constructor
   · intro h
     exact ((congrArg allTupleFor h).symm.trans
-      (allTupleFor_encode ((toLimitEmbedding Z cert).imageTuple i))).symm
+      (allTupleFor_encode ((toLimitEmbedding Z cert).toSelected.imageTuple i))).symm
   · intro h
     rw [h, allTupleFor, Denumerable.encode_ofNat]
 
