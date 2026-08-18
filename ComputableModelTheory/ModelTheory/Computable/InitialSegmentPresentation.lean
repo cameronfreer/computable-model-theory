@@ -221,6 +221,39 @@ structure ExactFiniteCertificate (P : CePresentationIn O L) where
   /-- No rank at or beyond the cardinality is realized. -/
   rankIdx_not_dom : ∀ r, card ≤ r → ¬(P.rankIdx r).Dom
 
+/-- **An infinite domain certifies infinitude.** The certificate is a supplied input, but it is
+not an arbitrary one: a consumer that knows its carrier is infinite — semantically, from the
+construction that produced it — can discharge it here, and this is the only intended route.
+Nothing recovers infinitude from the c.e. data itself.
+
+The step is the freshness search: below any already-used position, the finitely many enumerated
+values cannot exhaust an infinite domain, so a missed element exists, and its *first* position is
+both fresh and beyond the bound. -/
+theorem infinitudeCertificate_of_infinite (hinf : P.domain.Infinite) :
+    P.InfinitudeCertificate := by
+  refine ⟨fun r ↦ ?_⟩
+  induction r with
+  | zero => exact trivial
+  | succ n ih =>
+    obtain ⟨i, hi⟩ := Part.dom_iff_mem.1 ih
+    obtain ⟨x, hxdom, hxfresh⟩ : ∃ x ∈ P.domain, ∀ j ≤ i, P.enum j ≠ x := by
+      obtain ⟨x, hx, hxne⟩ :=
+        Set.Infinite.exists_notMem_finset hinf ((Finset.range (i + 1)).image P.enum)
+      exact ⟨x, hx, fun j hj hxj ↦
+        hxne (Finset.mem_image.2 ⟨j, Finset.mem_range.2 (by omega), hxj⟩)⟩
+    set k := (P.firstIdxOf x).get ((P.firstIdxOf_dom_iff x).2 hxdom) with hk
+    have hkmem : k ∈ P.firstIdxOf x := Part.get_mem _
+    have hik : i < k := by
+      by_contra hle
+      exact hxfresh k (Nat.le_of_not_lt hle) (P.mem_firstIdxOf_iff.1 hkmem).1
+    have hdom : (Nat.rfind fun j ↦ Part.some (decide (i < j) && P.freshAt j)).Dom :=
+      (Nat.rfind_some_dom_iff
+          (f := fun (b : ℕ) j ↦ decide (b < j) && P.freshAt j) (a := i)).2
+        ⟨k, (Bool.and_eq_true _ _).mpr
+          ⟨decide_eq_true hik, P.freshAt_of_mem_firstIdxOf hkmem⟩⟩
+    rw [P.rankIdx_succ]
+    exact Part.dom_iff_mem.2 ⟨_, Part.mem_bind_iff.2 ⟨i, hi, Part.get_mem hdom⟩⟩
+
 /-- Under an infinitude certificate, the rank domain is all of ω. -/
 theorem range_posRank_eq_univ (cert : P.InfinitudeCertificate) :
     Set.range P.posRank = Set.univ :=
