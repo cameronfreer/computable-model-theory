@@ -24,6 +24,7 @@ import ComputableModelTheory.ModelTheory.Computable.ComputableIso
 import ComputableModelTheory.ModelTheory.Computable.ConstantExample
 import ComputableModelTheory.ModelTheory.Computable.DecidablePresentation
 import ComputableModelTheory.ModelTheory.Computable.Diagram
+import ComputableModelTheory.ModelTheory.Computable.GeneratedImageIso
 import ComputableModelTheory.ModelTheory.Computable.GeneratedPresentation
 import ComputableModelTheory.ModelTheory.Computable.GraphExample
 import ComputableModelTheory.ModelTheory.Computable.InitialSegmentPresentation

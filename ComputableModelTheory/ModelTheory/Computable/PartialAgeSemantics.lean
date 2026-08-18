@@ -47,6 +47,23 @@ def _root_.FirstOrder.Language.PartialCePresentationIn.subtypeStr
 instance (P : PartialCePresentationIn O L) : L.Structure P.domain :=
   P.subtypeStr
 
+/-- The carrier subtype sits inside `ℕ` as a substructure of the ambient stored structure, by the
+very definition of `subtypeStr`. All four laws are `rfl`. The empty-capable twin of
+`CePresentationIn.domainInclusion`; stated with `P.str` supplied explicitly, since no
+`L.Structure ℕ` instance exists. -/
+def _root_.FirstOrder.Language.PartialCePresentationIn.domainInclusion
+    (P : PartialCePresentationIn O L) : @Language.Embedding L P.domain ℕ _ P.str :=
+  letI : L.Structure ℕ := P.str
+  { toFun := Subtype.val
+    inj' := Subtype.val_injective
+    map_fun' := fun _ _ ↦ rfl
+    map_rel' := fun _ _ ↦ Iff.rfl }
+
+@[simp]
+theorem _root_.FirstOrder.Language.PartialCePresentationIn.domainInclusion_apply
+    (P : PartialCePresentationIn O L) (x : P.domain) : P.domainInclusion x = (x : ℕ) :=
+  rfl
+
 namespace PartialCePresentationIn
 
 /-- Member isomorphism: first-order equivalence of the induced subtype structures. -/

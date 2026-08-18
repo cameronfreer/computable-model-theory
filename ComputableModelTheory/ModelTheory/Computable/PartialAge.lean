@@ -111,6 +111,11 @@ theorem gens_mem_domainAt {i : ℕ} (k : Fin (A.gens i).length) :
     rw [Term.realize_var]
     rfl⟩
 
+/-- The list form: every recorded generator lies in its member's carrier. -/
+theorem mem_domainAt_of_mem_gens {i x : ℕ} (hx : x ∈ A.gens i) : x ∈ A.domainAt i := by
+  obtain ⟨k, hk⟩ := List.mem_iff_get.1 hx
+  exact hk ▸ A.gens_mem_domainAt k
+
 /-- Domain-closure under function interpretations, derived from the generation law. -/
 theorem domainAt_closed {i n : ℕ} (f : L.Functions n) {v : Fin n → ℕ}
     (hv : ∀ k, v k ∈ A.domainAt i) :

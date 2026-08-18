@@ -93,22 +93,13 @@ theorem toDomainChain_domainAt (i : ℕ) :
 def transportTo (i j x : ℕ) : Part ℕ :=
   D.toDomainChain.transportTo i j x
 
-/-- Right decomposition of transport: one more stage is one more step. -/
+/-- Right decomposition of transport: one more stage is one more step. A thin wrapper — the
+decomposition itself belongs to the carrier layer (`CeDomainChainIn.exists_transportTo_step`), and
+has one owner there. -/
 theorem transportTo_succ_right {i j x y : ℕ} (hij : i ≤ j)
     (h : y ∈ D.transportTo i (j + 1) x) :
-    ∃ u, u ∈ D.transportTo i j x ∧ y ∈ D.step j u := by
-  obtain ⟨t, ht, rfl⟩ := (Part.mem_map_iff _).1 h
-  have hsplit : j + 1 - i = (j - i) + 1 := by omega
-  rw [hsplit, CeDomainChainIn.climbAux_succ] at ht
-  obtain ⟨u, hu, hstep⟩ := Part.mem_bind_iff.1 ht
-  obtain ⟨z, hz, rfl⟩ := (Part.mem_map_iff _).1 hstep
-  have htag : u.1 = j := by
-    have := D.toDomainChain.stage_of_mem_climbAux hu
-    simp only at this
-    omega
-  refine ⟨u.2, (Part.mem_map_iff _).2 ⟨u, hu, rfl⟩, ?_⟩
-  rw [← htag]
-  exact hz
+    ∃ u, u ∈ D.transportTo i j x ∧ y ∈ D.step j u :=
+  D.toDomainChain.exists_transportTo_step hij h
 
 /-- Transport preserves function interpretations on-domain. -/
 theorem transport_funMap {i j : ℕ} (hij : i ≤ j) {n : ℕ} (f : L.Functions n)
