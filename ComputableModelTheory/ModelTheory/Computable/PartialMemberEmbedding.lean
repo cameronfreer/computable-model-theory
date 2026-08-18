@@ -125,6 +125,21 @@ by some member embedding. -/
 def PartialIsEmbedding (B : PartialAgeIn O L) (F : PotentialEmbeddingData) : Prop :=
   ∃ f, B.PartialRealizes F f
 
+/-- **A length-and-coordinate witness *is* a realization.** `PartialRealizes` at
+`ofTriple (c, e, s)` unfolds to exactly the data `MappedPartialCHPIn` produces for a query
+`(e, s)` — same length equation, same coordinatewise equations — so a hereditary-property answer
+supplies potential embedding data with no repackaging, and `applyPotentialPart` can be run on it.
+
+The three `ofTriple` projections are `rfl`, which is why this is a constructor application rather
+than a proof. -/
+theorem partialIsEmbedding_ofTriple {B : PartialAgeIn O L} {c e : ℕ} {s : Tuple ℕ}
+    (hlen : (B.gens c).length = s.length)
+    (f : (B.memberAt c).domain ↪[L] (B.memberAt e).domain)
+    (hf : ∀ k : Fin (B.gens c).length,
+      ((f (B.gensView c k) : (B.memberAt e).domain) : ℕ) = s.get (Fin.cast hlen k)) :
+    B.PartialIsEmbedding (PotentialEmbeddingData.ofTriple (c, e, s)) :=
+  ⟨f, hlen, hf⟩
+
 /-- **The realizer is unique.** Any two member embeddings realizing the same potential
 embedding data are equal, so anything said about "the" realizer is independent of the
 existential witness chosen — which is what lets a commuting square be stated as an equation
