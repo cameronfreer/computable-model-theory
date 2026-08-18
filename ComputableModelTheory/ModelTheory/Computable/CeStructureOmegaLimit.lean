@@ -146,6 +146,17 @@ theorem omegaStageEmbedding_step {i x y : ℕ} (hx : x ∈ (D.stageAt i).domain)
   obtain ⟨hy', heq⟩ := Z.stageEmbedding_step hx hy
   exact ⟨hy', by simp only [omegaStageEmbedding_apply, heq]⟩
 
+/-- **Coherence along an arbitrary transport**, recoded. The generic version is a consequence of the
+record's one-step law; this one is that consequence with `rankEmbedding` applied, and it is what a
+consumer moving a whole tuple to a common stage needs — it knows its entries transport there, not
+how far. -/
+theorem omegaStageEmbedding_transport {i j : ℕ} (hij : i ≤ j) {x y : ℕ}
+    (hx : x ∈ (D.stageAt i).domain) (hy : y ∈ D.toDomainChain.transportTo i j x) :
+    ∃ hy' : y ∈ (D.stageAt j).domain,
+      Z.omegaStageEmbedding i ⟨x, hx⟩ = Z.omegaStageEmbedding j ⟨y, hy'⟩ := by
+  obtain ⟨hy', heq⟩ := Z.stageEmbedding_transport hij hx hy
+  exact ⟨hy', by simp only [omegaStageEmbedding_apply, heq]⟩
+
 /-- **Adapter law 3: coverage of all of ω.** Every natural number — not merely every carrier
 element — is a stage image. This is the one law that consumes the certificate: it supplies the rank
 position, `rankEnum` names an element of the limit carrier at that position, generic Lemma 2.9

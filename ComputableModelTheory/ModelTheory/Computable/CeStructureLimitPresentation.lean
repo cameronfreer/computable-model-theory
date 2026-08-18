@@ -330,6 +330,67 @@ noncomputable def toLimit (U : D.UniformEvaluatorsIn) : D.LimitIn where
   stageEmbedding_step := fun hx hy ↦ D.stageEmbedding_step_of_mem U hx hy
   coverage := D.exists_stageEmbedding_eq U
 
+section LimitLaws
+
+-- `D` is inferable from the limit, so it stays implicit for these — dot notation on `Z` would
+-- otherwise leave it stranded as the first explicit argument.
+variable {D}
+
+namespace LimitIn
+
+variable (Z : D.LimitIn)
+
+/-- **Coherence along an arbitrary transport, not merely one step.** Free from the record's
+universal one-step law by induction on the target stage, using `exists_transportTo_step` to peel the
+last step off. Consumers that move a tuple to a common stage need exactly this: they know only that
+each entry *transports* there, never how many steps away it was. -/
+theorem stageEmbedding_transport {i j : ℕ} (hij : i ≤ j) {x : ℕ}
+    (hx : x ∈ (D.stageAt i).domain) :
+    ∀ {y : ℕ}, y ∈ D.toDomainChain.transportTo i j x →
+      ∃ hy' : y ∈ (D.stageAt j).domain,
+        Z.stageEmbedding i ⟨x, hx⟩ = Z.stageEmbedding j ⟨y, hy'⟩ := by
+  induction j, hij using Nat.le_induction with
+  | base =>
+    intro y hy
+    rw [CeDomainChainIn.transportTo_self] at hy
+    obtain rfl : y = x := Part.mem_some_iff.1 hy
+    exact ⟨hx, rfl⟩
+  | succ j hij ih =>
+    intro y hy
+    obtain ⟨z, hz, hstep⟩ := D.toDomainChain.exists_transportTo_step hij hy
+    obtain ⟨hz', heq⟩ := ih hz
+    obtain ⟨hy', heq'⟩ := Z.stageEmbedding_step hz' hstep
+    exact ⟨hy', heq.trans heq'⟩
+
+/-- **The carrier codes are named by raw representatives.** `rawRep` is total and computable, so a
+consumer holding a carrier code can *compute* a stage and an element there mapping to it — where
+`coverage` only asserts that some stage does. Stated as a named property rather than a record field:
+the canonical limit has it (`toLimit_representedByRawRep`), and anything consuming it says so. -/
+def RepresentedByRawRep : Prop :=
+  ∀ c : Z.presentation.domain,
+    ∃ h : (D.toDomainChain.rawRep (c : ℕ)).2 ∈
+        (D.stageAt (D.toDomainChain.rawRep (c : ℕ)).1).domain,
+      Z.stageEmbedding (D.toDomainChain.rawRep (c : ℕ)).1 ⟨_, h⟩ = c
+
+end LimitIn
+
+end LimitLaws
+
+/-- The canonical limit names its codes by their own raw representatives — the effective form of
+`exists_stageEmbedding_eq`, with the stage and the element computed rather than quantified. -/
+theorem toLimit_representedByRawRep (U : D.UniformEvaluatorsIn) :
+    (D.toLimit U).RepresentedByRawRep := by
+  intro c
+  have hacc : D.toDomainChain.Accepted (c : ℕ) :=
+    (Set.ext_iff.1 (D.limitPresentation_domain U) (c : ℕ)).1 c.2
+  have hmem : (D.toDomainChain.rawRep (c : ℕ)).2 ∈
+      (D.stageAt (D.toDomainChain.rawRep (c : ℕ)).1).domain :=
+    D.toDomainChain.rawRep_limMem _
+  refine ⟨hmem, Subtype.ext ?_⟩
+  show D.stageCode hmem = (c : ℕ)
+  exact Part.mem_unique (D.mem_stageIntoPart_stageCode hmem)
+    (D.toDomainChain.mem_stageIntoPart_rawRep_of_accepted hacc)
+
 @[simp] theorem toLimit_presentation (U : D.UniformEvaluatorsIn) :
     (D.toLimit U).presentation = D.limitPresentation U :=
   rfl

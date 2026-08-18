@@ -3,7 +3,7 @@ Copyright (c) 2026 Cameron Freer. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
-import ComputableModelTheory.ModelTheory.Computable.CeStructureOmegaLimit
+import ComputableModelTheory.ModelTheory.Computable.CeStructureOmegaTuple
 import ComputableModelTheory.ModelTheory.Computable.ChainShiftExample
 import ComputableModelTheory.Util.AssertAxioms
 
@@ -198,6 +198,29 @@ theorem test_succShift_coverage (n : ℕ) :
       (succShiftLimit O).omegaStageEmbedding i ⟨x, hx⟩ = n :=
   (succShiftLimit O).exists_omegaStageEmbedding_eq (succShiftInfinitude O) n
 
+/-! ### The tuple pullback on the fixture
+
+The generic tuple rows live in `CeStructureOmegaTupleAudit`; the fixture stays here, since it is the
+only place both of the coordinate theorem's hypotheses are discharged at once. -/
+
+/-- The fixture's limit names its codes by their own raw representatives. -/
+theorem succShiftRepresented : (succShiftLimit O).RepresentedByRawRep :=
+  CeStructureChainIn.toLimit_representedByRawRep _ (succShiftUniform' O)
+
+/-- **The pullback halts on every query**, with the certificate discharged rather than assumed. -/
+theorem test_succShift_tuple_dom (s : List ℕ) :
+    ((succShiftLimit O).rankTupleAtStagePart s).Dom :=
+  (succShiftLimit O).rankTupleAtStagePart_dom (succShiftInfinitude O) s
+
+/-- **The coordinate theorem on the fixture, with both hypotheses discharged.** Every answer's
+ω-image is the query, entry by entry — the row the abstract gate cannot make non-vacuous on its
+own. -/
+theorem test_succShift_tuple_coordinates {s : List ℕ} {p : ℕ × List ℕ}
+    (h : p ∈ (succShiftLimit O).rankTupleAtStagePart s) :
+    List.Forall₂ (fun n y ↦ ∃ hy : y ∈ ((succShiftChain O).stageAt p.1).domain,
+      (succShiftLimit O).omegaStageEmbedding p.1 ⟨y, hy⟩ = n) s p.2 :=
+  (succShiftLimit O).forall₂_omegaStageEmbedding (succShiftRepresented O) h
+
 end Fixture
 
 end LimitIn
@@ -221,3 +244,7 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.LimitIn.test_succShift_apply_mem
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.LimitIn.test_succShift_step
 #assert_standard_axioms FirstOrder.Language.CeStructureChainIn.LimitIn.test_succShift_coverage
+#assert_standard_axioms FirstOrder.Language.CeStructureChainIn.LimitIn.succShiftRepresented
+#assert_standard_axioms FirstOrder.Language.CeStructureChainIn.LimitIn.test_succShift_tuple_dom
+#assert_standard_axioms
+  FirstOrder.Language.CeStructureChainIn.LimitIn.test_succShift_tuple_coordinates

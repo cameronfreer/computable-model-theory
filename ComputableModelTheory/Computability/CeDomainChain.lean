@@ -185,6 +185,23 @@ theorem transportTo_trans {i j k x y z : ℕ} (hij : i ≤ j) (hjk : j ≤ k)
   rw [show t = (j, t.2) from Prod.ext htag rfl]
   exact hu
 
+/-- **Splitting transport at its last step**: transport `i → j + 1` factors through transport
+`i → j` followed by one chain step. The converse of `transportTo_trans`, and what turns a
+one-step coherence law into a transport-level one by induction on the target stage. -/
+theorem exists_transportTo_step {i j x y : ℕ} (hij : i ≤ j)
+    (hy : y ∈ C.transportTo i (j + 1) x) :
+    ∃ z ∈ C.transportTo i j x, y ∈ C.step j z := by
+  rw [transportTo, show j + 1 - i = (j - i) + 1 from by omega, climbAux_succ] at hy
+  obtain ⟨u, hu, hval⟩ := (Part.mem_map_iff _).1 hy
+  obtain ⟨t, ht, hstep⟩ := Part.mem_bind_iff.1 hu
+  obtain ⟨w, hw, rfl⟩ := (Part.mem_map_iff _).1 hstep
+  have htag : t.1 = j := by
+    have := C.stage_of_mem_climbAux ht
+    omega
+  refine ⟨t.2, (Part.mem_map_iff _).2 ⟨t, ht, rfl⟩, ?_⟩
+  rw [← htag]
+  exact (show w = y from hval) ▸ hw
+
 /-- Transport is injective on domains. -/
 theorem transportTo_injOn {i j x₁ x₂ y : ℕ} (hx₁ : x₁ ∈ C.domainAt i)
     (hx₂ : x₂ ∈ C.domainAt i) (h₁ : y ∈ C.transportTo i j x₁)
