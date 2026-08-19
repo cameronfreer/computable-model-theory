@@ -88,6 +88,44 @@ namespace PartialAgeIn
 
 variable (A : PartialAgeIn O L)
 
+/-! ### Rebasing to a stronger oracle
+
+Every piece of computational data is carried over **definitionally**; only the computability proofs
+are lifted. The family is unchanged — same structures, same enumeration, same generators, same
+evaluators — and only the effectivity evidence is restated at a larger oracle. The `simp` lemmas are
+what make that enforceable, and `mono_memberAt` is the one that lets member-level facts cross the
+boundary untouched. -/
+
+/-- The same representation, presented as evidence at a stronger oracle. -/
+def mono {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) : PartialAgeIn E L where
+  structureAt := A.structureAt
+  enum? := A.enum?
+  enum?_computableIn := RecursiveIn.mono hOE A.enum?_computableIn
+  gens := A.gens
+  gens_computableIn := RecursiveIn.mono hOE A.gens_computableIn
+  funEval := A.funEval
+  funEval_recursiveIn := RecursiveIn.mono hOE A.funEval_recursiveIn
+  funEval_correct := A.funEval_correct
+  relEval := A.relEval
+  relEval_recursiveIn := RecursiveIn.mono hOE A.relEval_recursiveIn
+  relEval_correct := A.relEval_correct
+  generates := A.generates
+
+@[simp] theorem mono_structureAt {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) :
+    (A.mono hOE).structureAt = A.structureAt := rfl
+
+@[simp] theorem mono_enum? {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) :
+    (A.mono hOE).enum? = A.enum? := rfl
+
+@[simp] theorem mono_gens {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) :
+    (A.mono hOE).gens = A.gens := rfl
+
+@[simp] theorem mono_funEval {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) :
+    (A.mono hOE).funEval = A.funEval := rfl
+
+@[simp] theorem mono_relEval {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) :
+    (A.mono hOE).relEval = A.relEval := rfl
+
 /-- The (possibly empty) carrier of member `i`: the enumerated values. -/
 def domainAt (i : ℕ) : Set ℕ :=
   {x | ∃ m, A.enum? i m = Option.some x}
@@ -95,6 +133,9 @@ def domainAt (i : ℕ) : Set ℕ :=
 theorem mem_domainAt_iff {i x : ℕ} :
     x ∈ A.domainAt i ↔ ∃ m, A.enum? i m = Option.some x :=
   Iff.rfl
+
+@[simp] theorem mono_domainAt {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) (i : ℕ) :
+    (A.mono hOE).domainAt i = A.domainAt i := rfl
 
 /-- The generation law, at the level of the carrier. -/
 theorem mem_domainAt_iff_term {i x : ℕ} :
@@ -151,6 +192,12 @@ theorem memberAt_str (i : ℕ) : (A.memberAt i).str = A.structureAt i :=
 
 @[simp]
 theorem memberAt_domain (i : ℕ) : (A.memberAt i).domain = A.domainAt i :=
+  rfl
+
+/-- **Rebasing commutes with taking a member**, definitionally — so every member-level fact crosses
+the oracle boundary with no transport. -/
+@[simp] theorem mono_memberAt {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) (i : ℕ) :
+    (A.mono hOE).memberAt i = (A.memberAt i).mono hOE :=
   rfl
 
 end PartialAgeIn

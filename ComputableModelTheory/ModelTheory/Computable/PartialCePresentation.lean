@@ -61,12 +61,42 @@ namespace PartialCePresentationIn
 
 variable (P : PartialCePresentationIn O L)
 
+/-- **Rebasing to a stronger oracle.** Every piece of computational data is carried over
+definitionally; only the computability *proofs* are lifted. So the presentation this returns is the
+same presentation — same structure, same enumeration, same evaluators — presented as evidence at a
+larger oracle. The `simp` lemmas below are what make that reading enforceable rather than a
+comment. -/
+def mono {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) : PartialCePresentationIn E L where
+  str := P.str
+  enum? := P.enum?
+  enum?_computableIn := RecursiveIn.mono hOE P.enum?_computableIn
+  domain_closed := P.domain_closed
+  funEval := P.funEval
+  funEval_recursiveIn := RecursiveIn.mono hOE P.funEval_recursiveIn
+  funEval_correct := P.funEval_correct
+  relEval := P.relEval
+  relEval_recursiveIn := RecursiveIn.mono hOE P.relEval_recursiveIn
+  relEval_correct := P.relEval_correct
+
+@[simp] theorem mono_str {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) : (P.mono hOE).str = P.str := rfl
+
+@[simp] theorem mono_enum? {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) : (P.mono hOE).enum? = P.enum? := rfl
+
+@[simp] theorem mono_funEval {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) :
+    (P.mono hOE).funEval = P.funEval := rfl
+
+@[simp] theorem mono_relEval {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) :
+    (P.mono hOE).relEval = P.relEval := rfl
+
 /-- The domain: the enumerated values. May be empty. -/
 def domain : Set ℕ :=
   {x | ∃ m, P.enum? m = Option.some x}
 
 theorem mem_domain_iff {x : ℕ} : x ∈ P.domain ↔ ∃ m, P.enum? m = Option.some x :=
   Iff.rfl
+
+@[simp] theorem mono_domain {E : Set (ℕ →. ℕ)} (hOE : O ⊆ E) :
+    (P.mono hOE).domain = P.domain := rfl
 
 theorem funMap_mem_domain {n : ℕ} (f : L.Functions n) {v : Fin n → ℕ}
     (hv : ∀ k, v k ∈ P.domain) :
