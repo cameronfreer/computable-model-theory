@@ -17,11 +17,26 @@ is exactly the list of length-`n` tuples with every entry drawn from `l`.
 arguments and audits consume; the computability of the enumeration is a separate matter and is
 built on top of it. Both are upstream candidates for mathlib, which has `List.mem_sections` but
 not the constant specialization.
+
+The file also collects the pure `List.Forall₂` facts this development needs and mathlib does not
+carry — `forall₂_mem_replicate` above, and `Forall₂.exists_of_mem_right`, which reads a traversal's
+output backwards. Both are upstream candidates on the same footing.
 -/
 
 namespace List
 
 variable {α : Type*}
+
+/-- **A right-hand entry of a `Forall₂` comes from some left-hand entry.** Mathlib has the
+left-to-right direction through `Forall₂.get` but no membership form in this direction, and reading
+a traversal's output backwards is exactly what halting arguments over `listMapPart` need.
+
+Upstream candidate. -/
+theorem Forall₂.exists_of_mem_right {β : Type*} {R : α → β → Prop} {l : List α} {l' : List β}
+    (h : List.Forall₂ R l l') {y : β} (hy : y ∈ l') : ∃ x ∈ l, R x y := by
+  obtain ⟨n, hn⟩ := List.mem_iff_get.1 hy
+  have hlt : (n : ℕ) < l.length := by rw [h.length_eq]; exact n.isLt
+  exact ⟨l.get ⟨n, hlt⟩, List.get_mem _ _, hn ▸ h.get hlt n.isLt⟩
 
 /-- `Forall₂ (· ∈ ·)` against a constant list is a length condition plus memberwise
 membership. -/

@@ -5,6 +5,7 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Computable.RepresentationIso
 import ComputableModelTheory.ModelTheory.Computable.PartialPotentialTransport
+import ComputableModelTheory.Computability.ListSections
 
 /-!
 # Transporting potential embedding data between representations
@@ -67,14 +68,6 @@ namespace FirstOrder.Language
 
 variable {O E : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
 
-/-- A right-hand entry of a `Forall₂` is related to some left-hand entry. Stated here because the
-halting proof reads a traversal's output backwards. -/
-private theorem exists_mem_of_forall₂ {α β : Type*} {R : α → β → Prop} {l : List α}
-    {l' : List β} (h : List.Forall₂ R l l') {y : β} (hy : y ∈ l') : ∃ x ∈ l, R x y := by
-  obtain ⟨n, hn⟩ := List.mem_iff_get.1 hy
-  have hlt : (n : ℕ) < l.length := by rw [h.length_eq]; exact n.isLt
-  exact ⟨l.get ⟨n, hlt⟩, List.get_mem _ _, hn ▸ h.get hlt n.isLt⟩
-
 section TwoEnded
 
 variable {A B : PartialAgeIn O L} {d a d' a' : ℕ}
@@ -106,7 +99,7 @@ theorem gensPreimage_length (σ : PartialCeIsoIn E (A.memberAt d) (B.memberAt d'
 /-- The preimages are certified elements of the source member. -/
 theorem gensPreimage_mem_domainAt (σ : PartialCeIsoIn E (A.memberAt d) (B.memberAt d'))
     {x : ℕ} (hx : x ∈ gensPreimage σ) : x ∈ (A.memberAt d).domain := by
-  obtain ⟨y, -, hxy⟩ := exists_mem_of_forall₂ (gensPreimage_forall₂ σ) hx
+  obtain ⟨y, -, hxy⟩ := List.Forall₂.exists_of_mem_right (gensPreimage_forall₂ σ) hx
   exact σ.invFun_mem hxy
 
 /-- **The empty case explicitly.** A target member with no recorded generators gives the empty
@@ -160,7 +153,7 @@ theorem conjugateDataPart_dom (σ : PartialCeIsoIn E (A.memberAt d) (B.memberAt 
   obtain ⟨s, hsm⟩ := Part.dom_iff_mem.1 hs
   have hsmem : ∀ y ∈ s, (τ.toFun y).Dom := by
     intro y hy
-    obtain ⟨x, hx, hxy⟩ := exists_mem_of_forall₂ (mem_listMapPart_iff.1 hsm) hy
+    obtain ⟨x, hx, hxy⟩ := List.Forall₂.exists_of_mem_right (mem_listMapPart_iff.1 hsm) hy
     exact (τ.toFun_dom y).2
       (PartialAgeIn.applyPotentialPart_mem_domainAt_of_partialIsEmbedding h
         (gensPreimage_mem_domainAt σ hx) hxy)

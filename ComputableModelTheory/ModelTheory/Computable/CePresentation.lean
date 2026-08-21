@@ -635,6 +635,42 @@ theorem mem_rankEnum_of_mem_rankOf {r x : ℕ} (h : r ∈ P.rankOf x) :
   obtain ⟨r', hr', hmem⟩ := P.rankEnum_rankOf hx
   rwa [Part.mem_unique h hr']
 
+/-! ### The carrier subtype
+
+The semantic reading of the coded data, and its inclusion into the ambient `ℕ`. These sit here
+rather than with the isomorphism layer because they are properties of a presentation alone; both
+the c.e.-isomorphism layer and the empty-capable semantic layer consume them. -/
+
+/-- The structure a presentation induces on its domain subtype — the semantic reading of the coded
+data. -/
+@[reducible]
+def subtypeStr (P : CePresentationIn O L) : L.Structure P.domain where
+  funMap {n} f v :=
+    ⟨@Structure.funMap L ℕ P.str n f fun k ↦ (v k).1,
+      P.domain_closed n f _ fun k ↦ (v k).2⟩
+  RelMap {n} R v := @Structure.RelMap L ℕ P.str n R fun k ↦ (v k).1
+
+instance (P : CePresentationIn O L) : L.Structure P.domain :=
+  P.subtypeStr
+
+/-- The carrier subtype sits inside `ℕ` as a substructure of the ambient stored structure:
+`Subtype.val` is an embedding, by the very definition of `subtypeStr`. All four laws are `rfl`.
+
+Stated with `P.str` supplied explicitly, since no `L.Structure ℕ` instance exists — this is the
+usual escape from an ambient structure on the raw carrier, and it is what lets a consumer whose
+target really is all of `ℕ` (an upgraded Level-2 presentation, say) leave the subtype behind. -/
+def domainInclusion (P : CePresentationIn O L) : @Language.Embedding L P.domain ℕ _ P.str :=
+  letI : L.Structure ℕ := P.str
+  { toFun := Subtype.val
+    inj' := Subtype.val_injective
+    map_fun' := fun _ _ ↦ rfl
+    map_rel' := fun _ _ ↦ Iff.rfl }
+
+@[simp]
+theorem domainInclusion_apply (P : CePresentationIn O L) (x : P.domain) :
+    P.domainInclusion x = (x : ℕ) :=
+  rfl
+
 end CePresentationIn
 
 end FirstOrder.Language

@@ -25,9 +25,10 @@ anything about how carrier codes are named. `RepresentedByRawRep` enters only at
 because that is where `forall₂_omegaStageEmbedding` — the statement that the pullback's ω-image is
 the query — is used.
 
-**No coordinate bookkeeping.** `MappedCHPSpec` hands the selection over as potential embedding data
-with a realizer, so the producer never touches CHP's length equation or coordinate family;
-`partialIsEmbedding_ofTriple` did that once and for all. The program is then the same
+**No coordinate bookkeeping.** `MappedCHPSpec` (in `PartialSelectorSpecs`, beside `JointSpec`)
+hands the selection over as potential embedding data with a realizer, so the producer never touches
+CHP's length equation or coordinate family; `partialIsEmbedding_ofTriple` did that once and for
+all. The program is then the same
 `idFun → applyPotentialPart → rankStageMap` shape as the backward cover's, and the generator
 compatibility at the end is `fromCanonicalAgeCover_generatorCompatible` verbatim.
 -/
@@ -39,30 +40,6 @@ namespace FirstOrder.Language
 namespace PartialAgeIn
 
 variable {O : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
-
-/-! ### The selector-facing form of the hereditary property
-
-The mirror of `JointSpec`: downstream runs `applyPotentialPart` on the answer, so it wants the
-answer as `PotentialEmbeddingData` with a realizer rather than as a length equation plus a
-coordinate family. -/
-
-/-- **What a consumer of the hereditary property actually needs**, as reusable data: for every valid
-query, the selected member's index together with potential embedding data that is *actual*. -/
-def MappedCHPSpec (K : PartialAgeIn O L) (sel : ℕ → List ℕ →. ℕ) : Prop :=
-  ∀ (e : ℕ) (s : List ℕ), (∀ x ∈ s, x ∈ K.domainAt e) →
-    ∃ c ∈ sel e s, K.PartialIsEmbedding (PotentialEmbeddingData.ofTriple (c, e, s))
-
-/-- CHP delivers exactly that, with a computable selector. The extraction is
-`partialIsEmbedding_ofTriple` applied to the contract's own witnesses — no coordinate bookkeeping
-crosses this boundary. -/
-theorem MappedPartialCHPIn.exists_chpSpec {E : Set (ℕ →. ℕ)} {K : PartialAgeIn O L}
-    (h : MappedPartialCHPIn E K) :
-    ∃ sel : ℕ → List ℕ →. ℕ,
-      RecursiveIn E (fun p : ℕ × List ℕ ↦ sel p.1 p.2) ∧ K.MappedCHPSpec sel := by
-  obtain ⟨sel, hsel, hspec⟩ := h
-  refine ⟨sel, hsel, fun e s hs ↦ ?_⟩
-  obtain ⟨c, hc, hlen, F, hF⟩ := hspec e s hs
-  exact ⟨c, hc, partialIsEmbedding_ofTriple hlen F hF⟩
 
 /-! ### The answer pipeline -/
 

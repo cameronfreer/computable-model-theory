@@ -271,6 +271,23 @@ theorem PartialRealizes.realizesAt_of_eq {F : PotentialEmbeddingData}
   subst ha
   exact ⟨rfl, rfl, h⟩
 
+/-- The reverse-facing companion of `PartialRealizes.realizesAt_of_eq`, at the same
+motive-sensitive boundary: read a realizer back into the coordinate form the witness interfaces
+state, at an index and tuple given by *equations* rather than definitionally.
+
+The interfaces name `(sel …).apexIdx` and `(sel …).leftImage` literally, and a transported
+selector's output is a `Part.get` — reducible to neither. Taking the two as equational hypotheses
+lets them be substituted away inside this lemma, where they are variables. -/
+theorem PartialRealizesAt.coords_of_eq {G : PotentialEmbeddingData} {i q q' : ℕ}
+    {t : Tuple ℕ} {g : (B.memberAt i).domain ↪[L] (B.memberAt q).domain}
+    (hg : B.PartialRealizesAt G i q g) (hq : q' = q) (ht : t = G.rangeTuple) :
+    ∃ hlen : (B.gens i).length = t.length,
+      ∃ F : (B.memberAt i).domain ↪[L] (B.memberAt q').domain,
+        ∀ k : Fin (B.gens i).length,
+          ((F ⟨(B.gens i).get k, B.gens_mem_domainAt k⟩ : (B.memberAt q').domain) : ℕ) =
+            t.get (Fin.cast hlen k) :=
+  hq ▸ ht ▸ ⟨hg.2.2.choose, g, hg.2.2.choose_spec⟩
+
 /-- Semantic commutativity of an amalgamation square: there are realizers for all four legs —
 the span's two and the diagram's two — whose composites agree as member embeddings. The apex
 and middle indices are named, so both composites live in the same type.

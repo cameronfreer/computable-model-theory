@@ -72,22 +72,6 @@ namespace FirstOrder.Language
 
 variable {O E : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
 
-/-- Read a `PartialRealizesAt` back into the coordinate form the witness interfaces state, at an
-index and tuple given by *equations* rather than definitionally.
-
-The interfaces name `(sel …).apexIdx` and `(sel …).leftImage` literally, and a transported
-selector's output is a `Part.get` — reducible to neither. Taking the two as equational
-hypotheses lets them be substituted away inside this lemma, where they are variables. -/
-theorem partialRealizesAt_coords {B : PartialAgeIn O L} {G : PotentialEmbeddingData} {i q q' : ℕ}
-    {t : Tuple ℕ} {g : (B.memberAt i).domain ↪[L] (B.memberAt q).domain}
-    (hg : B.PartialRealizesAt G i q g) (hq : q' = q) (ht : t = G.rangeTuple) :
-    ∃ hlen : (B.gens i).length = t.length,
-      ∃ F : (B.memberAt i).domain ↪[L] (B.memberAt q').domain,
-        ∀ k : Fin (B.gens i).length,
-          ((F ⟨(B.gens i).get k, B.gens_mem_domainAt k⟩ : (B.memberAt q').domain) : ℕ) =
-            t.get (Fin.cast hlen k) :=
-  hq ▸ ht ▸ ⟨hg.2.2.choose, g, hg.2.2.choose_spec⟩
-
 namespace RepresentationIsoIn
 
 variable {A B : PartialAgeIn O L} (r : RepresentationIsoIn E A B)
@@ -458,9 +442,9 @@ theorem PartialCJEPIn.transport {A B : PartialAgeIn O L} (r : RepresentationIsoI
       r.mem_transportJoint_iff.1 (Part.get_mem (hdom i j))
     obtain ⟨⟨hlenL, Fi, hFi⟩, ⟨hlenR, Fj, hFj⟩⟩ :=
       hspecA (r.backward.indexMap i) (r.backward.indexMap j)
-    exact ⟨partialRealizesAt_coords
+    exact ⟨PartialRealizesAt.coords_of_eq
         (r.transportLeg_realizesAt (f := Fi) ⟨hlenL, hFi⟩ hGL) (by rw [hK]; rfl) (by rw [hK]; rfl),
-      partialRealizesAt_coords
+      PartialRealizesAt.coords_of_eq
         (r.transportLeg_realizesAt (f := Fj) ⟨hlenR, hFj⟩ hGR) (by rw [hK]; rfl) (by rw [hK]; rfl)⟩
 
 /-- **The paper-exact hereditary property transports, given generator compatibility on the cover

@@ -20,10 +20,12 @@ its `𝕂_𝒟` is a `PartialAgeIn E L`, while `K` is a `PartialAgeIn O L`. Ther
 the proof, so a reader can see exactly which object the conclusion is about.
 
 **Rebasing changes evidence, not the family.** `mono` copies every piece of computational data
-definitionally and lifts only the computability proofs. `mono_partialCJEPIn` and
-`mono_mappedPartialCHPIn` are the sharp form of that claim: they are `Iff.rfl`, because both
+definitionally and lifts only the computability proofs, and the four bridges in
+`PartialSelectorSpecs` are the sharp form of that claim: `mono_partialCJEPIn`,
+`mono_mappedPartialCHPIn` and their selector-facing companions are all `Iff.rfl`, because these
 properties are stated entirely in terms of data `mono` preserves on the nose. So there is no
-"transport" step here at all — the effective properties of `K` at `E` *are* those of `K.mono hOE`.
+"transport" step here at all — the effective properties of `K` at `E` *are* those of `K.mono hOE`,
+and this file only has to put the rebased family into the statement.
 
 **The certificate stays supplied.** The lifted scheduled package is produced from `E`-CJEP plus the
 named base witness and stops there, exactly as at the base oracle: infinitude is a property of the
@@ -37,28 +39,6 @@ namespace FirstOrder.Language
 namespace PartialAgeIn
 
 variable {O E : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage] {K : PartialAgeIn O L}
-
-/-! ### Rebasing preserves the effective properties, on the nose
-
-Both statements quantify only over `gens`, `memberAt`, `domainAt` and their subtype structures —
-all of which `mono` carries definitionally — so each bridge is `Iff.rfl`. That is the precise sense
-in which rebasing is a change of evidence and not of the represented family. -/
-
-@[simp] theorem mono_partialCJEPIn (hOE : O ⊆ E) {E' : Set (ℕ →. ℕ)} :
-    (K.mono hOE).PartialCJEPIn E' ↔ K.PartialCJEPIn E' :=
-  Iff.rfl
-
-@[simp] theorem mono_mappedPartialCHPIn (hOE : O ⊆ E) {E' : Set (ℕ →. ℕ)} :
-    MappedPartialCHPIn E' (K.mono hOE) ↔ MappedPartialCHPIn E' K :=
-  Iff.rfl
-
-@[simp] theorem mono_jointSpec (hOE : O ⊆ E) {sel : ℕ → ℕ → PartialJointEmbeddingData} :
-    (K.mono hOE).JointSpec sel ↔ K.JointSpec sel :=
-  Iff.rfl
-
-@[simp] theorem mono_mappedCHPSpec (hOE : O ⊆ E) {sel : ℕ → List ℕ →. ℕ} :
-    (K.mono hOE).MappedCHPSpec sel ↔ K.MappedCHPSpec sel :=
-  Iff.rfl
 
 /-! ### The lifted scheduled package -/
 

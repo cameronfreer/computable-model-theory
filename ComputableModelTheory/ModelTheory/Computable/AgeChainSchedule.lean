@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Computable.AgeChainWitness
-import ComputableModelTheory.ModelTheory.Computable.PartialCJEP
+import ComputableModelTheory.ModelTheory.Computable.PartialSelectorSpecs
 import ComputableModelTheory.ModelTheory.Computable.PartialMemberEmbedding
 
 /-!
@@ -46,28 +46,6 @@ namespace FirstOrder.Language
 namespace PartialAgeIn
 
 variable {O E : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
-
-/-! ### The joint-embedding answer, as reusable data
-
-`PartialCJEPIn` bundles a selector with a soundness clause stated in coordinates. Downstream only
-ever needs the two legs as *potential embedding data with realizers*, so name that. -/
-
-/-- Both legs of a joint-embedding selector are actual, at every pair of indices. -/
-def JointSpec (K : PartialAgeIn O L) (sel : ℕ → ℕ → PartialJointEmbeddingData) : Prop :=
-  ∀ i j : ℕ,
-    K.PartialIsEmbedding
-        (PotentialEmbeddingData.ofTriple (i, (sel i j).apexIdx, (sel i j).leftImage)) ∧
-      K.PartialIsEmbedding
-        (PotentialEmbeddingData.ofTriple (j, (sel i j).apexIdx, (sel i j).rightImage))
-
-/-- CJEP delivers exactly that, with a computable selector. -/
-theorem PartialCJEPIn.exists_jointSpec {K : PartialAgeIn O L} (h : K.PartialCJEPIn E) :
-    ∃ sel : ℕ → ℕ → PartialJointEmbeddingData,
-      ComputableIn E (fun p : ℕ × ℕ ↦ sel p.1 p.2) ∧ K.JointSpec sel := by
-  obtain ⟨sel, hsel, hspec⟩ := h
-  refine ⟨sel, hsel, fun i j ↦ ?_⟩
-  obtain ⟨⟨hlen, Fi, hFi⟩, ⟨hlen', Fj, hFj⟩⟩ := hspec i j
-  exact ⟨⟨Fi, hlen, hFi⟩, ⟨Fj, hlen', hFj⟩⟩
 
 /-! ### The schedule -/
 

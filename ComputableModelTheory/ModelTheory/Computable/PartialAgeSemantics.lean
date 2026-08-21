@@ -121,6 +121,35 @@ def eqDomainEquiv {P Q : PartialCePresentationIn O L} (hstr : Q.str = P.str)
       @Structure.RelMap L ℕ Q.str m r (fun k ↦ (v k).1)
     rw [hstr]
 
+/-- **Crossing the empty-capable/c.e. presentation boundary.** A c.e. presentation with the same
+stored structure and the same carrier as a possibly-empty one has a first-order equivalent carrier
+subtype, by the identity on values. The `eqDomainEquiv` shape across the two layers, and generic
+presentation API rather than anything a particular construction owns: both covers of Theorem 2.10
+make this crossing, in opposite directions. No nonemptiness is required — an empty carrier closes
+through the domain equality alone. -/
+def toCeDomainEquiv {P : PartialCePresentationIn O L} {E : Set (ℕ →. ℕ)}
+    {Q : CePresentationIn E L} (hstr : Q.str = P.str) (hdom : Q.domain = P.domain) :
+    P.domain ≃[L] Q.domain where
+  toFun p := ⟨p.1, by rw [hdom]; exact p.2⟩
+  invFun q := ⟨q.1, by rw [← hdom]; exact q.2⟩
+  left_inv _ := rfl
+  right_inv _ := rfl
+  map_fun' {m} f v := Subtype.ext (by
+    show @Structure.funMap L ℕ P.str m f (fun k ↦ (v k).1) =
+      @Structure.funMap L ℕ Q.str m f (fun k ↦ (v k).1)
+    rw [hstr])
+  map_rel' {m} r v := by
+    show @Structure.RelMap L ℕ Q.str m r (fun k ↦ (v k).1) ↔
+      @Structure.RelMap L ℕ P.str m r (fun k ↦ (v k).1)
+    rw [hstr]
+
+@[simp]
+theorem toCeDomainEquiv_coe {P : PartialCePresentationIn O L} {E : Set (ℕ →. ℕ)}
+    {Q : CePresentationIn E L} (hstr : Q.str = P.str) (hdom : Q.domain = P.domain)
+    (x : P.domain) :
+    ((toCeDomainEquiv hstr hdom x : Q.domain) : ℕ) = (x : ℕ) :=
+  rfl
+
 /-- A member whose carrier is contained in another's, with the same ambient structure data,
 embeds in it by the identity. The `⊆` companion of `eqDomainEquiv`; again no nonemptiness
 is required. -/

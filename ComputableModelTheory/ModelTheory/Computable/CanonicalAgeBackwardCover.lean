@@ -40,36 +40,11 @@ namespace FirstOrder.Language
 
 variable {O E : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
 
-/-! ### The carrier crossing between the two presentation layers
+/-! ### The carrier crossing
 
-Generic first, then the schedule-level instance. Both are the identity on values. -/
-
-/-- **Crossing the empty-capable/c.e. presentation boundary.** A c.e. presentation with the same
-stored structure and the same carrier as a possibly-empty one has a first-order equivalent carrier
-subtype, by the identity on values. The `eqDomainEquiv` shape, across the two layers; no
-nonemptiness is required, since an empty carrier closes through the domain equality alone. -/
-def PartialCePresentationIn.toCeDomainEquiv {P : PartialCePresentationIn O L}
-    {Q : CePresentationIn E L} (hstr : Q.str = P.str) (hdom : Q.domain = P.domain) :
-    P.domain ≃[L] Q.domain where
-  toFun p := ⟨p.1, by rw [hdom]; exact p.2⟩
-  invFun q := ⟨q.1, by rw [← hdom]; exact q.2⟩
-  left_inv _ := rfl
-  right_inv _ := rfl
-  map_fun' {m} f v := Subtype.ext (by
-    show @Structure.funMap L ℕ P.str m f (fun k ↦ (v k).1) =
-      @Structure.funMap L ℕ Q.str m f (fun k ↦ (v k).1)
-    rw [hstr])
-  map_rel' {m} r v := by
-    show @Structure.RelMap L ℕ Q.str m r (fun k ↦ (v k).1) ↔
-      @Structure.RelMap L ℕ P.str m r (fun k ↦ (v k).1)
-    rw [hstr]
-
-@[simp]
-theorem PartialCePresentationIn.toCeDomainEquiv_coe {P : PartialCePresentationIn O L}
-    {Q : CePresentationIn E L} (hstr : Q.str = P.str) (hdom : Q.domain = P.domain)
-    (x : P.domain) :
-    ((PartialCePresentationIn.toCeDomainEquiv hstr hdom x : Q.domain) : ℕ) = (x : ℕ) :=
-  rfl
+`PartialCePresentationIn.toCeDomainEquiv` — the generic crossing between the two presentation
+layers — lives with `eqDomainEquiv` in `PartialAgeSemantics`; only the schedule-level instance is
+here. Both are the identity on values. -/
 
 namespace PartialAgeIn
 

@@ -230,38 +230,6 @@ def trans (e₁ : CeIsoIn P Q) (e₂ : CeIsoIn Q W) : CeIsoIn P W where
 
 /-! ### The semantic bridge -/
 
-/-- The structure a presentation induces on its domain subtype — the semantic reading
-of the coded data. -/
-@[reducible]
-def _root_.FirstOrder.Language.CePresentationIn.subtypeStr
-    (P : CePresentationIn O L) : L.Structure P.domain where
-  funMap {n} f v :=
-    ⟨@Structure.funMap L ℕ P.str n f fun k ↦ (v k).1,
-      P.domain_closed n f _ fun k ↦ (v k).2⟩
-  RelMap {n} R v := @Structure.RelMap L ℕ P.str n R fun k ↦ (v k).1
-
-instance (P : CePresentationIn O L) : L.Structure P.domain :=
-  P.subtypeStr
-
-/-- The carrier subtype sits inside `ℕ` as a substructure of the ambient stored structure:
-`Subtype.val` is an embedding, by the very definition of `subtypeStr`. All four laws are `rfl`.
-
-Stated with `P.str` supplied explicitly, since no `L.Structure ℕ` instance exists — this is the
-usual escape from an ambient structure on the raw carrier, and it is what lets a consumer whose
-target really is all of `ℕ` (an upgraded Level-2 presentation, say) leave the subtype behind. -/
-def _root_.FirstOrder.Language.CePresentationIn.domainInclusion
-    (P : CePresentationIn O L) : @Language.Embedding L P.domain ℕ _ P.str :=
-  letI : L.Structure ℕ := P.str
-  { toFun := Subtype.val
-    inj' := Subtype.val_injective
-    map_fun' := fun _ _ ↦ rfl
-    map_rel' := fun _ _ ↦ Iff.rfl }
-
-@[simp]
-theorem _root_.FirstOrder.Language.CePresentationIn.domainInclusion_apply
-    (P : CePresentationIn O L) (x : P.domain) : P.domainInclusion x = (x : ℕ) :=
-  rfl
-
 /-- The subtype element a forward map assigns to a domain element. -/
 noncomputable def toSubtypeFun (x : P.domain) : Q.domain :=
   ⟨(e.toFun x.1).get ((e.toFun_dom x.1).2 x.2), e.toFun_mem (Part.get_mem _)⟩
