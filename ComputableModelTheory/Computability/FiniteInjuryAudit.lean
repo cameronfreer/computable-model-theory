@@ -148,6 +148,64 @@ theorem test_toy_settles (e : ℕ) : Settles ⟨[]⟩ toySched e :=
 theorem test_toy_constant {n : ℕ} (h : 4 ≤ n) : toyRun n = ⟨[9, 5]⟩ :=
   toyRun_eq_of_four_le h
 
+/-! ### Local finiteness without global silence
+
+The toy run is eventually silent outright, which leaves one thing untested: whether
+`stabilizes_of_localFinite` is really about *each priority* settling, or whether it quietly relies
+on the whole construction going quiet. The diagonal schedule separates the two — priority `e` acts
+exactly once, at stage `e`, so every priority is eventually silent, while *some* priority acts at
+every single stage and the state grows without bound. -/
+
+/-- At stage `n`, priority `n` acts. Never silent, globally. -/
+private def diagonalSched : ℕ → Option (Action ℕ) :=
+  fun n ↦ some ⟨n, n⟩
+
+private theorem diagonal_actsAt_iff {e n : ℕ} : ActsAt diagonalSched e n ↔ n = e := by
+  constructor
+  · rintro ⟨act, hact, rfl⟩
+    exact (Option.some.inj hact) ▸ rfl
+  · rintro rfl
+    exact ⟨⟨n, n⟩, rfl, rfl⟩
+
+/-- The state after `n` stages is `[0, 1, …, n-1]`: it never stops growing. -/
+private theorem diagonal_run (n : ℕ) :
+    run ⟨[]⟩ diagonalSched n = ⟨List.range n⟩ := by
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+    rw [run_succ_some (rfl : diagonalSched n = some ⟨n, n⟩), ih,
+      StageState.apply_of_le (by simp), List.range_succ]
+    simp
+
+/-- **Every priority is eventually silent** — each acts exactly once. -/
+theorem test_diagonal_locallyFinite : LocallyFinite diagonalSched :=
+  fun e _ ↦ ⟨e + 1, fun n hn hact ↦ by
+    have := diagonal_actsAt_iff.1 hact
+    omega⟩
+
+/-- **But the schedule is never globally silent**: at every stage some priority acts, so no `N`
+makes the whole construction quiet. This is what the toy run cannot show. -/
+theorem test_diagonal_not_globally_silent :
+    ¬ ∃ N, ∀ n, N ≤ n → ∀ e, ¬ ActsAt diagonalSched e n := by
+  rintro ⟨N, hN⟩
+  exact hN N (Nat.le_refl N) N (diagonal_actsAt_iff.2 rfl)
+
+/-- **And the state grows without bound**, so stabilization here is genuinely per-position rather
+than a statement about the state settling. -/
+theorem test_diagonal_state_unbounded (n : ℕ) :
+    (run ⟨[]⟩ diagonalSched n).values.length = n := by
+  rw [diagonal_run]
+  exact List.length_range
+
+/-- **Yet every position settles.** Position `e` takes the value `e` at stage `e + 1` and never
+moves again — stabilization under local finiteness alone, with the construction still running. -/
+theorem test_diagonal_settles (e : ℕ) :
+    Settles ⟨[]⟩ diagonalSched e ∧
+      ∀ n, e < n → (run ⟨[]⟩ diagonalSched n).values[e]? = some e := by
+  refine ⟨stabilizes_of_localFinite test_diagonal_locallyFinite e, fun n hn ↦ ?_⟩
+  rw [diagonal_run]
+  exact List.getElem?_range hn
+
 end FiniteInjury
 
 #assert_standard_axioms FiniteInjury.test_out_of_range_is_noop
@@ -164,3 +222,7 @@ end FiniteInjury
 #assert_standard_axioms FiniteInjury.test_toy_recovery
 #assert_standard_axioms FiniteInjury.test_toy_settles
 #assert_standard_axioms FiniteInjury.test_toy_constant
+#assert_standard_axioms FiniteInjury.test_diagonal_locallyFinite
+#assert_standard_axioms FiniteInjury.test_diagonal_not_globally_silent
+#assert_standard_axioms FiniteInjury.test_diagonal_state_unbounded
+#assert_standard_axioms FiniteInjury.test_diagonal_settles
