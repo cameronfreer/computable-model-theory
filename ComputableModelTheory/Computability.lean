@@ -6,6 +6,7 @@ Authors: Cameron Freer
 import ComputableModelTheory.Computability.CeDomainCanonical
 import ComputableModelTheory.Computability.CeDomainChain
 import ComputableModelTheory.Computability.Encoding
+import ComputableModelTheory.Computability.FiniteInjury
 import ComputableModelTheory.Computability.Jump
 import ComputableModelTheory.Computability.ListComputable
 import ComputableModelTheory.Computability.ListPredicates
