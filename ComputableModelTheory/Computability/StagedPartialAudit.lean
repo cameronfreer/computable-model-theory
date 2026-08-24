@@ -3,7 +3,7 @@ Copyright (c) 2026 Cameron Freer. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
-import ComputableModelTheory.Computability.StagedPartial
+import ComputableModelTheory.Computability.StagedPartialExample
 import ComputableModelTheory.Util.AssertAxioms
 
 /-!
@@ -33,38 +33,6 @@ open Encodable
 namespace StagedPartialIn
 
 /-! ### Supplied data, with a stage that actually matters -/
-
-/-- The identity on `ℕ`, discovered at stage `x + 1` and not before. -/
-def stagedRange (O : Set (ℕ →. ℕ)) : StagedPartialIn O (fun x : ℕ ↦ Part.some x) where
-  approx s x := if x < s then some x else none
-  approx_computableIn := by
-    have h : ComputableIn O fun p : ℕ × ℕ ↦ decide (p.2 < p.1) :=
-      (Primrec.nat_lt.decide.to_comp.computableIn₂ (O := O)).comp
-        ComputableIn.snd ComputableIn.fst
-    refine (ComputableIn.cond h (ComputableIn.option_some.comp ComputableIn.snd)
-      (ComputableIn.const none)).of_eq fun p ↦ ?_
-    by_cases hp : p.2 < p.1 <;> simp [hp]
-  sound := by
-    intro s x y h
-    by_cases hx : x < s
-    · rw [if_pos hx] at h
-      rw [← Option.some.inj h]
-      exact Part.mem_some _
-    · rw [if_neg hx] at h
-      exact absurd h (by simp)
-  monotone := by
-    intro s t x y hst h
-    by_cases hx : x < s
-    · rw [if_pos hx] at h
-      rw [if_pos (Nat.lt_of_lt_of_le hx hst)]
-      exact h
-    · rw [if_neg hx] at h
-      exact absurd h (by simp)
-  complete := by
-    intro x y h
-    rw [Part.mem_some_iff] at h
-    subst h
-    exact ⟨y + 1, by simp⟩
 
 /-- **The layer is inhabited from supplied data alone.** No `RecursiveIn` hypothesis appears in
 this file; the representation theorem that would produce staged data from extensional
@@ -108,22 +76,6 @@ theorem test_nothing_off_domain {α β : Type*} [Primcodable α] [Primcodable β
   F.approx_eq_none_of_not_dom h s
 
 /-! ### What the approximation does *not* determine -/
-
-/-- A second staged approximation of the same function, discovering everything at stage `0`. -/
-def stagedNow (O : Set (ℕ →. ℕ)) : StagedPartialIn O (fun x : ℕ ↦ Part.some x) where
-  approx _ x := some x
-  approx_computableIn := ComputableIn.option_some.comp ComputableIn.snd
-  sound := by
-    intro s x y h
-    rw [← Option.some.inj h]
-    exact Part.mem_some _
-  monotone := by
-    intro s t x y _ h
-    exact h
-  complete := by
-    intro x y h
-    rw [Part.mem_some_iff] at h
-    exact ⟨0, by rw [h]⟩
 
 /-- **The stage is not determined by the function.** Two staged approximations of the *same*
 partial function disagree about when a value is found — here at every positive input, at stage `0`.
