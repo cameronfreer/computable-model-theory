@@ -25,9 +25,12 @@ stage `s` is visible at stage `s` — the reason the bounded search runs over `L
 Searching `List.range s` would make the approximation lag its own index, and every other row here
 would still pass.
 
-**The tie rule is gated separately from the ordering.** `test_tie_prefers_left` pins that
-simultaneous arrival goes left; the adversarial rows pin that *earlier* beats *preferred*. Together
-they say the order of the two criteria is earliest-first, preference-second.
+**The tie rule is gated at race level, not only on the picker.** `test_pick_prefers_left` is the
+tie-break in isolation; `test_tie_prefers_left_at_race` runs two approximations that first appear at
+the *same* stage and checks the composed race reports the left one, with
+`test_tie_is_simultaneous` confirming the arrival really is simultaneous. The adversarial rows pin
+that *earlier* beats *preferred*. Together they say the order of the two criteria is
+earliest-first, preference-second — and the picker row alone would not have said that.
 
 `test_relative_without_merge` records what the construction cost: the raced function is
 `RecursiveIn O` outright, by `rfind` on `hit`. Neither `RecursiveIn.merge'` nor `Partrec.race`
@@ -109,13 +112,36 @@ theorem test_stage_participates (O : Set (ℕ →. ℕ)) :
     simp [hit, slowLeft, this]
   · simp [hit, slowLeft]
 
-/-- **The tie rule.** Where both sides have appeared at the same stage, the left one is
-reported — so the ordering criterion is earliest-first and preference only breaks ties. -/
-theorem test_tie_prefers_left {α β : Type*} [Primcodable α] [Primcodable β]
+/-- The **picker's** preference: at a single stage, an available left value wins. This is only the
+tie-break itself; the row below is what pins its role in the composed race. -/
+theorem test_pick_prefers_left {α β : Type*} [Primcodable α] [Primcodable β]
     {O : Set (ℕ →. ℕ)} {f g : α →. β} (F : StagedPartialIn O f) (G : StagedPartialIn O g)
     {t : ℕ} {x : α} {y : β} (h : F.approx t x = some y) :
     F.pick G t x = some (true, y) :=
   pick_eq_left F G h
+
+/-- **The tie rule at race level.** Both sides are `stagedRange`, so at input `1` they first appear
+at the *same* stage `2`; the race reports the left one. This pins the composition — earliest
+discovery first, preference only to break an exact tie — rather than the picker in isolation. -/
+theorem test_tie_prefers_left_at_race (O : Set (ℕ →. ℕ)) :
+    ((slowLeft O).race (slowLeft O)).approx 5 1 = some (true, 1) := by
+  have hmin : ∀ u, u < 2 → (slowLeft O).hit (slowLeft O) u 1 = false := by
+    intro u hu
+    have hnot : ¬ (1 < u) := by omega
+    simp [hit, slowLeft, hnot]
+  obtain ⟨y, hy⟩ :=
+    approx_eq_left_of_left_first (slowLeft O) (slowLeft O) (t₀ := 2) (x := 1) (s := 5)
+      (by simp [slowLeft]) hmin (by omega)
+  have hmem : ((true, y) : Bool × ℕ) ∈ (slowLeft O).raceFun (slowLeft O) 1 :=
+    ((slowLeft O).race (slowLeft O)).sound hy
+  have hy1 : y = 1 :=
+    Part.mem_some_iff.1 ((slowLeft O).mem_left_of_mem_raceFun (slowLeft O) hmem)
+  rw [hy, hy1]
+
+/-- And both sides genuinely do arrive together, so the row above really is a tie. -/
+theorem test_tie_is_simultaneous (O : Set (ℕ →. ℕ)) :
+    (slowLeft O).approx 1 1 = none ∧ (slowLeft O).approx 2 1 = some 1 :=
+  ⟨by simp [slowLeft], by simp [slowLeft]⟩
 
 /-! ### What the race computes -/
 
@@ -148,7 +174,9 @@ end StagedPartialIn
 #assert_standard_axioms StagedPartialIn.test_orElse_would_flip
 #assert_standard_axioms StagedPartialIn.test_generic_adversarial
 #assert_standard_axioms StagedPartialIn.test_stage_participates
-#assert_standard_axioms StagedPartialIn.test_tie_prefers_left
+#assert_standard_axioms StagedPartialIn.test_pick_prefers_left
+#assert_standard_axioms StagedPartialIn.test_tie_prefers_left_at_race
+#assert_standard_axioms StagedPartialIn.test_tie_is_simultaneous
 #assert_standard_axioms StagedPartialIn.test_tags_are_sound
 #assert_standard_axioms StagedPartialIn.test_race_dom_iff
 #assert_standard_axioms StagedPartialIn.test_relative_without_merge

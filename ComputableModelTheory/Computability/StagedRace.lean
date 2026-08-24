@@ -356,6 +356,20 @@ theorem approx_eq_none_of_no_hit {x : α} {s : ℕ} (h : ∀ t, t ≤ s → F.hi
 
 /-! ### The adversarial guarantee -/
 
+/-- **The tie rule, at race level.** If the left side has appeared at the first stage either side
+appears, the race reports the left side from that stage on — in particular when both arrive
+simultaneously. The companion of `approx_eq_right_of_right_earlier`: together they say the ordering
+is earliest-first, with preference breaking only exact ties. -/
+theorem approx_eq_left_of_left_first {x : α} {t₀ : ℕ} (hF : (F.approx t₀ x).isSome)
+    (hmin : ∀ u, u < t₀ → F.hit G u x = false) {s : ℕ} (hs : t₀ ≤ s) :
+    ∃ y, (F.race G).approx s x = some (true, y) := by
+  obtain ⟨y, hy⟩ := Option.isSome_iff_exists.1 hF
+  have hhit : F.hit G t₀ x = true := by rw [hit, Bool.or_eq_true]; exact Or.inl hF
+  refine ⟨y, ?_⟩
+  rw [race_approx, (firstHit?_eq_some_iff F G).2 ⟨hs, hhit, hmin⟩, Option.bind_some,
+    pick_eq_left F G hy]
+
+
 /-- **A later left result does not displace an earlier right result.**
 
 If the right side has appeared by stage `t₀` and the left side has appeared at *no* stage `≤ t₀`,
