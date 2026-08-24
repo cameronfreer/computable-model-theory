@@ -14,6 +14,7 @@ import ComputableModelTheory.Computability.ListSections
 import ComputableModelTheory.Computability.OraclePred
 import ComputableModelTheory.Computability.RecursiveIn
 import ComputableModelTheory.Computability.Reduction
+import ComputableModelTheory.Computability.StagedPartial
 
 /-!
 # Computability substrate
