@@ -31,9 +31,12 @@ only the `generates` field.
 
 ## Nothing here is effective
 
-No computability statement, no oracle inclusion, no `Part.get`, no choice. The explicit embedding
-and its realization witness are all this needs, which is why it can be stated and proved once and
-consumed on both sides of the construction.
+No computability statement, no oracle inclusion, no `Part.get`, and **no choice of a realizer or
+computational witness** — the explicit embedding and its realization witness are all this needs,
+which is why it can be stated and proved once and consumed on both sides of the construction. The
+one use of classical choice is `Equiv.ofBijective`'s inverse packaging in `toCanonicalRangeEquiv`,
+which is why that definition is `noncomputable`; nothing about *which* embedding is chosen depends
+on it.
 -/
 
 open Encodable FirstOrder Language
@@ -148,6 +151,24 @@ noncomputable def toCanonicalRangeEquiv (h : PartialRealizesBetween A S.canonica
         (S.canonicalAge.memberAt (encode F.rangeTuple)).domain) : ℕ)
       = ((f x : (S.canonicalAge.memberAt F.codIdx).domain) : ℕ) :=
   rfl
+
+/-- **The corestriction is itself realized**, at the data with the codomain moved to
+`encode F.rangeTuple`.
+
+Thin — the length equation is `h`'s and the coordinates are `toCanonicalRangeEquiv_coe` composed
+with `h`'s — but the base case and both half-steps of the back-and-forth all need it, and would
+otherwise each re-prove it. Proving it here seals the corestriction: consumers never reopen the
+range equality. -/
+theorem toCanonicalRangeEquiv_realizes (h : PartialRealizesBetween A S.canonicalAge F f) :
+    PartialRealizesBetween A S.canonicalAge
+      (PotentialEmbeddingData.ofTriple (F.domIdx, encode F.rangeTuple, F.rangeTuple))
+      (toCanonicalRangeEquiv h).toEmbedding := by
+  obtain ⟨hlen, hcoord⟩ := h
+  refine ⟨hlen, fun k ↦ ?_⟩
+  show ((toCanonicalRangeEquiv ⟨hlen, hcoord⟩ (A.gensView F.domIdx k) :
+    (S.canonicalAge.memberAt (encode F.rangeTuple)).domain) : ℕ) = _
+  rw [toCanonicalRangeEquiv_coe]
+  exact hcoord k
 
 end PartialRealizesBetween
 

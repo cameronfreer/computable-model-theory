@@ -86,6 +86,14 @@ theorem test_equiv (h : PartialRealizesBetween A S.canonicalAge F f) :
         = ((f x : (S.canonicalAge.memberAt F.codIdx).domain) : ℕ) :=
   ⟨⟨toCanonicalRangeEquiv h⟩, fun _ ↦ rfl⟩
 
+/-- **The corestriction is itself realized**, at the data with the codomain moved to
+`encode F.rangeTuple` — so the three consumers of the keystone never reopen the range equality. -/
+theorem test_corestriction_realizes (h : PartialRealizesBetween A S.canonicalAge F f) :
+    PartialRealizesBetween A S.canonicalAge
+      (PotentialEmbeddingData.ofTriple (F.domIdx, encode F.rangeTuple, F.rangeTuple))
+      (toCanonicalRangeEquiv h).toEmbedding :=
+  toCanonicalRangeEquiv_realizes h
+
 /-- **No effectivity is consumed.** The equivalence is produced from an embedding and a realization
 witness alone — no oracle appears in the hypotheses beyond the one carrying the families, no `O ⊆ E`,
 no `Part`. This is what lets one lemma serve both half-steps and the base case of Proposition 3.2. -/
@@ -161,6 +169,8 @@ end FirstOrder.Language
 #assert_standard_axioms
   FirstOrder.Language.PartialAgeIn.PartialRealizesBetween.test_surjective
 #assert_standard_axioms FirstOrder.Language.PartialAgeIn.PartialRealizesBetween.test_equiv
+#assert_standard_axioms
+  FirstOrder.Language.PartialAgeIn.PartialRealizesBetween.test_corestriction_realizes
 #assert_standard_axioms
   FirstOrder.Language.PartialAgeIn.PartialRealizesBetween.test_no_effectivity_needed
 #assert_standard_axioms FirstOrder.Language.test_empty_member_is_nonempty
