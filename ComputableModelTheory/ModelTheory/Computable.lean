@@ -26,6 +26,7 @@ import ComputableModelTheory.ModelTheory.Computable.Theorem210ReverseLift
 import ComputableModelTheory.ModelTheory.Computable.ChainPresentation
 import ComputableModelTheory.ModelTheory.Computable.ComputableIso
 import ComputableModelTheory.ModelTheory.Computable.ComputablyHomogeneous
+import ComputableModelTheory.ModelTheory.Computable.CanonicalRange
 import ComputableModelTheory.ModelTheory.Computable.ConstantExample
 import ComputableModelTheory.ModelTheory.Computable.DecidablePresentation
 import ComputableModelTheory.ModelTheory.Computable.Diagram
