@@ -197,6 +197,58 @@ theorem test_consistency_out_of_range {S T : ComputableStructureIn O L} {s : Bac
 
 end Consistency
 
+/-! ### The base case
+
+Two things to gate, and only two: that the empty state is matched at all, and that the hypothesis is
+a **forward cover** rather than anything larger.
+
+The signature row is the substantive one. `test_empty_from_forward_cover_only` derives the base case
+from an arbitrary `RepresentationCoverIn E S.canonicalAge T.canonicalAge`, with `E` unrelated to `O`
+and no inclusion between them — so no homogeneity, computability, or oracle hypothesis can have crept
+in. `test_empty_orientation_is_structural` then shows what a full `RepresentationIsoIn` buys: its
+`forward` field gives `empty.Matched S T` and its `backward` field gives `empty.Matched T S`. The two
+are different statements, and which one a proof gets is fixed by the cover's direction rather than by
+which field it happens to project.
+
+Nonvacuity is already gated elsewhere: `CanonicalRangeAudit`'s constant-language rows show the
+empty-generator corestriction is surjective onto a **nonempty** carrier, which is exactly the content
+that would be missing if the empty case were only exercised where `D_⟨⟩` is empty. -/
+
+section BaseCase
+
+variable {E : Set (ℕ →. ℕ)}
+
+/-- The empty state records nothing. -/
+theorem test_empty_state_is_empty :
+    BackForthState.empty.sourceTuple = [] ∧ BackForthState.empty.targetTuple = [] :=
+  ⟨rfl, rfl⟩
+
+/-- **A forward cover suffices, and is all that is assumed.** `E` is unrelated to `O`; there is no
+`O ⊆ E`, no homogeneity, and no computability hypothesis in sight. -/
+theorem test_empty_from_forward_cover_only {S T : ComputableStructureIn O L}
+    (r : RepresentationCoverIn E S.canonicalAge T.canonicalAge) :
+    BackForthState.empty.Matched S T :=
+  BackForthState.empty_matched r
+
+/-- **The orientation is structural.** A full isomorphism of representations yields the base case in
+*both* directions — but as two different statements, each from the cover pointing that way. A proof
+cannot reach `Matched S T` through `backward`. -/
+theorem test_empty_orientation_is_structural {S T : ComputableStructureIn O L}
+    (r : RepresentationIsoIn E S.canonicalAge T.canonicalAge) :
+    BackForthState.empty.Matched S T ∧ BackForthState.empty.Matched T S :=
+  ⟨BackForthState.empty_matched r.forward, BackForthState.empty_matched r.backward⟩
+
+/-- The base case is consistent, trivially: both consequences hold at every pair of indices, since
+every lookup is `none`. Recorded so the recursion's invariant is visibly established at stage 0. -/
+theorem test_empty_is_consistent {S T : ComputableStructureIn O L}
+    (r : RepresentationCoverIn E S.canonicalAge T.canonicalAge) (i j : ℕ) :
+    BackForthState.empty.targetTuple[i]? = BackForthState.empty.targetTuple[j]? ∧
+      BackForthState.empty.sourceTuple[i]? = BackForthState.empty.sourceTuple[j]? :=
+  ⟨BackForthState.target_getElem?_eq_of_source_getElem?_eq (BackForthState.empty_matched r) rfl,
+    BackForthState.source_getElem?_eq_of_target_getElem?_eq (BackForthState.empty_matched r) rfl⟩
+
+end BaseCase
+
 end FirstOrder.Language
 
 #assert_standard_axioms FirstOrder.Language.test_map_oracle_independent
@@ -214,3 +266,7 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_repeated_target_unequal_source_not_matched
 #assert_standard_axioms FirstOrder.Language.test_consistency_is_global
 #assert_standard_axioms FirstOrder.Language.test_consistency_out_of_range
+#assert_standard_axioms FirstOrder.Language.test_empty_state_is_empty
+#assert_standard_axioms FirstOrder.Language.test_empty_from_forward_cover_only
+#assert_standard_axioms FirstOrder.Language.test_empty_orientation_is_structural
+#assert_standard_axioms FirstOrder.Language.test_empty_is_consistent

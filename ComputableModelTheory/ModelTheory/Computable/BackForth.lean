@@ -5,6 +5,7 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Computable.CanonicalRange
 import ComputableModelTheory.ModelTheory.Computable.ComputableIso
+import ComputableModelTheory.ModelTheory.Computable.RepresentationIso
 
 /-!
 # The back-and-forth state — CHMM Proposition 3.2, landing 1
@@ -279,6 +280,54 @@ theorem source_getElem?_eq_of_target_getElem?_eq {i j : ℕ} (h : s.Matched S T)
   rw [← hx, ← hy]
   exact congrArg (fun z : (S.canonicalAge.memberAt s.tightMap.domIdx).domain ↦ (z : ℕ))
     (f.injective this)
+
+/-! ### The base case
+
+The recursion starts from the state that has matched nothing. That this state is already matched is
+**not** automatic from both empty-tuple members existing: `Matched` asks for an embedding of
+`D_{⟨⟩}` into `D_{⟨⟩}`, and where the language has constants those carriers are nonempty, so
+something must produce the map. A forward cover does.
+
+The signature takes a `RepresentationCoverIn E S.canonicalAge T.canonicalAge` and nothing else. That
+is sharper than accepting a `RepresentationIsoIn`, and it makes the orientation structural rather
+than a matter of which field a proof happens to project: the base case needs only the direction that
+maps source members into the target, so the backward cover cannot silently be relied on. Nor does
+anything here need homogeneity, computability, or `O ⊆ E` — the cover is used purely semantically,
+through the equivalence it already carries at one index.
+-/
+
+/-- The state that has matched nothing. -/
+def empty : BackForthState := ⟨[], []⟩
+
+@[simp] theorem empty_sourceTuple : empty.sourceTuple = [] := rfl
+
+@[simp] theorem empty_targetTuple : empty.targetTuple = [] := rfl
+
+/-- **The base case, from a forward cover alone.** At the index coding the empty tuple, the cover's
+stored equivalence realizes the generator data, whose range tuple is empty because the source has no
+recorded generators; corestricting it to its own generated range lands exactly the empty state's
+tight map.
+
+Only `S.canonicalAge → T.canonicalAge` is used. No homogeneity, no computability, no oracle
+inclusion, no backward cover. -/
+theorem empty_matched {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
+    (r : RepresentationCoverIn E S.canonicalAge T.canonicalAge) : empty.Matched S T := by
+  have hgens : S.canonicalAge.gens (encode ([] : Tuple ℕ)) = [] :=
+    allTupleFor_encode _
+  have hsg : r.sourceGensImage (encode ([] : Tuple ℕ)) = [] :=
+    r.sourceGensImage_of_gens_nil hgens
+  have hex : ∃ f, PartialAgeIn.PartialRealizesBetween S.canonicalAge T.canonicalAge
+      (PotentialEmbeddingData.ofTriple (encode ([] : Tuple ℕ),
+        encode (r.sourceGensImage (encode ([] : Tuple ℕ))),
+        r.sourceGensImage (encode ([] : Tuple ℕ)))) f :=
+    ⟨_, PartialAgeIn.PartialRealizesBetween.toCanonicalRangeEquiv_realizes
+      (r.generatorEmbeddingData_realized (encode ([] : Tuple ℕ)))⟩
+  have hdata : PotentialEmbeddingData.ofTriple (encode ([] : Tuple ℕ),
+      encode (r.sourceGensImage (encode ([] : Tuple ℕ))),
+      r.sourceGensImage (encode ([] : Tuple ℕ))) = empty.tightMap := by
+    rw [hsg]; rfl
+  exact Eq.mp (congrArg (fun F ↦ ∃ f,
+    PartialAgeIn.PartialRealizesBetween S.canonicalAge T.canonicalAge F f) hdata) hex
 
 end BackForthState
 
