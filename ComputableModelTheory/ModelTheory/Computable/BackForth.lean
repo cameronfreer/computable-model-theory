@@ -6,6 +6,7 @@ Authors: Cameron Freer
 import ComputableModelTheory.ModelTheory.Computable.CanonicalRange
 import ComputableModelTheory.ModelTheory.Computable.ComputableIso
 import ComputableModelTheory.ModelTheory.Computable.RepresentationIso
+import ComputableModelTheory.ModelTheory.Computable.ComputablyHomogeneous
 
 /-!
 # The back-and-forth state — CHMM Proposition 3.2, landing 1
@@ -166,17 +167,97 @@ theorem BackForthState.length_eq_of_matched {S T : ComputableStructureIn O L}
   obtain ⟨-, hlen, -⟩ := h
   rwa [tightMap_domIdx, tightMap_rangeTuple, S.canonicalAge_gens, allTupleFor_encode] at hlen
 
+/-! ### Realization, read positionally
+
+Everything below chains realizers, and doing that through `Fin` casts is what makes such proofs
+unreadable. These three lemmas move the whole discussion to `getElem?`: a realizer *reads off* its
+range tuple at a position (`getElem?_of_realizes`), a length equation plus positional images *is* a
+realization (`realizes_of_getElem?`), and two realizers compose when the first's range tuple agrees
+positionally with the middle member's recorded generators (`realizes_comp`).
+
+The alignment hypothesis in `realizes_comp` is the honest content of composition: knowing where `g`
+sends `f`'s image tuple requires knowing that image tuple's entries *as recorded generators of the
+middle member*. It is needed only where `f`'s range tuple is defined, which is why it is guarded by
+`k < w.length` rather than asserted globally.
+-/
+
+section Positional
+
+variable {A B C : PartialAgeIn O L}
+
+/-- **A realizer, read positionally.** The image of any point named by the `k`-th recorded generator
+is the `k`-th range entry. No bound has to be produced: the hypothesis pins `k` in range. -/
+private theorem getElem?_of_realizes {F : PotentialEmbeddingData}
+    {f : (A.memberAt F.domIdx).domain ↪[L] (B.memberAt F.codIdx).domain}
+    (hf : PartialAgeIn.PartialRealizesBetween A B F f) {k : ℕ}
+    {x : (A.memberAt F.domIdx).domain} (hx : (A.gens F.domIdx)[k]? = some (x : ℕ)) :
+    F.rangeTuple[k]? = some ((f x : (B.memberAt F.codIdx).domain) : ℕ) := by
+  obtain ⟨hlen, hcoord⟩ := hf
+  have hk : k < (A.gens F.domIdx).length := by
+    by_contra hk
+    rw [List.getElem?_eq_none (by omega)] at hx
+    exact absurd hx (by simp)
+  have hxk : x = A.gensView F.domIdx ⟨k, hk⟩ := by
+    refine Subtype.ext ?_
+    rw [PartialAgeIn.gensView_coe, List.get_eq_getElem]
+    exact (Option.some.inj ((List.getElem?_eq_getElem hk).symm.trans hx)).symm
+  rw [hxk, hcoord ⟨k, hk⟩, List.getElem?_eq_getElem (by rw [← hlen]; exact hk)]
+  rfl
+
+/-- **The positional converse.** A length equation together with the images of the recorded
+generators, named by position, is exactly a realization. -/
+private theorem realizes_of_getElem? {c e : ℕ} {v : Tuple ℕ}
+    {f : (A.memberAt c).domain ↪[L] (B.memberAt e).domain}
+    (hlen : (A.gens c).length = v.length)
+    (h : ∀ (k : ℕ) (x : (A.memberAt c).domain), (A.gens c)[k]? = some (x : ℕ) →
+      v[k]? = some ((f x : (B.memberAt e).domain) : ℕ)) :
+    PartialAgeIn.PartialRealizesBetween A B (PotentialEmbeddingData.ofTriple (c, e, v)) f := by
+  refine ⟨hlen, fun k ↦ ?_⟩
+  have hk2 : k.1 < (A.gens c).length := k.2
+  have hx : (A.gens c)[k.1]? = some ((A.gensView c k : (A.memberAt c).domain) : ℕ) := by
+    rw [PartialAgeIn.gensView_coe, List.get_eq_getElem, List.getElem?_eq_getElem hk2]
+  have hk := h k.1 (A.gensView c k) hx
+  rw [List.getElem?_eq_getElem (by rw [← hlen]; exact hk2)] at hk
+  exact (Option.some.inj hk).symm
+
+/-- **Composition, through a positional alignment.** `halign` says the first realizer's range tuple
+names recorded generators of the middle member at matching positions — without which there is no way
+to know where the second realizer sends them. `hv` then reads the composite's range tuple off the
+second's. -/
+private theorem realizes_comp {c d e : ℕ} {w v v' : Tuple ℕ}
+    {f : (A.memberAt c).domain ↪[L] (B.memberAt d).domain}
+    {g : (B.memberAt d).domain ↪[L] (C.memberAt e).domain}
+    (hf : PartialAgeIn.PartialRealizesBetween A B (PotentialEmbeddingData.ofTriple (c, d, w)) f)
+    (hg : PartialAgeIn.PartialRealizesBetween B C (PotentialEmbeddingData.ofTriple (d, e, v)) g)
+    (halign : ∀ k : ℕ, k < w.length → w[k]? = (B.gens d)[k]?)
+    (hv : ∀ k : ℕ, k < w.length → v'[k]? = v[k]?)
+    (hlen : (A.gens c).length = v'.length) :
+    PartialAgeIn.PartialRealizesBetween A C
+      (PotentialEmbeddingData.ofTriple (c, e, v')) (g.comp f) := by
+  refine realizes_of_getElem? hlen fun k x hx ↦ ?_
+  have h1 : w[k]? = some ((f x : (B.memberAt d).domain) : ℕ) := getElem?_of_realizes hf hx
+  have hkw : k < w.length := by
+    by_contra hk
+    rw [List.getElem?_eq_none (by omega)] at h1
+    exact absurd h1 (by simp)
+  have h2 : (B.gens d)[k]? = some ((f x : (B.memberAt d).domain) : ℕ) := by
+    rw [← halign k hkw]; exact h1
+  rw [hv k hkw]
+  exact getElem?_of_realizes hg h2
+
+end Positional
+
 /-! ### Coordinate consistency
 
-The two facts the inverse laws will need, stated **positionally and globally**: no length hypothesis,
-no bound hypothesis, no `Fin`. Both are `getElem?` equations between the two tuples at the same pair
-of indices, so they compose without side conditions.
+The two facts the inverse laws will need, stated **positionally and globally**: no length
+hypothesis, no bound hypothesis, no `Fin`. Both are `getElem?` equations between the two tuples at
+the same pair of indices, so they compose without side conditions.
 
-Each covers two cases at once. In bounds, the content is the realizer's: *functionality* gives the
-forward direction (equal source entries are the same carrier point, so their images agree), and
-*injectivity* gives the backward one. Out of bounds, `length_eq_of_matched` makes both lookups on the
-other side `none`, and the mixed case cannot arise because `some ≠ none`. That is why the length
-equality is derived here rather than demanded of the caller.
+Each covers two cases at once. In bounds, the content is the realizer's: *functionality* gives
+the forward direction (equal source entries are the same carrier point, so their images agree), and
+*injectivity* gives the backward one. Out of bounds, `length_eq_of_matched` makes both lookups on
+the other side `none`, and the mixed case cannot arise because `some ≠ none`. That is why the
+length equality is derived here rather than demanded of the caller.
 
 Repeated coordinates are legal — a state may record the same source point twice — and these lemmas
 say exactly what that costs: the images must then agree, and conversely.
@@ -228,18 +309,9 @@ private theorem realizer_getElem?
     (hx : (x : ℕ) = s.sourceTuple[i]) :
     s.targetTuple[i]?
       = some ((f x : (T.canonicalAge.memberAt s.tightMap.codIdx).domain) : ℕ) := by
+  refine getElem?_of_realizes hf ?_
   have hgens : S.canonicalAge.gens s.tightMap.domIdx = s.sourceTuple := by simp [tightMap]
-  have hi' : i < (S.canonicalAge.gens s.tightMap.domIdx).length := by rw [hgens]; exact hi
-  obtain ⟨hlen, hcoord⟩ := hf
-  have hxi : x = S.canonicalAge.gensView s.tightMap.domIdx ⟨i, hi'⟩ := by
-    refine Subtype.ext ?_
-    rw [hx, PartialAgeIn.gensView_coe, List.get_eq_getElem]
-    exact (List.getElem_of_eq hgens hi').symm
-  rw [hxi, hcoord ⟨i, hi'⟩]
-  have hti : i < s.targetTuple.length := by
-    rw [← hgens] at hi; exact hlen ▸ hi
-  rw [List.getElem?_eq_getElem hti]
-  rfl
+  rw [hgens, List.getElem?_eq_getElem hi, hx]
 
 /-- **Functionality.** A matched state that records the same source point at two positions records
 the same image at both — the two positions name one carrier point, and the realizer is a function.
@@ -326,9 +398,262 @@ theorem empty_matched {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
       encode (r.sourceGensImage (encode ([] : Tuple ℕ))),
       r.sourceGensImage (encode ([] : Tuple ℕ))) = empty.tightMap := by
     rw [hsg]; rfl
-  exact Eq.mp (congrArg (fun F ↦ ∃ f,
-    PartialAgeIn.PartialRealizesBetween S.canonicalAge T.canonicalAge F f) hdata) hex
+  exact PartialAgeIn.exists_partialRealizesBetween_congr hdata hex
 
 end BackForthState
+
+/-! ### Generator images over a canonical source
+
+`RepresentationCoverIn.sourceGensImage_computableIn` needs `O ⊆ E` because reading an arbitrary
+family's recorded generators touches presentation data. A **canonical** source records
+`allTupleFor`, which is decoding and nothing else, so on that source the inclusion is not needed.
+
+Kept here rather than in `RepresentationIso.lean`, which would otherwise have to import
+`CanonicalAge` upward. The back half is its second consumer. -/
+
+namespace RepresentationCoverIn
+
+/-- **No `O ⊆ E` over a canonical source.** The generator list is `allTupleFor`, computable
+outright. -/
+theorem sourceGensImage_computableIn_canonicalSource {E : Set (ℕ →. ℕ)}
+    {S : ComputableStructureIn O L} {B : PartialAgeIn O L}
+    (r : RepresentationCoverIn E S.canonicalAge B) : ComputableIn E r.sourceGensImage := by
+  have hgens : ComputableIn E S.canonicalAge.gens := allTupleFor_computableIn
+  have hpart : RecursiveIn E fun i ↦ r.toTuplePart i (S.canonicalAge.gens i) :=
+    r.toTuplePart_recursiveIn.comp (ComputableIn.id.pair hgens)
+  exact hpart.computableIn_get _
+
+end RepresentationCoverIn
+
+/-! ### The forth half
+
+One step of the back-and-forth, in the direction that takes a **new source point** and finds its
+image. The construction is the paper's: push the point onto the source tuple, run the forward cover
+on the pushed tuple, and ask the *target*'s homogeneity to extend the map that runs back along the
+cover's image of what is already matched.
+
+Three things are worth stating before the proofs.
+
+**The query's orientation.** `⟨s.targetTuple, forthPrefix, forthNewPoint⟩` — the current target
+tuple is `d⃗`, the cover's images of the already-matched source points are `g(d⃗)`, and the cover's
+image of the new point is `x`. So `g` runs *from* the matched target tuple *to* the cover's image
+tuple, and Definition 3.1's `h` inverts it, landing back on `s.targetTuple`. Swapping the first two
+fields would typecheck and would be wrong.
+
+**The new target tuple is not the answer's extension tuple.** `H.extensionTuple q` is the ambient
+member `D_γ⃗` the extension lands in; the *tight* matched range is `s.targetTuple ++ [y]`, and that
+is what the new state records. Using `γ⃗` would produce a state whose tight map is not realized.
+
+**The off-by-one is explicit.** `forthImage = forthPrefix ++ [forthNewPoint]` is proved once, from
+the cover's length equation, and it is the only place the boundary is argued. Both the homogeneity
+query and the final composition read it back.
+-/
+
+section Forth
+
+open PartialAgeIn PartialAgeIn.PartialRealizesBetween
+
+variable {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
+
+namespace BackForthState
+
+/-- The index of the pushed source tuple. -/
+def pushedIdx (s : BackForthState) (n : ℕ) : ℕ := encode (s.sourceTuple ++ [n])
+
+/-- The recorded generators at a tuple's own code — used constantly below, and stated once so that
+the rewrites do not have to go through `canonicalAge_gens` and `allTupleFor_encode` separately. -/
+@[simp] theorem gens_encode (S : ComputableStructureIn O L) (t : Tuple ℕ) :
+    S.canonicalAge.gens (encode t) = t :=
+  allTupleFor_encode _
+
+@[simp] theorem gens_pushedIdx (S : ComputableStructureIn O L) (s : BackForthState) (n : ℕ) :
+    S.canonicalAge.gens (s.pushedIdx n) = s.sourceTuple ++ [n] :=
+  allTupleFor_encode _
+
+variable (r : RepresentationCoverIn E S.canonicalAge T.canonicalAge) (s : BackForthState) (n : ℕ)
+
+/-- The forward cover's image of the **whole** pushed source tuple. -/
+noncomputable def forthImage : Tuple ℕ := r.sourceGensImage (s.pushedIdx n)
+
+theorem forthImage_length : (forthImage r s n).length = s.sourceTuple.length + 1 := by
+  rw [forthImage, r.sourceGensImage_length, gens_pushedIdx]
+  simp
+
+/-- Its prefix: the images of the source points already matched. -/
+noncomputable def forthPrefix : Tuple ℕ := (forthImage r s n).take s.sourceTuple.length
+
+/-- Its final coordinate: the image of the new point. -/
+noncomputable def forthNewPoint : ℕ := (forthImage r s n)[s.sourceTuple.length]!
+
+@[simp] theorem forthPrefix_length : (forthPrefix r s n).length = s.sourceTuple.length := by
+  rw [forthPrefix, List.length_take, forthImage_length]
+  omega
+
+theorem forthPrefix_getElem? {k : ℕ} (hk : k < s.sourceTuple.length) :
+    (forthPrefix r s n)[k]? = (forthImage r s n)[k]? := by
+  rw [forthPrefix, List.getElem?_take_of_lt hk]
+
+/-- **The off-by-one boundary, explicitly.** The cover's image of the pushed tuple splits as the
+prefix it assigns to the already-matched points, followed by the single image of the new point.
+
+Everything downstream reads the boundary back from here: the homogeneity query is built from the two
+pieces, and the final composition needs them re-joined. -/
+theorem forthImage_split : forthImage r s n = forthPrefix r s n ++ [forthNewPoint r s n] := by
+  have hlen := forthImage_length r s n
+  have hlt : s.sourceTuple.length < (forthImage r s n).length := by omega
+  have hnew : forthNewPoint r s n = (forthImage r s n)[s.sourceTuple.length]'hlt := by
+    rw [forthNewPoint]
+    exact getElem!_pos (forthImage r s n) s.sourceTuple.length hlt
+  have h3 : (forthImage r s n).take (s.sourceTuple.length + 1) = forthImage r s n :=
+    List.take_of_length_le (by omega)
+  have h2 := List.take_add_one (l := forthImage r s n) (i := s.sourceTuple.length)
+  rw [h3, List.getElem?_eq_getElem hlt] at h2
+  rw [forthPrefix, hnew]
+  exact h2
+
+/-! #### The query -/
+
+/-- **The homogeneity query, put to the target.** Current target tuple first, the cover's images of
+the already-matched source points second, the cover's image of the new point third. -/
+noncomputable def forthQuery : HomogeneityQueryData :=
+  ⟨s.targetTuple, forthPrefix r s n, forthNewPoint r s n⟩
+
+@[simp] theorem forthQuery_domainTuple : (forthQuery r s n).domainTuple = s.targetTuple := rfl
+
+@[simp] theorem forthQuery_imageTuple : (forthQuery r s n).imageTuple = forthPrefix r s n := rfl
+
+@[simp] theorem forthQuery_newPoint : (forthQuery r s n).newPoint = forthNewPoint r s n := rfl
+
+/-- **The state after one forth step.** The new target entry is the answer's *returned point*, not
+its extension tuple: `γ⃗` names the ambient member, while the matched range is the old target tuple
+with `y` appended. -/
+noncomputable def forthState (H : ComputablyHomogeneousIn E T) : BackForthState :=
+  ⟨s.sourceTuple ++ [n], s.targetTuple ++ [H.imageOfNewPoint (forthQuery r s n)]⟩
+
+@[simp] theorem forthState_sourceTuple (H : ComputablyHomogeneousIn E T) :
+    (forthState r s n H).sourceTuple = s.sourceTuple ++ [n] := rfl
+
+@[simp] theorem forthState_targetTuple (H : ComputablyHomogeneousIn E T) :
+    (forthState r s n H).targetTuple
+      = s.targetTuple ++ [H.imageOfNewPoint (forthQuery r s n)] := rfl
+
+/-! #### Layer 1: the cover, corestricted -/
+
+/-- The forward cover at the pushed index, corestricted onto the member its image generates. -/
+noncomputable def forthCoverEquiv :
+    (S.canonicalAge.memberAt (s.pushedIdx n)).domain ≃[L]
+      (T.canonicalAge.memberAt (encode (forthImage r s n))).domain :=
+  toCanonicalRangeEquiv (r.generatorEmbeddingData_realized (s.pushedIdx n))
+
+theorem forthCoverEquiv_realizes :
+    PartialRealizesBetween S.canonicalAge T.canonicalAge
+      (PotentialEmbeddingData.ofTriple
+        (s.pushedIdx n, encode (forthImage r s n), forthImage r s n))
+      (forthCoverEquiv r s n).toEmbedding :=
+  toCanonicalRangeEquiv_realizes (r.generatorEmbeddingData_realized (s.pushedIdx n))
+
+/-! #### Layer 2: the query's map is actual -/
+
+/-- **The map the query describes really is an embedding.** Run the matched equivalence *backwards*
+from the current target tuple to the current source tuple, include that into the pushed source
+member, and push forward along the cover; corestricting the composite lands on the member generated
+by the cover's prefix, which is exactly `originalMap`.
+
+This is where the direction of the query is forced: the composite starts at `s.targetTuple`. -/
+theorem forthQuery_originalMap_actual (h : s.Matched S T) :
+    T.canonicalAge.PartialIsEmbedding (forthQuery r s n).originalMap := by
+  obtain ⟨m0, hm0⟩ := h
+  have hlens : s.sourceTuple.length = s.targetTuple.length := length_eq_of_matched ⟨m0, hm0⟩
+  -- the matched equivalence, with its type pinned once
+  obtain ⟨m, hm⟩ : ∃ m : (S.canonicalAge.memberAt (encode s.sourceTuple)).domain ≃[L]
+      (T.canonicalAge.memberAt (encode s.targetTuple)).domain,
+      PartialRealizesBetween S.canonicalAge T.canonicalAge
+        (PotentialEmbeddingData.ofTriple
+          (encode s.sourceTuple, encode s.targetTuple, s.targetTuple)) m.toEmbedding :=
+    ⟨toCanonicalRangeEquiv hm0, toCanonicalRangeEquiv_realizes hm0⟩
+  -- reversed
+  have hsymm : PartialRealizesBetween T.canonicalAge S.canonicalAge
+      (PotentialEmbeddingData.ofTriple
+        (encode s.targetTuple, encode s.sourceTuple, s.sourceTuple))
+      m.symm.toEmbedding := by
+    refine realizes_of_getElem? (by rw [gens_encode, hlens]) ?_
+    intro k x hx
+    rw [gens_encode] at hx
+    have hk : k < s.targetTuple.length := by
+      by_contra hk
+      rw [List.getElem?_eq_none (by omega)] at hx
+      exact absurd hx (by simp)
+    have hkS : k < s.sourceTuple.length := by omega
+    obtain ⟨y, hy⟩ := exists_coe_eq_getElem S s.sourceTuple hkS
+    have hmy : s.targetTuple[k]?
+        = some ((m y : (T.canonicalAge.memberAt (encode s.targetTuple)).domain) : ℕ) := by
+      refine getElem?_of_realizes hm ?_
+      show (S.canonicalAge.gens (encode s.sourceTuple))[k]? = some ((y : ℕ))
+      rw [gens_encode, List.getElem?_eq_getElem hkS, hy]
+    have hxy : x = m y := Subtype.ext (Option.some.inj (hx.symm.trans hmy))
+    rw [List.getElem?_eq_getElem hkS, hxy]
+    show _ = some ((m.symm (m y) : (S.canonicalAge.memberAt (encode s.sourceTuple)).domain) : ℕ)
+    rw [Equiv.symm_apply_apply, hy]
+  -- the canonical inclusion into the pushed member
+  have hsub : S.canonicalAge.domainAt (encode s.sourceTuple)
+      ⊆ S.canonicalAge.domainAt (s.pushedIdx n) := by
+    refine S.canonicalAge_domainAt_subset fun x hx ↦ ?_
+    rw [allTupleFor_encode] at hx
+    refine S.mem_canonicalAge_domainAt_of_mem_gens ?_
+    rw [show allTupleFor (s.pushedIdx n) = s.sourceTuple ++ [n] from allTupleFor_encode _]
+    exact List.mem_append_left _ hx
+  have hincl : PartialRealizesBetween S.canonicalAge S.canonicalAge
+      (PotentialEmbeddingData.ofTriple (encode s.sourceTuple, s.pushedIdx n, s.sourceTuple))
+      (PartialAgeIn.memberEmbedding rfl hsub) := by
+    refine realizes_of_getElem? (by rw [gens_encode]) ?_
+    intro k x hx
+    rw [gens_encode] at hx
+    exact hx
+  -- both composites are packaged existentially: naming a composite in a stated type would force
+  -- the realizer to be checked against `(ofTriple …).domIdx` rather than the index itself
+  obtain ⟨f1, hstep1⟩ : ∃ f, PartialRealizesBetween T.canonicalAge S.canonicalAge
+      (PotentialEmbeddingData.ofTriple
+        (encode s.targetTuple, s.pushedIdx n, s.sourceTuple)) f :=
+    ⟨_, realizes_comp hsymm hincl
+      (fun k _ ↦ by rw [gens_encode])
+      (fun _ _ ↦ rfl)
+      (by rw [gens_encode, hlens])⟩
+  obtain ⟨f2, hstep2⟩ : ∃ f, PartialRealizesBetween T.canonicalAge T.canonicalAge
+      (PotentialEmbeddingData.ofTriple
+        (encode s.targetTuple, encode (forthImage r s n), forthPrefix r s n)) f :=
+    ⟨_, realizes_comp hstep1 (forthCoverEquiv_realizes r s n)
+      (fun k hk ↦ by rw [gens_pushedIdx]; exact (List.getElem?_append_left hk).symm)
+      (fun k hk ↦ forthPrefix_getElem? r s n hk)
+      (by rw [gens_encode, forthPrefix_length, hlens])⟩
+  exact ⟨_, toCanonicalRangeEquiv_realizes hstep2⟩
+
+/-! #### Layer 3: preservation -/
+
+/-- **The forth step preserves the invariant.** Homogeneity of the target extends the map along the
+new point; corestricting its realizer and composing with the pushed cover equivalence realizes the
+new state's tight map exactly.
+
+The split equality is applied to the *packaged* existential, not to a fixed realizer, for the reason
+recorded at `exists_partialRealizesBetween_congr`. -/
+theorem forthState_matched (H : ComputablyHomogeneousIn E T) (h : s.Matched S T) :
+    (forthState r s n H).Matched S T := by
+  have hlens := length_eq_of_matched h
+  have hact := H.extension_actual (forthQuery r s n) (forthQuery_originalMap_actual r s n h)
+  have hdata : (forthQuery r s n).extensionMap (H.select (forthQuery r s n))
+      = PotentialEmbeddingData.ofTriple (encode (forthImage r s n),
+          encode (H.select (forthQuery r s n)).extensionTuple,
+          s.targetTuple ++ [H.imageOfNewPoint (forthQuery r s n)]) := by
+    rw [forthImage_split]; rfl
+  obtain ⟨g, hg⟩ := PartialAgeIn.exists_partialRealizesBetween_congr
+    (A := T.canonicalAge) (B := T.canonicalAge) hdata hact
+  refine ⟨_, realizes_comp (forthCoverEquiv_realizes r s n)
+    (toCanonicalRangeEquiv_realizes hg) ?_ (fun _ _ ↦ rfl) ?_⟩
+  · intro k _
+    rw [gens_encode]
+  · simp [hlens]
+
+end BackForthState
+
+end Forth
 
 end FirstOrder.Language

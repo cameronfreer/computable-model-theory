@@ -112,6 +112,17 @@ theorem partialRealizesBetween_self {F : PotentialEmbeddingData}
     PartialRealizesBetween B B F f ↔ B.PartialRealizes F f :=
   Iff.rfl
 
+/-- **Transporting a realizer along an equation between data.** The realizer's *type* mentions
+`F.domIdx` and `F.codIdx`, so rewriting the data inside a hypothesis about a fixed realizer produces
+an ill-typed motive. Packaging existentially first makes the motive legitimate, because the bound
+realizer's type is then inside it.
+
+Factored on its second use, in the base case and the forth step of the effective back-and-forth. -/
+theorem exists_partialRealizesBetween_congr {A B : PartialAgeIn O L}
+    {F G : PotentialEmbeddingData} (hFG : F = G)
+    (h : ∃ f, PartialRealizesBetween A B F f) : ∃ f, PartialRealizesBetween A B G f :=
+  Eq.mp (congrArg (fun X ↦ ∃ f, PartialRealizesBetween A B X f) hFG) h
+
 /-- The cross-family realizer is unique, by cross-family rigidity. -/
 theorem PartialRealizesBetween.unique {A B : PartialAgeIn O L} {F : PotentialEmbeddingData}
     {f g : (A.memberAt F.domIdx).domain ↪[L] (B.memberAt F.codIdx).domain}
