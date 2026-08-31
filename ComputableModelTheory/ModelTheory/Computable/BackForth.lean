@@ -165,4 +165,121 @@ theorem BackForthState.length_eq_of_matched {S T : ComputableStructureIn O L}
   obtain ⟨-, hlen, -⟩ := h
   rwa [tightMap_domIdx, tightMap_rangeTuple, S.canonicalAge_gens, allTupleFor_encode] at hlen
 
+/-! ### Coordinate consistency
+
+The two facts the inverse laws will need, stated **positionally and globally**: no length hypothesis,
+no bound hypothesis, no `Fin`. Both are `getElem?` equations between the two tuples at the same pair
+of indices, so they compose without side conditions.
+
+Each covers two cases at once. In bounds, the content is the realizer's: *functionality* gives the
+forward direction (equal source entries are the same carrier point, so their images agree), and
+*injectivity* gives the backward one. Out of bounds, `length_eq_of_matched` makes both lookups on the
+other side `none`, and the mixed case cannot arise because `some ≠ none`. That is why the length
+equality is derived here rather than demanded of the caller.
+
+Repeated coordinates are legal — a state may record the same source point twice — and these lemmas
+say exactly what that costs: the images must then agree, and conversely.
+-/
+
+namespace BackForthState
+
+variable {S T : ComputableStructureIn O L} {s : BackForthState}
+
+/-- The out-of-bounds bookkeeping, done once for both directions: a positional `getElem?` equation
+transfers along any length-matched pair of tuples, given only the in-bounds content. -/
+private theorem getElem?_transfer {a b : Tuple ℕ} (hab : a.length = b.length) {i j : ℕ}
+    (hij : a[i]? = a[j]?)
+    (hin : ∀ (hi : i < a.length) (hj : j < a.length),
+      a[i] = a[j] → b[i]'(hab ▸ hi) = b[j]'(hab ▸ hj)) :
+    b[i]? = b[j]? := by
+  by_cases hi : i < a.length
+  · by_cases hj : j < a.length
+    · rw [List.getElem?_eq_getElem hi, List.getElem?_eq_getElem hj] at hij
+      rw [List.getElem?_eq_getElem (hab ▸ hi), List.getElem?_eq_getElem (hab ▸ hj)]
+      exact congrArg some (hin hi hj (Option.some.inj hij))
+    · rw [List.getElem?_eq_getElem hi, List.getElem?_eq_none (by omega)] at hij
+      exact absurd hij (by simp)
+  · have hj : ¬ j < a.length := by
+      intro hj
+      rw [List.getElem?_eq_none (by omega), List.getElem?_eq_getElem hj] at hij
+      exact absurd hij (by simp)
+    rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by omega)]
+
+/-- Every entry of a tuple names a point of the canonical member it generates. -/
+private theorem exists_coe_eq_getElem (S : ComputableStructureIn O L) (t : Tuple ℕ) {i : ℕ}
+    (hi : i < t.length) :
+    ∃ x : (S.canonicalAge.memberAt (encode t)).domain, (x : ℕ) = t[i] := by
+  have hgens : S.canonicalAge.gens (encode t) = t := by simp
+  have hi' : i < (S.canonicalAge.gens (encode t)).length := by rw [hgens]; exact hi
+  refine ⟨S.canonicalAge.gensView (encode t) ⟨i, hi'⟩, ?_⟩
+  rw [PartialAgeIn.gensView_coe, List.get_eq_getElem]
+  exact List.getElem_of_eq hgens hi'
+
+/-- **The realizer reads off the target tuple positionally.** For any carrier point named by the
+`i`-th source entry, its image is the `i`-th target entry — stated as a `getElem?` equation, so no
+bound on the target side has to be produced. -/
+private theorem realizer_getElem?
+    {f : (S.canonicalAge.memberAt s.tightMap.domIdx).domain ↪[L]
+      (T.canonicalAge.memberAt s.tightMap.codIdx).domain}
+    (hf : PartialAgeIn.PartialRealizesBetween S.canonicalAge T.canonicalAge s.tightMap f)
+    {i : ℕ} (hi : i < s.sourceTuple.length)
+    {x : (S.canonicalAge.memberAt s.tightMap.domIdx).domain}
+    (hx : (x : ℕ) = s.sourceTuple[i]) :
+    s.targetTuple[i]?
+      = some ((f x : (T.canonicalAge.memberAt s.tightMap.codIdx).domain) : ℕ) := by
+  have hgens : S.canonicalAge.gens s.tightMap.domIdx = s.sourceTuple := by simp [tightMap]
+  have hi' : i < (S.canonicalAge.gens s.tightMap.domIdx).length := by rw [hgens]; exact hi
+  obtain ⟨hlen, hcoord⟩ := hf
+  have hxi : x = S.canonicalAge.gensView s.tightMap.domIdx ⟨i, hi'⟩ := by
+    refine Subtype.ext ?_
+    rw [hx, PartialAgeIn.gensView_coe, List.get_eq_getElem]
+    exact (List.getElem_of_eq hgens hi').symm
+  rw [hxi, hcoord ⟨i, hi'⟩]
+  have hti : i < s.targetTuple.length := by
+    rw [← hgens] at hi; exact hlen ▸ hi
+  rw [List.getElem?_eq_getElem hti]
+  rfl
+
+/-- **Functionality.** A matched state that records the same source point at two positions records
+the same image at both — the two positions name one carrier point, and the realizer is a function.
+
+Out of bounds it is the length equality that closes the case, which is why no length hypothesis
+appears. -/
+theorem target_getElem?_eq_of_source_getElem?_eq {i j : ℕ} (h : s.Matched S T)
+    (hij : s.sourceTuple[i]? = s.sourceTuple[j]?) :
+    s.targetTuple[i]? = s.targetTuple[j]? := by
+  obtain ⟨f, hf⟩ := h
+  refine getElem?_transfer (length_eq_of_matched ⟨f, hf⟩) hij fun hi hj hval ↦ ?_
+  obtain ⟨x, hx⟩ := exists_coe_eq_getElem S s.sourceTuple hi
+  have hi' := realizer_getElem? hf hi hx
+  have hj' := realizer_getElem? hf hj (hx.trans hval)
+  rw [List.getElem?_eq_getElem (length_eq_of_matched ⟨f, hf⟩ ▸ hi)] at hi'
+  rw [List.getElem?_eq_getElem (length_eq_of_matched ⟨f, hf⟩ ▸ hj)] at hj'
+  exact Option.some.inj (hi'.trans hj'.symm)
+
+/-- **Injectivity.** Conversely, a matched state that records the same image at two positions must
+have recorded the same source point at both — the realizer is an embedding.
+
+The two directions are genuinely separate facts about the same realizer; neither implies the other,
+and the recursion needs both to prove the two inverse laws. -/
+theorem source_getElem?_eq_of_target_getElem?_eq {i j : ℕ} (h : s.Matched S T)
+    (hij : s.targetTuple[i]? = s.targetTuple[j]?) :
+    s.sourceTuple[i]? = s.sourceTuple[j]? := by
+  obtain ⟨f, hf⟩ := h
+  have hlen := length_eq_of_matched (S := S) (T := T) ⟨f, hf⟩
+  refine getElem?_transfer hlen.symm hij fun hi hj hval ↦ ?_
+  obtain ⟨x, hx⟩ := exists_coe_eq_getElem S s.sourceTuple (hlen.symm ▸ hi)
+  obtain ⟨y, hy⟩ := exists_coe_eq_getElem S s.sourceTuple (hlen.symm ▸ hj)
+  have hi' := realizer_getElem? hf (hlen.symm ▸ hi) hx
+  have hj' := realizer_getElem? hf (hlen.symm ▸ hj) hy
+  rw [List.getElem?_eq_getElem hi] at hi'
+  rw [List.getElem?_eq_getElem hj] at hj'
+  have : f x = f y :=
+    Subtype.ext (Option.some.inj (hi'.symm.trans (by rw [hval]; exact hj')))
+  rw [← hx, ← hy]
+  exact congrArg (fun z : (S.canonicalAge.memberAt s.tightMap.domIdx).domain ↦ (z : ℕ))
+    (f.injective this)
+
+end BackForthState
+
 end FirstOrder.Language

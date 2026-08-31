@@ -126,6 +126,77 @@ theorem test_matched_realizer_unique {S T : ComputableStructureIn O L} {s : Back
     f = g :=
   BackForthState.matched_unique hf hg
 
+/-! ### Coordinate consistency
+
+Three distinct facts, so that the interface is pinned from both sides rather than only by its
+negative constraints.
+
+**Repetition is permitted.** `test_repeated_state_is_matched` exhibits an actual matched state whose
+source tuple repeats a point — the identity realizer on `[a, a] ↦ [a, a]`, over an arbitrary
+computable structure. Without this row, the two negative results would be equally consistent with
+"no matched state ever repeats a coordinate", and a later step could silently deduplicate.
+
+**Both consistency directions bite.** The two negative rows are not symmetric restatements: the first
+is the realizer's functionality, the second its injectivity. Each is stated over *arbitrary* `S` and
+`T`, so neither leans on a fixture. -/
+
+section Consistency
+
+/-- **No deduplication.** A genuine matched state with a repeated source coordinate: the identity
+member embedding realizes `[a, a] ↦ [a, a]` over any computable structure. The second conjunct
+records that the repetition is really there. -/
+theorem test_repeated_state_is_matched (S : ComputableStructureIn O L) (a : ℕ) :
+    (⟨[a, a], [a, a]⟩ : BackForthState).Matched S S ∧
+      (⟨[a, a], [a, a]⟩ : BackForthState).sourceTuple[0]?
+        = (⟨[a, a], [a, a]⟩ : BackForthState).sourceTuple[1]? := by
+  have hgens : S.canonicalAge.gens (encode [a, a]) = [a, a] := allTupleFor_encode _
+  have hlen : (S.canonicalAge.gens
+      (⟨[a, a], [a, a]⟩ : BackForthState).tightMap.domIdx).length
+      = (⟨[a, a], [a, a]⟩ : BackForthState).tightMap.rangeTuple.length := by
+    show (S.canonicalAge.gens (encode [a, a])).length = ([a, a] : Tuple ℕ).length
+    rw [hgens]
+  refine ⟨⟨PartialAgeIn.memberEmbedding rfl (Set.Subset.refl _), hlen, fun k ↦ ?_⟩, rfl⟩
+  show ((S.canonicalAge.gens (encode [a, a])).get k : ℕ)
+    = ([a, a] : Tuple ℕ).get (Fin.cast hlen k)
+  rw [List.get_eq_getElem, List.get_eq_getElem]
+  exact List.getElem_of_eq hgens k.2
+
+/-- **Functionality bites.** A state repeating a source point but sending the two positions to
+different images cannot be matched — over any pair of computable structures. -/
+theorem test_repeated_source_unequal_target_not_matched {S T : ComputableStructureIn O L} :
+    ¬ (⟨[7, 7], [3, 5]⟩ : BackForthState).Matched S T := by
+  intro h
+  have h01 := BackForthState.target_getElem?_eq_of_source_getElem?_eq (i := 0) (j := 1) h rfl
+  simp at h01
+
+/-- **Injectivity bites.** Dually, a state repeating an image but recording different source points
+at those positions cannot be matched. Not a restatement of the previous row: that one is the
+realizer being a function, this one is its being an embedding. -/
+theorem test_repeated_target_unequal_source_not_matched {S T : ComputableStructureIn O L} :
+    ¬ (⟨[3, 5], [7, 7]⟩ : BackForthState).Matched S T := by
+  intro h
+  have h01 := BackForthState.source_getElem?_eq_of_target_getElem?_eq (i := 0) (j := 1) h rfl
+  simp at h01
+
+/-- **Global and cast-free.** Both consequences apply at *any* pair of indices, with no bound and no
+length hypothesis — out of range they say `none = none`, which is what makes them composable in the
+inverse-law proofs. -/
+theorem test_consistency_is_global {S T : ComputableStructureIn O L} {s : BackForthState}
+    (h : s.Matched S T) (i j : ℕ) :
+    (s.sourceTuple[i]? = s.sourceTuple[j]? → s.targetTuple[i]? = s.targetTuple[j]?) ∧
+      (s.targetTuple[i]? = s.targetTuple[j]? → s.sourceTuple[i]? = s.sourceTuple[j]?) :=
+  ⟨BackForthState.target_getElem?_eq_of_source_getElem?_eq h,
+    BackForthState.source_getElem?_eq_of_target_getElem?_eq h⟩
+
+/-- Out of range on both sides, with no hypothesis about the state beyond matching. -/
+theorem test_consistency_out_of_range {S T : ComputableStructureIn O L} {s : BackForthState}
+    (h : s.Matched S T) {i j : ℕ} (hi : s.sourceTuple.length ≤ i)
+    (hj : s.sourceTuple.length ≤ j) : s.targetTuple[i]? = s.targetTuple[j]? :=
+  BackForthState.target_getElem?_eq_of_source_getElem?_eq h
+    (by rw [List.getElem?_eq_none hi, List.getElem?_eq_none hj])
+
+end Consistency
+
 end FirstOrder.Language
 
 #assert_standard_axioms FirstOrder.Language.test_map_oracle_independent
@@ -138,3 +209,8 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_tight_map_targets_its_range
 #assert_standard_axioms FirstOrder.Language.test_matched_lengths
 #assert_standard_axioms FirstOrder.Language.test_matched_realizer_unique
+#assert_standard_axioms FirstOrder.Language.test_repeated_state_is_matched
+#assert_standard_axioms FirstOrder.Language.test_repeated_source_unequal_target_not_matched
+#assert_standard_axioms FirstOrder.Language.test_repeated_target_unequal_source_not_matched
+#assert_standard_axioms FirstOrder.Language.test_consistency_is_global
+#assert_standard_axioms FirstOrder.Language.test_consistency_out_of_range
