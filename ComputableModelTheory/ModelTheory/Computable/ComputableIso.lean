@@ -364,6 +364,75 @@ noncomputable def toCeIsoIn : CeIsoIn P.toCePresentation Q.toCePresentation wher
 
 end DecidableIsoIn
 
+/-! ### The all-`ℕ` specialization
+
+`CeIsoIn` is a valid target for structures whose carrier is literally `ℕ`, but a less sharp one:
+its maps are partial with *exact* domains, so totality survives only by going through the domain
+laws at every use. `ComputableStructureIsoIn` states it directly, and is the primary interface for
+CHMM Proposition 3.2.
+
+The map oracle `E` is independent of the presentation oracle `O`: only the two computability fields
+mention `E`, and all six laws are semantic — the same split `RepresentationCoverIn` and the witness
+interfaces use. -/
+
+/-- **A computable isomorphism of computable structures**: total back-and-forth maps on `ℕ`,
+computable in the map oracle, mutually inverse, preserving function interpretations as equations and
+preserving *and reflecting* relations. -/
+structure ComputableStructureIsoIn (E : Set (ℕ →. ℕ)) (S T : ComputableStructureIn O L) where
+  /-- The forward map, total. -/
+  toFun : ℕ → ℕ
+  /-- The backward map, total. -/
+  invFun : ℕ → ℕ
+  toFun_computableIn : ComputableIn E toFun
+  invFun_computableIn : ComputableIn E invFun
+  /-- The two are mutually inverse — both ways, since both are total. -/
+  left_inv : ∀ x, invFun (toFun x) = x
+  right_inv : ∀ y, toFun (invFun y) = y
+  /-- Function interpretations are preserved, as an *equation*: available because the carriers are
+  total, unlike the membership form the partial layers must use. -/
+  toFun_funMap : ∀ (n : ℕ) (f : L.Functions n) (v : Fin n → ℕ),
+    toFun (@Structure.funMap L ℕ S.inst n f v)
+      = @Structure.funMap L ℕ T.inst n f fun k ↦ toFun (v k)
+  /-- Relations are preserved **and reflected**. -/
+  toFun_relMap : ∀ (n : ℕ) (R : L.Relations n) (v : Fin n → ℕ),
+    @Structure.RelMap L ℕ T.inst n R (fun k ↦ toFun (v k))
+      ↔ @Structure.RelMap L ℕ S.inst n R v
+
+namespace ComputableStructureIsoIn
+
+variable {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L} (i : ComputableStructureIsoIn E S T)
+
+theorem toFun_injective : Function.Injective i.toFun :=
+  Function.LeftInverse.injective i.left_inv
+
+theorem toFun_surjective : Function.Surjective i.toFun :=
+  fun y ↦ ⟨i.invFun y, i.right_inv y⟩
+
+theorem toFun_bijective : Function.Bijective i.toFun :=
+  ⟨i.toFun_injective, i.toFun_surjective⟩
+
+/-- The inverse isomorphism: swap the maps, and read the laws backwards. -/
+def symm : ComputableStructureIsoIn E T S where
+  toFun := i.invFun
+  invFun := i.toFun
+  toFun_computableIn := i.invFun_computableIn
+  invFun_computableIn := i.toFun_computableIn
+  left_inv := i.right_inv
+  right_inv := i.left_inv
+  toFun_funMap := fun n f v ↦ by
+    have h := i.toFun_funMap n f fun k ↦ i.invFun (v k)
+    rw [show (fun k ↦ i.toFun (i.invFun (v k))) = v from funext fun k ↦ i.right_inv (v k)] at h
+    rw [← h, i.left_inv]
+  toFun_relMap := fun n R v ↦ by
+    have h := i.toFun_relMap n R fun k ↦ i.invFun (v k)
+    rw [show (fun k ↦ i.toFun (i.invFun (v k))) = v from funext fun k ↦ i.right_inv (v k)] at h
+    exact h.symm
+
+@[simp] theorem symm_toFun : i.symm.toFun = i.invFun := rfl
+@[simp] theorem symm_invFun : i.symm.invFun = i.toFun := rfl
+
+end ComputableStructureIsoIn
+
 /-! ### Uniform isomorphisms of indexed families -/
 
 /-- A uniform family of computable isomorphisms: per-index isomorphisms **plus**
