@@ -94,6 +94,25 @@ theorem test_corestriction_realizes (h : PartialRealizesBetween A S.canonicalAge
       (toCanonicalRangeEquiv h).toEmbedding :=
   toCanonicalRangeEquiv_realizes h
 
+/-- **The inverse realizes the reverse tight data**, whose range tuple is the *source's own* recorded
+generators. That is what makes it more than a restatement of `test_corestriction_realizes`: the
+forward direction's range tuple is handed to it by `F`, the reverse direction's has to be read off
+`A`. Both half-steps of the back-and-forth invert an equivalence of this shape. -/
+theorem test_corestriction_symm_realizes (h : PartialRealizesBetween A S.canonicalAge F f) :
+    PartialRealizesBetween S.canonicalAge A
+      (PotentialEmbeddingData.ofTriple (encode F.rangeTuple, F.domIdx, A.gens F.domIdx))
+      (toCanonicalRangeEquiv h).symm.toEmbedding :=
+  toCanonicalRangeEquiv_symm_realizes h
+
+/-- The two directions meet where they should: the forward corestriction's codomain index is the
+inverse's domain index. -/
+theorem test_corestriction_symm_endpoints (_h : PartialRealizesBetween A S.canonicalAge F f) :
+    (PotentialEmbeddingData.ofTriple
+        (F.domIdx, encode F.rangeTuple, F.rangeTuple)).codIdx
+      = (PotentialEmbeddingData.ofTriple
+        (encode F.rangeTuple, F.domIdx, A.gens F.domIdx)).domIdx :=
+  rfl
+
 /-- **No effectivity is consumed.** The equivalence is produced from an embedding and a realization
 witness alone — no oracle appears in the hypotheses beyond the one carrying the families, no `O ⊆ E`,
 no `Part`. This is what lets one lemma serve both half-steps and the base case of Proposition 3.2. -/
@@ -171,6 +190,10 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.PartialAgeIn.PartialRealizesBetween.test_equiv
 #assert_standard_axioms
   FirstOrder.Language.PartialAgeIn.PartialRealizesBetween.test_corestriction_realizes
+#assert_standard_axioms
+  FirstOrder.Language.PartialAgeIn.PartialRealizesBetween.test_corestriction_symm_realizes
+#assert_standard_axioms
+  FirstOrder.Language.PartialAgeIn.PartialRealizesBetween.test_corestriction_symm_endpoints
 #assert_standard_axioms
   FirstOrder.Language.PartialAgeIn.PartialRealizesBetween.test_no_effectivity_needed
 #assert_standard_axioms FirstOrder.Language.test_empty_member_is_nonempty

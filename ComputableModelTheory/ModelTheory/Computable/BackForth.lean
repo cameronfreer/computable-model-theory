@@ -564,36 +564,13 @@ theorem forthQuery_originalMap_actual (h : s.Matched S T) :
     T.canonicalAge.PartialIsEmbedding (forthQuery r s n).originalMap := by
   obtain ⟨m0, hm0⟩ := h
   have hlens : s.sourceTuple.length = s.targetTuple.length := length_eq_of_matched ⟨m0, hm0⟩
-  -- the matched equivalence, with its type pinned once
-  obtain ⟨m, hm⟩ : ∃ m : (S.canonicalAge.memberAt (encode s.sourceTuple)).domain ≃[L]
-      (T.canonicalAge.memberAt (encode s.targetTuple)).domain,
-      PartialRealizesBetween S.canonicalAge T.canonicalAge
-        (PotentialEmbeddingData.ofTriple
-          (encode s.sourceTuple, encode s.targetTuple, s.targetTuple)) m.toEmbedding :=
-    ⟨toCanonicalRangeEquiv hm0, toCanonicalRangeEquiv_realizes hm0⟩
-  -- reversed
-  have hsymm : PartialRealizesBetween T.canonicalAge S.canonicalAge
+  -- the matched equivalence, run backwards
+  obtain ⟨msym, hsymm⟩ : ∃ f, PartialRealizesBetween T.canonicalAge S.canonicalAge
       (PotentialEmbeddingData.ofTriple
-        (encode s.targetTuple, encode s.sourceTuple, s.sourceTuple))
-      m.symm.toEmbedding := by
-    refine realizes_of_getElem? (by rw [gens_encode, hlens]) ?_
-    intro k x hx
-    rw [gens_encode] at hx
-    have hk : k < s.targetTuple.length := by
-      by_contra hk
-      rw [List.getElem?_eq_none (by omega)] at hx
-      exact absurd hx (by simp)
-    have hkS : k < s.sourceTuple.length := by omega
-    obtain ⟨y, hy⟩ := exists_coe_eq_getElem S s.sourceTuple hkS
-    have hmy : s.targetTuple[k]?
-        = some ((m y : (T.canonicalAge.memberAt (encode s.targetTuple)).domain) : ℕ) := by
-      refine getElem?_of_realizes hm ?_
-      show (S.canonicalAge.gens (encode s.sourceTuple))[k]? = some ((y : ℕ))
-      rw [gens_encode, List.getElem?_eq_getElem hkS, hy]
-    have hxy : x = m y := Subtype.ext (Option.some.inj (hx.symm.trans hmy))
-    rw [List.getElem?_eq_getElem hkS, hxy]
-    show _ = some ((m.symm (m y) : (S.canonicalAge.memberAt (encode s.sourceTuple)).domain) : ℕ)
-    rw [Equiv.symm_apply_apply, hy]
+        (encode s.targetTuple, encode s.sourceTuple, s.sourceTuple)) f :=
+    PartialAgeIn.exists_partialRealizesBetween_congr
+      (by rw [tightMap_domIdx, tightMap_rangeTuple, gens_encode])
+      ⟨_, toCanonicalRangeEquiv_symm_realizes hm0⟩
   -- the canonical inclusion into the pushed member
   have hsub : S.canonicalAge.domainAt (encode s.sourceTuple)
       ⊆ S.canonicalAge.domainAt (s.pushedIdx n) := by
@@ -652,8 +629,374 @@ theorem forthState_matched (H : ComputablyHomogeneousIn E T) (h : s.Matched S T)
     rw [gens_encode]
   · simp [hlens]
 
+/-! #### Effectivity
+
+The stage recursion will be a computable function of `(stage, state)` — that argument order, because
+`ComputableIn.nat_rec` recurses on the first component — so the step itself has to be computable in
+that pair. In the **map** oracle `E`: the presentation oracle is never consulted, and no inclusion
+between the two is assumed.
+
+Each joint is named, so that a later change to any one piece is localised. The image is where
+`sourceGensImage_computableIn_canonicalSource` is consumed, and it is the only place the absence of
+`O ⊆ E` is doing real work: over an arbitrary source family the generator list would have to be read
+from the presentation. -/
+
+theorem pushedIdx_computableIn :
+    ComputableIn E fun p : ℕ × BackForthState ↦ p.2.pushedIdx p.1 := by
+  have hsrc : ComputableIn E fun p : ℕ × BackForthState ↦ p.2.sourceTuple :=
+    sourceTuple_computableIn.comp ComputableIn.snd
+  have hsingle : ComputableIn E fun p : ℕ × BackForthState ↦ [p.1] :=
+    (Primrec.list_cons.to_comp.computableIn₂).comp ComputableIn.fst (ComputableIn.const [])
+  exact (ComputableIn.encode.comp
+    ((Primrec.list_append.to_comp.computableIn₂).comp hsrc hsingle)).of_eq fun _ ↦ rfl
+
+theorem forthImage_computableIn :
+    ComputableIn E fun p : ℕ × BackForthState ↦ forthImage r p.2 p.1 :=
+  (r.sourceGensImage_computableIn_canonicalSource.comp pushedIdx_computableIn).of_eq fun _ ↦ rfl
+
+/-- The source length, needed by both the prefix and the final coordinate. -/
+private theorem sourceLength_computableIn :
+    ComputableIn E fun p : ℕ × BackForthState ↦ p.2.sourceTuple.length :=
+  Computable.list_length.computableIn.comp (sourceTuple_computableIn.comp ComputableIn.snd)
+
+theorem forthPrefix_computableIn :
+    ComputableIn E fun p : ℕ × BackForthState ↦ forthPrefix r p.2 p.1 :=
+  ((Primrec.list_take.to_comp.computableIn₂).comp
+    sourceLength_computableIn (forthImage_computableIn r)).of_eq fun _ ↦ rfl
+
+/-- The final coordinate as a total lookup, which is what makes it computable: out of range it
+returns `0` rather than diverging. In range it is the entry, by `getElem!_pos`. -/
+theorem forthNewPoint_eq_getD :
+    forthNewPoint r s n = ((forthImage r s n)[s.sourceTuple.length]?).getD 0 := by
+  rcases lt_or_ge s.sourceTuple.length (forthImage r s n).length with hlt | hge
+  · rw [forthNewPoint, getElem!_pos (forthImage r s n) s.sourceTuple.length hlt,
+      List.getElem?_eq_getElem hlt]
+    rfl
+  · rw [forthNewPoint,
+      getElem!_neg (forthImage r s n) s.sourceTuple.length (by omega),
+      List.getElem?_eq_none hge]
+    rfl
+
+theorem forthNewPoint_computableIn :
+    ComputableIn E fun p : ℕ × BackForthState ↦ forthNewPoint r p.2 p.1 := by
+  have hget : ComputableIn E fun p : ℕ × BackForthState ↦
+      (forthImage r p.2 p.1)[p.2.sourceTuple.length]? :=
+    (Primrec.list_getElem?.to_comp.computableIn₂).comp
+      (forthImage_computableIn r) sourceLength_computableIn
+  exact ((Primrec.option_getD.to_comp.computableIn₂).comp hget
+    (ComputableIn.const 0)).of_eq fun p ↦ (forthNewPoint_eq_getD r p.2 p.1).symm
+
+theorem forthQuery_computableIn :
+    ComputableIn E fun p : ℕ × BackForthState ↦ forthQuery r p.2 p.1 := by
+  have htriple : ComputableIn E fun p : ℕ × BackForthState ↦
+      (p.2.targetTuple, forthPrefix r p.2 p.1, forthNewPoint r p.2 p.1) :=
+    (targetTuple_computableIn.comp ComputableIn.snd).pair
+      ((forthPrefix_computableIn r).pair (forthNewPoint_computableIn r))
+  exact ((primrec_homogeneityQueryData.to_comp.computableIn).comp htriple).of_eq fun _ ↦ rfl
+
+/-- **The forth step is computable in the map oracle.** On `(stage, state)`, in `E`, with `O`
+untouched. -/
+theorem forthState_computableIn (H : ComputablyHomogeneousIn E T) :
+    ComputableIn E fun p : ℕ × BackForthState ↦ forthState r p.2 p.1 H := by
+  have hsrc : ComputableIn E fun p : ℕ × BackForthState ↦ p.2.sourceTuple ++ [p.1] :=
+    (Primrec.list_append.to_comp.computableIn₂).comp
+      (sourceTuple_computableIn.comp ComputableIn.snd)
+      ((Primrec.list_cons.to_comp.computableIn₂).comp ComputableIn.fst (ComputableIn.const []))
+  have htgt : ComputableIn E fun p : ℕ × BackForthState ↦
+      p.2.targetTuple ++ [H.imageOfNewPoint (forthQuery r p.2 p.1)] :=
+    (Primrec.list_append.to_comp.computableIn₂).comp
+      (targetTuple_computableIn.comp ComputableIn.snd)
+      ((Primrec.list_cons.to_comp.computableIn₂).comp
+        (H.imageOfNewPoint_computableIn.comp (forthQuery_computableIn r))
+        (ComputableIn.const []))
+  exact (mk_computableIn.comp (hsrc.pair htgt)).of_eq fun _ ↦ rfl
+
 end BackForthState
 
 end Forth
+
+/-! ### The back half
+
+The mirror image, and deliberately **not** an instance of a shared abstraction: the two halves
+differ in which cover they run, which structure's homogeneity they consult, and — most visibly — in
+how the final map is assembled.
+
+Where forth pushes a new *source* point and runs the forward cover, back pushes a new *target* point
+`n` and runs `r.backward`, then asks the **source**'s homogeneity to extend. The recorded state is
+`⟨s.sourceTuple ++ [y], s.targetTuple ++ [n]⟩`: the source side gains the *returned* point, the
+target side the point that was pushed. The two appends swap roles relative to forth.
+
+**The assembly is inverted.** Forth composes two equivalences in their natural direction, because
+both run source-to-target. Here both run target-to-source, so preservation inverts them, and the
+order matters: the homogeneity extension's inverse first, from the enlarged source member onto the
+member the backward cover's image generates, then the backward cover's own inverse onto the enlarged
+target member. Composing them the other way is not merely wrong, it does not typecheck — which is
+what `backExtension_symm_realizes` and `backCoverEquiv_symm_realizes` make visible, by naming the
+two endpoint pairs.
+-/
+
+section Back
+
+open PartialAgeIn PartialAgeIn.PartialRealizesBetween
+
+variable {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
+
+namespace BackForthState
+
+/-- The index of the pushed **target** tuple. -/
+def backPushedIdx (s : BackForthState) (n : ℕ) : ℕ := encode (s.targetTuple ++ [n])
+
+@[simp] theorem gens_backPushedIdx (T : ComputableStructureIn O L) (s : BackForthState) (n : ℕ) :
+    T.canonicalAge.gens (s.backPushedIdx n) = s.targetTuple ++ [n] :=
+  allTupleFor_encode _
+
+variable (rb : RepresentationCoverIn E T.canonicalAge S.canonicalAge) (s : BackForthState) (n : ℕ)
+
+/-- The backward cover's image of the whole pushed target tuple. -/
+noncomputable def backImage : Tuple ℕ := rb.sourceGensImage (s.backPushedIdx n)
+
+theorem backImage_length : (backImage rb s n).length = s.targetTuple.length + 1 := by
+  rw [backImage, rb.sourceGensImage_length, gens_backPushedIdx]
+  simp
+
+/-- Its prefix: the preimages of the target points already matched. -/
+noncomputable def backPrefix : Tuple ℕ := (backImage rb s n).take s.targetTuple.length
+
+/-- Its final coordinate: the backward cover's value at the new target point. -/
+noncomputable def backNewPoint : ℕ := (backImage rb s n)[s.targetTuple.length]!
+
+@[simp] theorem backPrefix_length : (backPrefix rb s n).length = s.targetTuple.length := by
+  rw [backPrefix, List.length_take, backImage_length]
+  omega
+
+theorem backPrefix_getElem? {k : ℕ} (hk : k < s.targetTuple.length) :
+    (backPrefix rb s n)[k]? = (backImage rb s n)[k]? := by
+  rw [backPrefix, List.getElem?_take_of_lt hk]
+
+/-- The off-by-one boundary on the back side, measured against the **target** tuple's length. -/
+theorem backImage_split : backImage rb s n = backPrefix rb s n ++ [backNewPoint rb s n] := by
+  have hlen := backImage_length rb s n
+  have hlt : s.targetTuple.length < (backImage rb s n).length := by omega
+  have hnew : backNewPoint rb s n = (backImage rb s n)[s.targetTuple.length]'hlt := by
+    rw [backNewPoint]
+    exact getElem!_pos (backImage rb s n) s.targetTuple.length hlt
+  have h3 : (backImage rb s n).take (s.targetTuple.length + 1) = backImage rb s n :=
+    List.take_of_length_le (by omega)
+  have h2 := List.take_add_one (l := backImage rb s n) (i := s.targetTuple.length)
+  rw [h3, List.getElem?_eq_getElem hlt] at h2
+  rw [backPrefix, hnew]
+  exact h2
+
+/-- **The homogeneity query, put to the source.** Current *source* tuple first — the mirror of
+forth, where it was the target tuple. -/
+noncomputable def backQuery : HomogeneityQueryData :=
+  ⟨s.sourceTuple, backPrefix rb s n, backNewPoint rb s n⟩
+
+@[simp] theorem backQuery_domainTuple : (backQuery rb s n).domainTuple = s.sourceTuple := rfl
+
+@[simp] theorem backQuery_imageTuple : (backQuery rb s n).imageTuple = backPrefix rb s n := rfl
+
+@[simp] theorem backQuery_newPoint : (backQuery rb s n).newPoint = backNewPoint rb s n := rfl
+
+/-- **The state after one back step.** The *source* side gains the returned point; the *target* side
+gains the point that was pushed. -/
+noncomputable def backState (Hs : ComputablyHomogeneousIn E S) : BackForthState :=
+  ⟨s.sourceTuple ++ [Hs.imageOfNewPoint (backQuery rb s n)], s.targetTuple ++ [n]⟩
+
+@[simp] theorem backState_sourceTuple (Hs : ComputablyHomogeneousIn E S) :
+    (backState rb s n Hs).sourceTuple
+      = s.sourceTuple ++ [Hs.imageOfNewPoint (backQuery rb s n)] := rfl
+
+@[simp] theorem backState_targetTuple (Hs : ComputablyHomogeneousIn E S) :
+    (backState rb s n Hs).targetTuple = s.targetTuple ++ [n] := rfl
+
+/-! #### Layer 1: the backward cover, corestricted, and its inverse -/
+
+/-- The backward cover at the pushed target index, corestricted onto the member its image
+generates. -/
+noncomputable def backCoverEquiv :
+    (T.canonicalAge.memberAt (s.backPushedIdx n)).domain ≃[L]
+      (S.canonicalAge.memberAt (encode (backImage rb s n))).domain :=
+  toCanonicalRangeEquiv (rb.generatorEmbeddingData_realized (s.backPushedIdx n))
+
+theorem backCoverEquiv_realizes :
+    PartialRealizesBetween T.canonicalAge S.canonicalAge
+      (PotentialEmbeddingData.ofTriple
+        (s.backPushedIdx n, encode (backImage rb s n), backImage rb s n))
+      (backCoverEquiv rb s n).toEmbedding :=
+  toCanonicalRangeEquiv_realizes (rb.generatorEmbeddingData_realized (s.backPushedIdx n))
+
+/-- **The second half of the inverted composite**, named so its endpoints are visible: it runs from
+the member the cover's image generates *onto* the enlarged target member, with range tuple
+`s.targetTuple ++ [n]`. -/
+theorem backCoverEquiv_symm_realizes :
+    ∃ f, PartialRealizesBetween S.canonicalAge T.canonicalAge
+      (PotentialEmbeddingData.ofTriple
+        (encode (backImage rb s n), s.backPushedIdx n, s.targetTuple ++ [n])) f := by
+  refine PartialAgeIn.exists_partialRealizesBetween_congr ?_
+    ⟨_, toCanonicalRangeEquiv_symm_realizes
+      (rb.generatorEmbeddingData_realized (s.backPushedIdx n))⟩
+  show PotentialEmbeddingData.ofTriple (encode (backImage rb s n), s.backPushedIdx n,
+    T.canonicalAge.gens (s.backPushedIdx n)) = _
+  rw [gens_backPushedIdx]
+
+/-! #### Layer 2: the query's map is actual
+
+The mirror of the forth step, and the place where the asymmetry is sharpest: forth ran the matched
+equivalence **backwards**, here it runs **forwards**, because the query's domain tuple is now the
+source tuple. -/
+
+/-- The map the back query describes is an embedding: the matched equivalence forward, the canonical
+inclusion into the pushed **target** member, then the backward cover. -/
+theorem backQuery_originalMap_actual (h : s.Matched S T) :
+    S.canonicalAge.PartialIsEmbedding (backQuery rb s n).originalMap := by
+  obtain ⟨m0, hm0⟩ := h
+  have hlens : s.sourceTuple.length = s.targetTuple.length := length_eq_of_matched ⟨m0, hm0⟩
+  have hm : PartialRealizesBetween S.canonicalAge T.canonicalAge
+      (PotentialEmbeddingData.ofTriple
+        (encode s.sourceTuple, encode s.targetTuple, s.targetTuple))
+      (toCanonicalRangeEquiv hm0).toEmbedding :=
+    toCanonicalRangeEquiv_realizes hm0
+  have hsub : T.canonicalAge.domainAt (encode s.targetTuple)
+      ⊆ T.canonicalAge.domainAt (s.backPushedIdx n) := by
+    refine T.canonicalAge_domainAt_subset fun x hx ↦ ?_
+    rw [allTupleFor_encode] at hx
+    refine T.mem_canonicalAge_domainAt_of_mem_gens ?_
+    rw [show allTupleFor (s.backPushedIdx n) = s.targetTuple ++ [n] from allTupleFor_encode _]
+    exact List.mem_append_left _ hx
+  have hincl : PartialRealizesBetween T.canonicalAge T.canonicalAge
+      (PotentialEmbeddingData.ofTriple (encode s.targetTuple, s.backPushedIdx n, s.targetTuple))
+      (PartialAgeIn.memberEmbedding rfl hsub) := by
+    refine realizes_of_getElem? (by rw [gens_encode]) ?_
+    intro k x hx
+    rw [gens_encode] at hx
+    exact hx
+  obtain ⟨f1, hstep1⟩ : ∃ f, PartialRealizesBetween S.canonicalAge T.canonicalAge
+      (PotentialEmbeddingData.ofTriple
+        (encode s.sourceTuple, s.backPushedIdx n, s.targetTuple)) f :=
+    ⟨_, realizes_comp hm hincl
+      (fun k _ ↦ by rw [gens_encode])
+      (fun _ _ ↦ rfl)
+      (by rw [gens_encode, hlens])⟩
+  obtain ⟨f2, hstep2⟩ : ∃ f, PartialRealizesBetween S.canonicalAge S.canonicalAge
+      (PotentialEmbeddingData.ofTriple
+        (encode s.sourceTuple, encode (backImage rb s n), backPrefix rb s n)) f :=
+    ⟨_, realizes_comp hstep1 (backCoverEquiv_realizes rb s n)
+      (fun k hk ↦ by rw [gens_backPushedIdx]; exact (List.getElem?_append_left hk).symm)
+      (fun k hk ↦ backPrefix_getElem? rb s n hk)
+      (by rw [gens_encode, backPrefix_length, hlens])⟩
+  exact ⟨_, toCanonicalRangeEquiv_realizes hstep2⟩
+
+/-! #### Layer 3: preservation, by inverting both equivalences -/
+
+/-- **The first half of the inverted composite**, named so its endpoints are visible: it runs from
+the enlarged **source** member onto the member the backward cover's image generates.
+
+Its codomain is the other half's domain, which is what fixes the order. -/
+theorem backExtension_symm_realizes (Hs : ComputablyHomogeneousIn E S) (h : s.Matched S T) :
+    ∃ f, PartialRealizesBetween S.canonicalAge S.canonicalAge
+      (PotentialEmbeddingData.ofTriple
+        (encode (s.sourceTuple ++ [Hs.imageOfNewPoint (backQuery rb s n)]),
+          encode (backImage rb s n), backImage rb s n)) f := by
+  have hact := Hs.extension_actual (backQuery rb s n) (backQuery_originalMap_actual rb s n h)
+  have hdata : (backQuery rb s n).extensionMap (Hs.select (backQuery rb s n))
+      = PotentialEmbeddingData.ofTriple (encode (backImage rb s n),
+          encode (Hs.select (backQuery rb s n)).extensionTuple,
+          s.sourceTuple ++ [Hs.imageOfNewPoint (backQuery rb s n)]) := by
+    rw [backImage_split]; rfl
+  obtain ⟨g, hg⟩ := PartialAgeIn.exists_partialRealizesBetween_congr
+    (A := S.canonicalAge) (B := S.canonicalAge) hdata hact
+  refine PartialAgeIn.exists_partialRealizesBetween_congr ?_
+    ⟨_, toCanonicalRangeEquiv_symm_realizes hg⟩
+  show PotentialEmbeddingData.ofTriple
+    (encode (s.sourceTuple ++ [Hs.imageOfNewPoint (backQuery rb s n)]),
+      encode (backImage rb s n), S.canonicalAge.gens (encode (backImage rb s n))) = _
+  rw [gens_encode]
+
+/-- **The back step preserves the invariant.** The two inverses compose in one order only: the
+homogeneity extension's inverse lands where the backward cover's inverse starts. -/
+theorem backState_matched (Hs : ComputablyHomogeneousIn E S) (h : s.Matched S T) :
+    (backState rb s n Hs).Matched S T := by
+  have hlens := length_eq_of_matched h
+  obtain ⟨f1, hf1⟩ := backExtension_symm_realizes rb s n Hs h
+  obtain ⟨f2, hf2⟩ := backCoverEquiv_symm_realizes rb s n
+  refine ⟨_, realizes_comp hf1 hf2 ?_ (fun _ _ ↦ rfl) ?_⟩
+  · intro k _
+    rw [gens_encode]
+  · rw [gens_encode]
+    simp [hlens]
+
+/-! #### Effectivity -/
+
+theorem backPushedIdx_computableIn :
+    ComputableIn E fun p : ℕ × BackForthState ↦ p.2.backPushedIdx p.1 := by
+  have htgt : ComputableIn E fun p : ℕ × BackForthState ↦ p.2.targetTuple :=
+    targetTuple_computableIn.comp ComputableIn.snd
+  have hsingle : ComputableIn E fun p : ℕ × BackForthState ↦ [p.1] :=
+    (Primrec.list_cons.to_comp.computableIn₂).comp ComputableIn.fst (ComputableIn.const [])
+  exact (ComputableIn.encode.comp
+    ((Primrec.list_append.to_comp.computableIn₂).comp htgt hsingle)).of_eq fun _ ↦ rfl
+
+theorem backImage_computableIn :
+    ComputableIn E fun p : ℕ × BackForthState ↦ backImage rb p.2 p.1 :=
+  (rb.sourceGensImage_computableIn_canonicalSource.comp backPushedIdx_computableIn).of_eq
+    fun _ ↦ rfl
+
+private theorem targetLength_computableIn :
+    ComputableIn E fun p : ℕ × BackForthState ↦ p.2.targetTuple.length :=
+  Computable.list_length.computableIn.comp (targetTuple_computableIn.comp ComputableIn.snd)
+
+theorem backPrefix_computableIn :
+    ComputableIn E fun p : ℕ × BackForthState ↦ backPrefix rb p.2 p.1 :=
+  ((Primrec.list_take.to_comp.computableIn₂).comp
+    targetLength_computableIn (backImage_computableIn rb)).of_eq fun _ ↦ rfl
+
+theorem backNewPoint_eq_getD :
+    backNewPoint rb s n = ((backImage rb s n)[s.targetTuple.length]?).getD 0 := by
+  rcases lt_or_ge s.targetTuple.length (backImage rb s n).length with hlt | hge
+  · rw [backNewPoint, getElem!_pos (backImage rb s n) s.targetTuple.length hlt,
+      List.getElem?_eq_getElem hlt]
+    rfl
+  · rw [backNewPoint,
+      getElem!_neg (backImage rb s n) s.targetTuple.length (by omega),
+      List.getElem?_eq_none hge]
+    rfl
+
+theorem backNewPoint_computableIn :
+    ComputableIn E fun p : ℕ × BackForthState ↦ backNewPoint rb p.2 p.1 := by
+  have hget : ComputableIn E fun p : ℕ × BackForthState ↦
+      (backImage rb p.2 p.1)[p.2.targetTuple.length]? :=
+    (Primrec.list_getElem?.to_comp.computableIn₂).comp
+      (backImage_computableIn rb) targetLength_computableIn
+  exact ((Primrec.option_getD.to_comp.computableIn₂).comp hget
+    (ComputableIn.const 0)).of_eq fun p ↦ (backNewPoint_eq_getD rb p.2 p.1).symm
+
+theorem backQuery_computableIn :
+    ComputableIn E fun p : ℕ × BackForthState ↦ backQuery rb p.2 p.1 := by
+  have htriple : ComputableIn E fun p : ℕ × BackForthState ↦
+      (p.2.sourceTuple, backPrefix rb p.2 p.1, backNewPoint rb p.2 p.1) :=
+    (sourceTuple_computableIn.comp ComputableIn.snd).pair
+      ((backPrefix_computableIn rb).pair (backNewPoint_computableIn rb))
+  exact ((primrec_homogeneityQueryData.to_comp.computableIn).comp htriple).of_eq fun _ ↦ rfl
+
+/-- **The back step is computable in the map oracle**, on the same `(stage, state)` pair. -/
+theorem backState_computableIn (Hs : ComputablyHomogeneousIn E S) :
+    ComputableIn E fun p : ℕ × BackForthState ↦ backState rb p.2 p.1 Hs := by
+  have hsrc : ComputableIn E fun p : ℕ × BackForthState ↦
+      p.2.sourceTuple ++ [Hs.imageOfNewPoint (backQuery rb p.2 p.1)] :=
+    (Primrec.list_append.to_comp.computableIn₂).comp
+      (sourceTuple_computableIn.comp ComputableIn.snd)
+      ((Primrec.list_cons.to_comp.computableIn₂).comp
+        (Hs.imageOfNewPoint_computableIn.comp (backQuery_computableIn rb))
+        (ComputableIn.const []))
+  have htgt : ComputableIn E fun p : ℕ × BackForthState ↦ p.2.targetTuple ++ [p.1] :=
+    (Primrec.list_append.to_comp.computableIn₂).comp
+      (targetTuple_computableIn.comp ComputableIn.snd)
+      ((Primrec.list_cons.to_comp.computableIn₂).comp ComputableIn.fst (ComputableIn.const []))
+  exact (mk_computableIn.comp (hsrc.pair htgt)).of_eq fun _ ↦ rfl
+
+end BackForthState
+
+end Back
 
 end FirstOrder.Language

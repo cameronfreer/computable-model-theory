@@ -332,7 +332,121 @@ theorem test_canonical_source_needs_no_inclusion {B : PartialAgeIn O L}
     (r' : RepresentationCoverIn E S.canonicalAge B) : ComputableIn E r'.sourceGensImage :=
   r'.sourceGensImage_computableIn_canonicalSource
 
+/-- **The step is computable in the map oracle**, on `(stage, state)` — the argument order
+`ComputableIn.nat_rec` will need. `E` is again unrelated to `O`: the presentation oracle is never
+consulted, which is exactly what the canonical-source generator-image lemma buys. -/
+theorem test_forth_computableIn (H : ComputablyHomogeneousIn E T) :
+    ComputableIn E fun p : ℕ × BackForthState ↦ BackForthState.forthState r p.2 p.1 H :=
+  BackForthState.forthState_computableIn r H
+
+/-- Each joint of the chain is separately computable, so a later change is localised. -/
+theorem test_forth_chain_computableIn :
+    ComputableIn E (fun p : ℕ × BackForthState ↦ p.2.pushedIdx p.1) ∧
+      ComputableIn E (fun p : ℕ × BackForthState ↦ BackForthState.forthImage r p.2 p.1) ∧
+        ComputableIn E (fun p : ℕ × BackForthState ↦ BackForthState.forthPrefix r p.2 p.1) ∧
+          ComputableIn E (fun p : ℕ × BackForthState ↦ BackForthState.forthNewPoint r p.2 p.1) ∧
+            ComputableIn E fun p : ℕ × BackForthState ↦ BackForthState.forthQuery r p.2 p.1 :=
+  ⟨BackForthState.pushedIdx_computableIn, BackForthState.forthImage_computableIn r,
+    BackForthState.forthPrefix_computableIn r, BackForthState.forthNewPoint_computableIn r,
+    BackForthState.forthQuery_computableIn r⟩
+
 end Forth
+
+/-! ### The back half
+
+The mirror rows, plus one the forth half has no analogue of.
+
+**The orientation swaps.** `test_back_query_orientation` puts the *source* tuple first, where forth
+put the target tuple, and reads the consequence off `originalMap.domIdx`.
+`test_back_appends_swap` records the other swap: the source side gains the *returned* point and the
+target side gains the *pushed* point, which is the reverse of forth on both counts.
+
+**The inversion order is auditable.** `test_back_inversion_order` names the two inverted
+equivalences by their endpoints and records that the first's codomain index is the second's domain
+index — `encode (backImage …)`, the member the backward cover's image generates. That is the fact
+that makes the order forced: composed the other way the two do not meet.
+`test_back_inversion_numeric` pins the same boundary numerically. -/
+
+section Back
+
+variable {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
+  (rb : RepresentationCoverIn E T.canonicalAge S.canonicalAge) (s : BackForthState) (n : ℕ)
+
+/-- **The back query's orientation** — source tuple first, the mirror of forth. -/
+theorem test_back_query_orientation :
+    (BackForthState.backQuery rb s n).domainTuple = s.sourceTuple ∧
+      (BackForthState.backQuery rb s n).imageTuple = BackForthState.backPrefix rb s n ∧
+        (BackForthState.backQuery rb s n).newPoint = BackForthState.backNewPoint rb s n ∧
+          (BackForthState.backQuery rb s n).originalMap.domIdx = encode s.sourceTuple :=
+  ⟨rfl, rfl, rfl, rfl⟩
+
+/-- The back split, measured against the **target** tuple's length. -/
+theorem test_back_final_coordinate :
+    (BackForthState.backImage rb s n).length = s.targetTuple.length + 1 ∧
+      (BackForthState.backPrefix rb s n).length = s.targetTuple.length ∧
+        BackForthState.backImage rb s n
+          = BackForthState.backPrefix rb s n ++ [BackForthState.backNewPoint rb s n] :=
+  ⟨BackForthState.backImage_length rb s n, BackForthState.backPrefix_length rb s n,
+    BackForthState.backImage_split rb s n⟩
+
+/-- **Both appends swap.** The source side gains the returned point `y`; the target side gains the
+point `n` that was pushed. In the forth step it is the other way round. -/
+theorem test_back_appends_swap (Hs : ComputablyHomogeneousIn E S) :
+    (BackForthState.backState rb s n Hs).sourceTuple
+        = s.sourceTuple ++ [Hs.imageOfNewPoint (BackForthState.backQuery rb s n)] ∧
+      (BackForthState.backState rb s n Hs).targetTuple = s.targetTuple ++ [n] :=
+  ⟨rfl, rfl⟩
+
+/-- **The inversion order, by endpoints.** The homogeneity extension's inverse runs from the enlarged
+source member to the member the backward cover's image generates; the cover's inverse runs from there
+to the enlarged target member. The middle index is shared, and it is the only way the two compose. -/
+theorem test_back_inversion_order (Hs : ComputablyHomogeneousIn E S) (h : s.Matched S T) :
+    (∃ f, PartialAgeIn.PartialRealizesBetween S.canonicalAge S.canonicalAge
+        (PotentialEmbeddingData.ofTriple
+          (encode (s.sourceTuple ++ [Hs.imageOfNewPoint (BackForthState.backQuery rb s n)]),
+            encode (BackForthState.backImage rb s n),
+            BackForthState.backImage rb s n)) f) ∧
+      (∃ f, PartialAgeIn.PartialRealizesBetween S.canonicalAge T.canonicalAge
+        (PotentialEmbeddingData.ofTriple
+          (encode (BackForthState.backImage rb s n), s.backPushedIdx n,
+            s.targetTuple ++ [n])) f) ∧
+        (PotentialEmbeddingData.ofTriple
+            (encode (s.sourceTuple ++ [Hs.imageOfNewPoint (BackForthState.backQuery rb s n)]),
+              encode (BackForthState.backImage rb s n),
+              BackForthState.backImage rb s n)).codIdx
+          = (PotentialEmbeddingData.ofTriple
+            (encode (BackForthState.backImage rb s n), s.backPushedIdx n,
+              s.targetTuple ++ [n])).domIdx :=
+  ⟨BackForthState.backExtension_symm_realizes rb s n Hs h,
+    BackForthState.backCoverEquiv_symm_realizes rb s n, rfl⟩
+
+/-- The same boundary numerically: the composite's two ends are the enlarged tuples, each one longer
+than what the state recorded. -/
+theorem test_back_inversion_numeric (Hs : ComputablyHomogeneousIn E S) (h : s.Matched S T) :
+    (BackForthState.backState rb s n Hs).sourceTuple.length = s.sourceTuple.length + 1 ∧
+      (BackForthState.backState rb s n Hs).targetTuple.length = s.targetTuple.length + 1 ∧
+        (BackForthState.backState rb s n Hs).sourceTuple.length
+          = (BackForthState.backState rb s n Hs).targetTuple.length := by
+  refine ⟨by simp, by simp, ?_⟩
+  simp [BackForthState.length_eq_of_matched h]
+
+/-- **The back step preserves the invariant.** -/
+theorem test_back_preserves_matched (Hs : ComputablyHomogeneousIn E S) (h : s.Matched S T) :
+    (BackForthState.backState rb s n Hs).Matched S T :=
+  BackForthState.backState_matched rb s n Hs h
+
+/-- **No `O ⊆ E`** on the back side either. -/
+theorem test_back_no_oracle_inclusion (Hs : ComputablyHomogeneousIn E S) (h : s.Matched S T) :
+    (BackForthState.backState rb s n Hs).Matched S T ∧
+      (BackForthState.backState rb s n Hs).targetTuple = s.targetTuple ++ [n] :=
+  ⟨BackForthState.backState_matched rb s n Hs h, rfl⟩
+
+/-- The back step is computable on the same `(stage, state)` pair, in the same oracle. -/
+theorem test_back_computableIn (Hs : ComputablyHomogeneousIn E S) :
+    ComputableIn E fun p : ℕ × BackForthState ↦ BackForthState.backState rb p.2 p.1 Hs :=
+  BackForthState.backState_computableIn rb Hs
+
+end Back
 
 end FirstOrder.Language
 
@@ -362,3 +476,13 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_forth_preserves_matched
 #assert_standard_axioms FirstOrder.Language.test_forth_no_oracle_inclusion
 #assert_standard_axioms FirstOrder.Language.test_canonical_source_needs_no_inclusion
+#assert_standard_axioms FirstOrder.Language.test_forth_computableIn
+#assert_standard_axioms FirstOrder.Language.test_forth_chain_computableIn
+#assert_standard_axioms FirstOrder.Language.test_back_query_orientation
+#assert_standard_axioms FirstOrder.Language.test_back_final_coordinate
+#assert_standard_axioms FirstOrder.Language.test_back_appends_swap
+#assert_standard_axioms FirstOrder.Language.test_back_inversion_order
+#assert_standard_axioms FirstOrder.Language.test_back_inversion_numeric
+#assert_standard_axioms FirstOrder.Language.test_back_preserves_matched
+#assert_standard_axioms FirstOrder.Language.test_back_no_oracle_inclusion
+#assert_standard_axioms FirstOrder.Language.test_back_computableIn
