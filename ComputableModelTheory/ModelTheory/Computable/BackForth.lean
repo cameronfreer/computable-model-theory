@@ -7,6 +7,7 @@ import ComputableModelTheory.ModelTheory.Computable.CanonicalRange
 import ComputableModelTheory.ModelTheory.Computable.ComputableIso
 import ComputableModelTheory.ModelTheory.Computable.RepresentationIso
 import ComputableModelTheory.ModelTheory.Computable.ComputablyHomogeneous
+import ComputableModelTheory.Computability.ListPredicates
 
 /-!
 # The back-and-forth state — CHMM Proposition 3.2, landing 1
@@ -664,27 +665,12 @@ theorem forthPrefix_computableIn :
   ((Primrec.list_take.to_comp.computableIn₂).comp
     sourceLength_computableIn (forthImage_computableIn r)).of_eq fun _ ↦ rfl
 
-/-- The final coordinate as a total lookup, which is what makes it computable: out of range it
-returns `0` rather than diverging. In range it is the entry, by `getElem!_pos`. -/
-theorem forthNewPoint_eq_getD :
-    forthNewPoint r s n = ((forthImage r s n)[s.sourceTuple.length]?).getD 0 := by
-  rcases lt_or_ge s.sourceTuple.length (forthImage r s n).length with hlt | hge
-  · rw [forthNewPoint, getElem!_pos (forthImage r s n) s.sourceTuple.length hlt,
-      List.getElem?_eq_getElem hlt]
-    rfl
-  · rw [forthNewPoint,
-      getElem!_neg (forthImage r s n) s.sourceTuple.length (by omega),
-      List.getElem?_eq_none hge]
-    rfl
-
+/-- The final coordinate is a **total** lookup — out of range it returns the default rather than
+diverging — so it composes directly against `Primrec.list_getElem!` at a variable index. -/
 theorem forthNewPoint_computableIn :
-    ComputableIn E fun p : ℕ × BackForthState ↦ forthNewPoint r p.2 p.1 := by
-  have hget : ComputableIn E fun p : ℕ × BackForthState ↦
-      (forthImage r p.2 p.1)[p.2.sourceTuple.length]? :=
-    (Primrec.list_getElem?.to_comp.computableIn₂).comp
-      (forthImage_computableIn r) sourceLength_computableIn
-  exact ((Primrec.option_getD.to_comp.computableIn₂).comp hget
-    (ComputableIn.const 0)).of_eq fun p ↦ (forthNewPoint_eq_getD r p.2 p.1).symm
+    ComputableIn E fun p : ℕ × BackForthState ↦ forthNewPoint r p.2 p.1 :=
+  ((Primrec.list_getElem!.to_comp.computableIn₂).comp
+    (forthImage_computableIn r) sourceLength_computableIn).of_eq fun _ ↦ rfl
 
 theorem forthQuery_computableIn :
     ComputableIn E fun p : ℕ × BackForthState ↦ forthQuery r p.2 p.1 := by
@@ -951,25 +937,10 @@ theorem backPrefix_computableIn :
   ((Primrec.list_take.to_comp.computableIn₂).comp
     targetLength_computableIn (backImage_computableIn rb)).of_eq fun _ ↦ rfl
 
-theorem backNewPoint_eq_getD :
-    backNewPoint rb s n = ((backImage rb s n)[s.targetTuple.length]?).getD 0 := by
-  rcases lt_or_ge s.targetTuple.length (backImage rb s n).length with hlt | hge
-  · rw [backNewPoint, getElem!_pos (backImage rb s n) s.targetTuple.length hlt,
-      List.getElem?_eq_getElem hlt]
-    rfl
-  · rw [backNewPoint,
-      getElem!_neg (backImage rb s n) s.targetTuple.length (by omega),
-      List.getElem?_eq_none hge]
-    rfl
-
 theorem backNewPoint_computableIn :
-    ComputableIn E fun p : ℕ × BackForthState ↦ backNewPoint rb p.2 p.1 := by
-  have hget : ComputableIn E fun p : ℕ × BackForthState ↦
-      (backImage rb p.2 p.1)[p.2.targetTuple.length]? :=
-    (Primrec.list_getElem?.to_comp.computableIn₂).comp
-      (backImage_computableIn rb) targetLength_computableIn
-  exact ((Primrec.option_getD.to_comp.computableIn₂).comp hget
-    (ComputableIn.const 0)).of_eq fun p ↦ (backNewPoint_eq_getD rb p.2 p.1).symm
+    ComputableIn E fun p : ℕ × BackForthState ↦ backNewPoint rb p.2 p.1 :=
+  ((Primrec.list_getElem!.to_comp.computableIn₂).comp
+    (backImage_computableIn rb) targetLength_computableIn).of_eq fun _ ↦ rfl
 
 theorem backQuery_computableIn :
     ComputableIn E fun p : ℕ × BackForthState ↦ backQuery rb p.2 p.1 := by
