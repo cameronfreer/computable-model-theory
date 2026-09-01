@@ -300,8 +300,11 @@ private theorem exists_coe_eq_getElem (S : ComputableStructureIn O L) (t : Tuple
 
 /-- **The realizer reads off the target tuple positionally.** For any carrier point named by the
 `i`-th source entry, its image is the `i`-th target entry — stated as a `getElem?` equation, so no
-bound on the target side has to be produced. -/
-private theorem realizer_getElem?
+bound on the target side has to be produced.
+
+Public because the structure laws of the limit map consume it: they must know where a *specific*
+carrier point of a matched stage goes, which the coordinate-consistency theorems below do not say. -/
+theorem realizer_getElem?
     {f : (S.canonicalAge.memberAt s.tightMap.domIdx).domain ↪[L]
       (T.canonicalAge.memberAt s.tightMap.codIdx).domain}
     (hf : PartialAgeIn.PartialRealizesBetween S.canonicalAge T.canonicalAge s.tightMap f)
