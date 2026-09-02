@@ -329,6 +329,93 @@ theorem capRight_isEmbedding_of_actual {S : PotentialSpanData}
     ← hpre, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left] at himg
   exact himg
 
+
+/-! ### Effectivity
+
+Every piece is computable in the **map** oracle `E`. The only presentation data read is
+`allTupleFor`, which is decoding; the only oracle-dependent call is `H.select`. So no `O ⊆ E`
+appears, here or anywhere else in this module. -/
+
+private theorem capStep_computableIn :
+    ComputableIn E fun p : PotentialSpanData × ((Tuple ℕ × Tuple ℕ) × ℕ) ↦
+      H.capStep p.1 p.2.1 p.2.2 := by
+  have hacc : ComputableIn E fun p : PotentialSpanData × ((Tuple ℕ × Tuple ℕ) × ℕ) ↦ p.2.1 :=
+    ComputableIn.fst.comp ComputableIn.snd
+  have hx : ComputableIn E fun p : PotentialSpanData × ((Tuple ℕ × Tuple ℕ) × ℕ) ↦ p.2.2 :=
+    ComputableIn.snd.comp ComputableIn.snd
+  have hp1 : ComputableIn E fun p : PotentialSpanData × ((Tuple ℕ × Tuple ℕ) × ℕ) ↦ p.2.1.1 :=
+    ComputableIn.fst.comp hacc
+  have hp2 : ComputableIn E fun p : PotentialSpanData × ((Tuple ℕ × Tuple ℕ) × ℕ) ↦ p.2.1.2 :=
+    ComputableIn.snd.comp hacc
+  have hlr : ComputableIn E fun p : PotentialSpanData × ((Tuple ℕ × Tuple ℕ) × ℕ) ↦
+      p.1.left.rangeTuple :=
+    (PotentialEmbeddingData.primrec_rangeTuple.to_comp.computableIn).comp
+      ((PotentialSpanData.primrec_left.to_comp.computableIn).comp ComputableIn.fst)
+  have hrr : ComputableIn E fun p : PotentialSpanData × ((Tuple ℕ × Tuple ℕ) × ℕ) ↦
+      p.1.right.rangeTuple :=
+    (PotentialEmbeddingData.primrec_rangeTuple.to_comp.computableIn).comp
+      ((PotentialSpanData.primrec_right.to_comp.computableIn).comp ComputableIn.fst)
+  have hquery : ComputableIn E fun p : PotentialSpanData × ((Tuple ℕ × Tuple ℕ) × ℕ) ↦
+      (⟨p.1.left.rangeTuple ++ p.2.1.2, p.1.right.rangeTuple ++ p.2.1.1, p.2.2⟩ :
+        HomogeneityQueryData) :=
+    ((primrec_homogeneityQueryData.to_comp.computableIn).comp
+      (((Primrec.list_append.to_comp.computableIn₂).comp hlr hp2).pair
+        (((Primrec.list_append.to_comp.computableIn₂).comp hrr hp1).pair hx))).of_eq fun _ ↦ rfl
+  have hy := H.imageOfNewPoint_computableIn.comp hquery
+  exact ((((Primrec.list_append.to_comp.computableIn₂).comp hp1
+      ((Primrec.list_cons.to_comp.computableIn₂).comp hx (ComputableIn.const []))).pair
+    ((Primrec.list_append.to_comp.computableIn₂).comp hp2
+      ((Primrec.list_cons.to_comp.computableIn₂).comp hy
+        (ComputableIn.const [])))).of_eq fun _ ↦ rfl)
+
+private theorem rightGens_computableIn :
+    ComputableIn E fun S : PotentialSpanData ↦ allTupleFor S.right.codIdx :=
+  allTupleFor_computableIn.comp
+    ((PotentialEmbeddingData.primrec_codIdx.to_comp.computableIn).comp
+      (PotentialSpanData.primrec_right.to_comp.computableIn))
+
+private theorem leftGens_computableIn :
+    ComputableIn E fun S : PotentialSpanData ↦ allTupleFor S.left.codIdx :=
+  allTupleFor_computableIn.comp
+    ((PotentialEmbeddingData.primrec_codIdx.to_comp.computableIn).comp
+      (PotentialSpanData.primrec_left.to_comp.computableIn))
+
+theorem capFold_computableIn : ComputableIn E H.capFold :=
+  (ComputableIn.list_foldl rightGens_computableIn (ComputableIn.const ([], []))
+    H.capStep_computableIn.to₂).of_eq fun _ ↦ rfl
+
+theorem capChosen_computableIn : ComputableIn E H.capChosen :=
+  (ComputableIn.snd.comp H.capFold_computableIn).of_eq fun _ ↦ rfl
+
+theorem capApex_computableIn : ComputableIn E H.capApex :=
+  ((Primrec.list_append.to_comp.computableIn₂).comp
+    leftGens_computableIn H.capChosen_computableIn).of_eq fun _ ↦ rfl
+
+theorem capLeft_computableIn : ComputableIn E H.capLeft :=
+  ((PotentialEmbeddingData.primrec_ofTriple.to_comp.computableIn).comp
+    (((PotentialEmbeddingData.primrec_codIdx.to_comp.computableIn).comp
+        (PotentialSpanData.primrec_left.to_comp.computableIn)).pair
+      ((ComputableIn.encode.comp H.capApex_computableIn).pair
+        leftGens_computableIn))).of_eq fun _ ↦ rfl
+
+theorem capRight_computableIn : ComputableIn E H.capRight :=
+  ((PotentialEmbeddingData.primrec_ofTriple.to_comp.computableIn).comp
+    (((PotentialEmbeddingData.primrec_codIdx.to_comp.computableIn).comp
+        (PotentialSpanData.primrec_right.to_comp.computableIn)).pair
+      ((ComputableIn.encode.comp H.capApex_computableIn).pair
+        H.capChosen_computableIn))).of_eq fun _ ↦ rfl
+
+theorem capSelect_computableIn : ComputableIn E H.capSelect :=
+  ((AmalgamationDiagramData.primrec_ofPair.to_comp.computableIn).comp
+    (H.capLeft_computableIn.pair H.capRight_computableIn)).of_eq fun _ ↦ rfl
+
+/-- **The selector is total.** `ComputableIn` is `RecursiveIn` of the `Part.some` composite, so the
+selector's effectivity clause is discharged by computability alone, and the halting clause holds on
+every input rather than only on carrier-valid spans. -/
+theorem capSelect_recursiveIn :
+    RecursiveIn E fun S : PotentialSpanData ↦ Part.some (H.capSelect S) :=
+  H.capSelect_computableIn
+
 end ComputablyHomogeneousIn
 
 end FirstOrder.Language
