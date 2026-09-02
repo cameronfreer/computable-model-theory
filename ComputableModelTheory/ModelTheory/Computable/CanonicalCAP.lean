@@ -254,15 +254,36 @@ private theorem capInv_final {S : PotentialSpanData}
   rwa [← capFold, ← capChosen, H.capFold_fst] at h
 
 
-/-! ### The right leg, by the offset argument -/
+/-! ### The closing realizer
 
-/-- **The right leg is actual on an actual span.** The final invariant, inverted, sends the right
-member's `k`-th recorded generator — which sits at position `S.right.rangeTuple.length + k` of
-the accumulated image tuple — to the `k`-th chosen image. That offset is the whole content; the
-two inclusions on either side move no values. -/
-theorem capRight_isEmbedding_of_actual {S : PotentialSpanData}
+One realizer, two readings. `PartialRealizes.unique` already makes any two realizers of `capRight`
+equal, so nothing here is a correctness requirement — but producing the realizer once, with both
+facts attached, avoids rebuilding it and reconciling witnesses in the commutativity proof. -/
+
+/-- **The prefix half**: the closing realizer sends the old right span range to the old left span
+range, positionally. This is what makes the square commute, and it is a different reading of the
+same realizer from the offset half. -/
+def PrefixBehavior (S : PotentialSpanData)
+    (g : (F.canonicalAge.memberAt S.right.codIdx).domain ↪[L]
+      (F.canonicalAge.memberAt (encode (H.capApex S))).domain) : Prop :=
+  ∀ (k : ℕ) (x : (F.canonicalAge.memberAt S.right.codIdx).domain),
+    S.right.rangeTuple[k]? = some (x : ℕ) →
+      S.left.rangeTuple[k]?
+        = some ((g x : (F.canonicalAge.memberAt (encode (H.capApex S))).domain) : ℕ)
+
+/-- **The closing realizer, with both behaviours.** The final invariant, inverted, is read at two
+kinds of position:
+
+* at `S.right.rangeTuple.length + k` — the **offset**, where the right member's `k`-th recorded
+  generator sits in the accumulated image tuple — giving the right leg's realization;
+* at `k < S.right.rangeTuple.length` — the **prefix**, where the two accumulators still carry the
+  two span range tuples — giving the behaviour the square needs.
+
+Public so that a later refactor cannot preserve one reading while silently breaking the other. -/
+theorem exists_closingRealizer {S : PotentialSpanData}
     (hact : F.canonicalAge.PartialSpanActual S) :
-    F.canonicalAge.PartialIsEmbedding (H.capRight S) := by
+    ∃ g, F.canonicalAge.PartialRealizesAt (H.capRight S) S.right.codIdx
+        (encode (H.capApex S)) g ∧ H.PrefixBehavior S g := by
   obtain ⟨hws, hL, hR⟩ := hact
   obtain ⟨fl, hfl⟩ := hL
   obtain ⟨fr, hfr⟩ := hR
@@ -308,27 +329,87 @@ theorem capRight_isEmbedding_of_actual {S : PotentialSpanData}
       (e := encode (H.capApex S)) rfl hsub₂).comp
     (e'.comp (PartialAgeIn.memberEmbedding (B := F.canonicalAge)
       (c := S.right.codIdx)
-      (e := encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)) rfl hsub₁)), ?_⟩
-  refine PartialAgeIn.realizes_of_getElem? (by
-    show (allTupleFor S.right.codIdx).length = (H.capChosen S).length
-    rw [H.capChosen_length]) ?_
-  intro k x hx
-  -- the offset: the k-th generator of the right member is at `|S.right.rangeTuple| + k`
-  have himg := PartialAgeIn.getElem?_of_realizes (k := S.right.rangeTuple.length + k)
-    (x := PartialAgeIn.memberEmbedding (B := F.canonicalAge) (c := S.right.codIdx)
-      (e := encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)) rfl hsub₁ x) he' (by
-      show (allTupleFor (encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)))[
-        S.right.rangeTuple.length + k]? = some ((x : ℕ))
-      rw [allTupleFor_encode, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left]
-      exact hx)
-  rw [show (PotentialEmbeddingData.ofTriple
-      (encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx),
-        encode (S.left.rangeTuple ++ H.capChosen S),
-        S.left.rangeTuple ++ H.capChosen S)).rangeTuple
-      = S.left.rangeTuple ++ H.capChosen S from rfl,
-    ← hpre, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left] at himg
-  exact himg
+      (e := encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)) rfl hsub₁)),
+    ⟨rfl, rfl, ?_⟩, ?_⟩
+  · -- the offset reading
+    refine PartialAgeIn.realizes_of_getElem? (by
+      show (allTupleFor S.right.codIdx).length = (H.capChosen S).length
+      rw [H.capChosen_length]) ?_
+    intro k x hx
+    have himg := PartialAgeIn.getElem?_of_realizes (k := S.right.rangeTuple.length + k)
+      (x := PartialAgeIn.memberEmbedding (B := F.canonicalAge) (c := S.right.codIdx)
+        (e := encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)) rfl hsub₁ x) he' (by
+        show (allTupleFor (encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)))[
+          S.right.rangeTuple.length + k]? = some ((x : ℕ))
+        rw [allTupleFor_encode, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left]
+        exact hx)
+    rw [show (PotentialEmbeddingData.ofTriple
+        (encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx),
+          encode (S.left.rangeTuple ++ H.capChosen S),
+          S.left.rangeTuple ++ H.capChosen S)).rangeTuple
+        = S.left.rangeTuple ++ H.capChosen S from rfl,
+      ← hpre, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left] at himg
+    exact himg
+  · -- the prefix reading
+    intro k x hx
+    have hk : k < S.right.rangeTuple.length := by
+      by_contra hk
+      rw [List.getElem?_eq_none (by omega)] at hx
+      exact absurd hx (by simp)
+    have himg := PartialAgeIn.getElem?_of_realizes (k := k)
+      (x := PartialAgeIn.memberEmbedding (B := F.canonicalAge) (c := S.right.codIdx)
+        (e := encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)) rfl hsub₁ x) he' (by
+        show (allTupleFor (encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)))[k]?
+          = some ((x : ℕ))
+        rw [allTupleFor_encode, List.getElem?_append_left hk]
+        exact hx)
+    rw [show (PotentialEmbeddingData.ofTriple
+        (encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx),
+          encode (S.left.rangeTuple ++ H.capChosen S),
+          S.left.rangeTuple ++ H.capChosen S)).rangeTuple
+        = S.left.rangeTuple ++ H.capChosen S from rfl,
+      List.getElem?_append_left (by omega)] at himg
+    exact himg
 
+/-- **The right leg is actual on an actual span** — the offset half of the package. -/
+theorem capRight_isEmbedding_of_actual {S : PotentialSpanData}
+    (hact : F.canonicalAge.PartialSpanActual S) :
+    F.canonicalAge.PartialIsEmbedding (H.capRight S) :=
+  (H.exists_closingRealizer hact).choose_spec.1.partialIsEmbedding
+
+/-- **The square commutes** — the prefix half. The left output is the explicit inclusion, the right
+output is the packaged closer, and the two span legs are placed at the *same* domain index through
+`realizesAt_of_eq`, so no data is rewritten. -/
+theorem capSelect_commutes {S : PotentialSpanData}
+    (hact : F.canonicalAge.PartialSpanActual S) :
+    F.canonicalAge.PartialCommutes S (H.capSelect S) := by
+  obtain ⟨hws, hL, hR⟩ := hact
+  obtain ⟨fl, hfl⟩ := hL
+  obtain ⟨fr, hfr⟩ := hR
+  obtain ⟨g, hg, hprefix⟩ := H.exists_closingRealizer ⟨hws, ⟨fl, hfl⟩, ⟨fr, hfr⟩⟩
+  have hsubApex : F.canonicalAge.domainAt S.left.codIdx
+      ⊆ F.canonicalAge.domainAt (encode (H.capApex S)) := by
+    refine F.canonicalAge_domainAt_subset fun x hx ↦ ?_
+    exact H.mem_apex (List.mem_append_left _ hx)
+  have hgl : F.canonicalAge.PartialRealizesAt (H.capSelect S).leftToApex S.left.codIdx
+      (encode (H.capApex S)) (PartialAgeIn.memberEmbedding rfl hsubApex) :=
+    ⟨rfl, rfl, PartialAgeIn.realizes_of_getElem? rfl fun _ _ hx ↦ hx⟩
+  have hflAt := hfl.realizesAt_of_eq rfl rfl
+  have hfrAt := hfr.realizesAt_of_eq hws.symm rfl
+  rw [PartialAgeIn.partialCommutes_iff_of_realizers hflAt hfrAt hgl hg]
+  refine PartialAgeIn.memberEmbedding_ext_of_gens fun k ↦ Subtype.ext ?_
+  obtain ⟨-, -, hlenl, hcoordl⟩ := hflAt
+  obtain ⟨-, -, hlenr, hcoordr⟩ := hfrAt
+  have hxr : S.right.rangeTuple[k.1]? = some
+      (((hws.symm ▸ fr) (F.canonicalAge.gensView S.left.domIdx k) :
+        (F.canonicalAge.memberAt S.right.codIdx).domain) : ℕ) := by
+    rw [hcoordr k, List.get_eq_getElem, List.getElem?_eq_getElem (by rw [← hlenr]; exact k.2)]
+    rfl
+  have hleft := hprefix k.1 _ hxr
+  rw [List.getElem?_eq_getElem (by rw [← hlenl]; exact k.2)] at hleft
+  refine ((hcoordl k).trans ?_).trans (Option.some.inj hleft)
+  rw [List.get_eq_getElem]
+  rfl
 
 /-! ### Effectivity
 
@@ -415,6 +496,31 @@ every input rather than only on carrier-valid spans. -/
 theorem capSelect_recursiveIn :
     RecursiveIn E fun S : PotentialSpanData ↦ Part.some (H.capSelect S) :=
   H.capSelect_computableIn
+
+
+/-! ### Proposition 3.2's converse, at the canonical representation -/
+
+include H
+
+/-- **The canonical age of a computably homogeneous computable structure has CAP.**
+
+The selector is total, so the halting clause holds on every span, not only carrier-valid ones; the
+two unconditional clauses hold on every span, including malformed ones; and soundness is the offset
+and prefix halves of the closing realizer. No `O ⊆ E`.
+
+This is *not* CHMM's converse for an arbitrary `K` that is a canonical age of `F` — that bridges
+through selector-level CAP transport, which the #4 boundary leaves unsupported. -/
+theorem canonicalAge_partialCAPIn_of_computablyHomogeneous :
+    F.canonicalAge.PartialCAPIn E := by
+  refine ⟨fun S ↦ Part.some (H.capSelect S), H.capSelect_recursiveIn, fun _ _ ↦ trivial, ?_, ?_⟩
+  · intro S D hD
+    rw [Part.mem_some_iff] at hD
+    subst hD
+    exact ⟨H.capSelect_wellShaped S, H.capLeft_isEmbedding S, H.capRight_wellFormed S⟩
+  · intro S D hD hactual
+    rw [Part.mem_some_iff] at hD
+    subst hD
+    exact ⟨H.capRight_isEmbedding_of_actual hactual, H.capSelect_commutes hactual⟩
 
 end ComputablyHomogeneousIn
 
