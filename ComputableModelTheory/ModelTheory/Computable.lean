@@ -27,6 +27,7 @@ import ComputableModelTheory.ModelTheory.Computable.ChainPresentation
 import ComputableModelTheory.ModelTheory.Computable.ComputableIso
 import ComputableModelTheory.ModelTheory.Computable.ComputablyHomogeneous
 import ComputableModelTheory.ModelTheory.Computable.CanonicalRange
+import ComputableModelTheory.ModelTheory.Computable.CanonicalCAP
 import ComputableModelTheory.ModelTheory.Computable.BackForth
 import ComputableModelTheory.ModelTheory.Computable.BackForthRun
 import ComputableModelTheory.ModelTheory.Computable.BackForthMaps

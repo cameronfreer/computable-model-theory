@@ -168,86 +168,6 @@ theorem BackForthState.length_eq_of_matched {S T : ComputableStructureIn O L}
   obtain ⟨-, hlen, -⟩ := h
   rwa [tightMap_domIdx, tightMap_rangeTuple, S.canonicalAge_gens, allTupleFor_encode] at hlen
 
-/-! ### Realization, read positionally
-
-Everything below chains realizers, and doing that through `Fin` casts is what makes such proofs
-unreadable. These three lemmas move the whole discussion to `getElem?`: a realizer *reads off* its
-range tuple at a position (`getElem?_of_realizes`), a length equation plus positional images *is* a
-realization (`realizes_of_getElem?`), and two realizers compose when the first's range tuple agrees
-positionally with the middle member's recorded generators (`realizes_comp`).
-
-The alignment hypothesis in `realizes_comp` is the honest content of composition: knowing where `g`
-sends `f`'s image tuple requires knowing that image tuple's entries *as recorded generators of the
-middle member*. It is needed only where `f`'s range tuple is defined, which is why it is guarded by
-`k < w.length` rather than asserted globally.
--/
-
-section Positional
-
-variable {A B C : PartialAgeIn O L}
-
-/-- **A realizer, read positionally.** The image of any point named by the `k`-th recorded generator
-is the `k`-th range entry. No bound has to be produced: the hypothesis pins `k` in range. -/
-private theorem getElem?_of_realizes {F : PotentialEmbeddingData}
-    {f : (A.memberAt F.domIdx).domain ↪[L] (B.memberAt F.codIdx).domain}
-    (hf : PartialAgeIn.PartialRealizesBetween A B F f) {k : ℕ}
-    {x : (A.memberAt F.domIdx).domain} (hx : (A.gens F.domIdx)[k]? = some (x : ℕ)) :
-    F.rangeTuple[k]? = some ((f x : (B.memberAt F.codIdx).domain) : ℕ) := by
-  obtain ⟨hlen, hcoord⟩ := hf
-  have hk : k < (A.gens F.domIdx).length := by
-    by_contra hk
-    rw [List.getElem?_eq_none (by omega)] at hx
-    exact absurd hx (by simp)
-  have hxk : x = A.gensView F.domIdx ⟨k, hk⟩ := by
-    refine Subtype.ext ?_
-    rw [PartialAgeIn.gensView_coe, List.get_eq_getElem]
-    exact (Option.some.inj ((List.getElem?_eq_getElem hk).symm.trans hx)).symm
-  rw [hxk, hcoord ⟨k, hk⟩, List.getElem?_eq_getElem (by rw [← hlen]; exact hk)]
-  rfl
-
-/-- **The positional converse.** A length equation together with the images of the recorded
-generators, named by position, is exactly a realization. -/
-private theorem realizes_of_getElem? {c e : ℕ} {v : Tuple ℕ}
-    {f : (A.memberAt c).domain ↪[L] (B.memberAt e).domain}
-    (hlen : (A.gens c).length = v.length)
-    (h : ∀ (k : ℕ) (x : (A.memberAt c).domain), (A.gens c)[k]? = some (x : ℕ) →
-      v[k]? = some ((f x : (B.memberAt e).domain) : ℕ)) :
-    PartialAgeIn.PartialRealizesBetween A B (PotentialEmbeddingData.ofTriple (c, e, v)) f := by
-  refine ⟨hlen, fun k ↦ ?_⟩
-  have hk2 : k.1 < (A.gens c).length := k.2
-  have hx : (A.gens c)[k.1]? = some ((A.gensView c k : (A.memberAt c).domain) : ℕ) := by
-    rw [PartialAgeIn.gensView_coe, List.get_eq_getElem, List.getElem?_eq_getElem hk2]
-  have hk := h k.1 (A.gensView c k) hx
-  rw [List.getElem?_eq_getElem (by rw [← hlen]; exact hk2)] at hk
-  exact (Option.some.inj hk).symm
-
-/-- **Composition, through a positional alignment.** `halign` says the first realizer's range tuple
-names recorded generators of the middle member at matching positions — without which there is no way
-to know where the second realizer sends them. `hv` then reads the composite's range tuple off the
-second's. -/
-private theorem realizes_comp {c d e : ℕ} {w v v' : Tuple ℕ}
-    {f : (A.memberAt c).domain ↪[L] (B.memberAt d).domain}
-    {g : (B.memberAt d).domain ↪[L] (C.memberAt e).domain}
-    (hf : PartialAgeIn.PartialRealizesBetween A B (PotentialEmbeddingData.ofTriple (c, d, w)) f)
-    (hg : PartialAgeIn.PartialRealizesBetween B C (PotentialEmbeddingData.ofTriple (d, e, v)) g)
-    (halign : ∀ k : ℕ, k < w.length → w[k]? = (B.gens d)[k]?)
-    (hv : ∀ k : ℕ, k < w.length → v'[k]? = v[k]?)
-    (hlen : (A.gens c).length = v'.length) :
-    PartialAgeIn.PartialRealizesBetween A C
-      (PotentialEmbeddingData.ofTriple (c, e, v')) (g.comp f) := by
-  refine realizes_of_getElem? hlen fun k x hx ↦ ?_
-  have h1 : w[k]? = some ((f x : (B.memberAt d).domain) : ℕ) := getElem?_of_realizes hf hx
-  have hkw : k < w.length := by
-    by_contra hk
-    rw [List.getElem?_eq_none (by omega)] at h1
-    exact absurd h1 (by simp)
-  have h2 : (B.gens d)[k]? = some ((f x : (B.memberAt d).domain) : ℕ) := by
-    rw [← halign k hkw]; exact h1
-  rw [hv k hkw]
-  exact getElem?_of_realizes hg h2
-
-end Positional
-
 /-! ### Coordinate consistency
 
 The two facts the inverse laws will need, stated **positionally and globally**: no length
@@ -313,7 +233,7 @@ theorem realizer_getElem?
     (hx : (x : ℕ) = s.sourceTuple[i]) :
     s.targetTuple[i]?
       = some ((f x : (T.canonicalAge.memberAt s.tightMap.codIdx).domain) : ℕ) := by
-  refine getElem?_of_realizes hf ?_
+  refine PartialAgeIn.getElem?_of_realizes hf ?_
   have hgens : S.canonicalAge.gens s.tightMap.domIdx = s.sourceTuple := by simp [tightMap]
   rw [hgens, List.getElem?_eq_getElem hi, hx]
 

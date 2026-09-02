@@ -172,6 +172,85 @@ theorem PartialIsEmbedding.length {F : PotentialEmbeddingData}
     (h : B.PartialIsEmbedding F) : (B.gens F.domIdx).length = F.rangeTuple.length :=
   h.choose_spec.length
 
+/-! ### Realization, read positionally
+
+Chaining realizers through `Fin` casts is what makes such proofs unreadable. These three lemmas
+move the whole discussion to `getElem?`: a realizer *reads off* its range tuple at a position (`getElem?_of_realizes`), a length equation plus positional images *is* a
+realization (`realizes_of_getElem?`), and two realizers compose when the first's range tuple agrees
+positionally with the middle member's recorded generators (`realizes_comp`).
+
+The alignment hypothesis in `realizes_comp` is the honest content of composition: knowing where `g`
+sends `f`'s image tuple requires knowing that image tuple's entries *as recorded generators of the
+middle member*. It is needed only where `f`'s range tuple is defined, which is why it is guarded by
+`k < w.length` rather than asserted globally.
+-/
+
+section Positional
+
+variable {A₁ A₂ A₃ : PartialAgeIn O L}
+
+/-- **A realizer, read positionally.** The image of any point named by the `k`-th recorded generator
+is the `k`-th range entry. No bound has to be produced: the hypothesis pins `k` in range. -/
+theorem getElem?_of_realizes {F : PotentialEmbeddingData}
+    {f : (A₁.memberAt F.domIdx).domain ↪[L] (A₂.memberAt F.codIdx).domain}
+    (hf : PartialRealizesBetween A₁ A₂ F f) {k : ℕ}
+    {x : (A₁.memberAt F.domIdx).domain} (hx : (A₁.gens F.domIdx)[k]? = some (x : ℕ)) :
+    F.rangeTuple[k]? = some ((f x : (A₂.memberAt F.codIdx).domain) : ℕ) := by
+  obtain ⟨hlen, hcoord⟩ := hf
+  have hk : k < (A₁.gens F.domIdx).length := by
+    by_contra hk
+    rw [List.getElem?_eq_none (by omega)] at hx
+    exact absurd hx (by simp)
+  have hxk : x = A₁.gensView F.domIdx ⟨k, hk⟩ := by
+    refine Subtype.ext ?_
+    rw [gensView_coe, List.get_eq_getElem]
+    exact (Option.some.inj ((List.getElem?_eq_getElem hk).symm.trans hx)).symm
+  rw [hxk, hcoord ⟨k, hk⟩, List.getElem?_eq_getElem (by rw [← hlen]; exact hk)]
+  rfl
+
+/-- **The positional converse.** A length equation together with the images of the recorded
+generators, named by position, is exactly a realization. -/
+theorem realizes_of_getElem? {c e : ℕ} {v : Tuple ℕ}
+    {f : (A₁.memberAt c).domain ↪[L] (A₂.memberAt e).domain}
+    (hlen : (A₁.gens c).length = v.length)
+    (h : ∀ (k : ℕ) (x : (A₁.memberAt c).domain), (A₁.gens c)[k]? = some (x : ℕ) →
+      v[k]? = some ((f x : (A₂.memberAt e).domain) : ℕ)) :
+    PartialRealizesBetween A₁ A₂ (PotentialEmbeddingData.ofTriple (c, e, v)) f := by
+  refine ⟨hlen, fun k ↦ ?_⟩
+  have hk2 : k.1 < (A₁.gens c).length := k.2
+  have hx : (A₁.gens c)[k.1]? = some ((A₁.gensView c k : (A₁.memberAt c).domain) : ℕ) := by
+    rw [gensView_coe, List.get_eq_getElem, List.getElem?_eq_getElem hk2]
+  have hk := h k.1 (A₁.gensView c k) hx
+  rw [List.getElem?_eq_getElem (by rw [← hlen]; exact hk2)] at hk
+  exact (Option.some.inj hk).symm
+
+/-- **Composition, through a positional alignment.** `halign` says the first realizer's range tuple
+names recorded generators of the middle member at matching positions — without which there is no way
+to know where the second realizer sends them. `hv` then reads the composite's range tuple off the
+second's. -/
+theorem realizes_comp {c d e : ℕ} {w v v' : Tuple ℕ}
+    {f : (A₁.memberAt c).domain ↪[L] (A₂.memberAt d).domain}
+    {g : (A₂.memberAt d).domain ↪[L] (A₃.memberAt e).domain}
+    (hf : PartialRealizesBetween A₁ A₂ (PotentialEmbeddingData.ofTriple (c, d, w)) f)
+    (hg : PartialRealizesBetween A₂ A₃ (PotentialEmbeddingData.ofTriple (d, e, v)) g)
+    (halign : ∀ k : ℕ, k < w.length → w[k]? = (A₂.gens d)[k]?)
+    (hv : ∀ k : ℕ, k < w.length → v'[k]? = v[k]?)
+    (hlen : (A₁.gens c).length = v'.length) :
+    PartialRealizesBetween A₁ A₃
+      (PotentialEmbeddingData.ofTriple (c, e, v')) (g.comp f) := by
+  refine realizes_of_getElem? hlen fun k x hx ↦ ?_
+  have h1 : w[k]? = some ((f x : (A₂.memberAt d).domain) : ℕ) := getElem?_of_realizes hf hx
+  have hkw : k < w.length := by
+    by_contra hk
+    rw [List.getElem?_eq_none (by omega)] at h1
+    exact absurd h1 (by simp)
+  have h2 : (A₂.gens d)[k]? = some ((f x : (A₂.memberAt d).domain) : ℕ) := by
+    rw [← halign k hkw]; exact h1
+  rw [hv k hkw]
+  exact getElem?_of_realizes hg h2
+
+end Positional
+
 /-! ### Well-formedness in the partial setting
 
 In the all-ℕ setting well-formedness of potential embedding data is just the length equation:
