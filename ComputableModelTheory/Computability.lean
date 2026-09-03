@@ -9,6 +9,7 @@ import ComputableModelTheory.Computability.Encoding
 import ComputableModelTheory.Computability.FiniteInjury
 import ComputableModelTheory.Computability.Jump
 import ComputableModelTheory.Computability.ListComputable
+import ComputableModelTheory.Computability.Dovetail
 import ComputableModelTheory.Computability.ListPredicates
 import ComputableModelTheory.Computability.ListSections
 import ComputableModelTheory.Computability.OraclePred
