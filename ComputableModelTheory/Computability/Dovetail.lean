@@ -15,7 +15,12 @@ The scheduling substrate for an *effective dovetailing* construction: at each cl
 recomputed — the record of what has fired only grows — so this is deliberately **not** the
 finite-injury kernel, and does not import it.
 
-## Proof-free, and separate from what it schedules
+## Proof-free, effectivity-free, and outside the model-theoretic namespaces
+
+At the **root** namespace, like `StagedPartialIn`: nothing here depends on a language or on model
+theory, and the fairness argument needs only Boolean availability and its monotonicity. When the
+model-theoretic consumer arrives, computability of the schedule should be added under an explicit
+hypothesis that `avail` is uniformly `ComputableIn E` — not built into this structure.
 
 The state is a list of fired indices and nothing else, and `avail` is supplied `Bool`-valued data
 with one law (monotonicity in the stage). No structure, language, presentation or oracle appears
@@ -29,8 +34,9 @@ that.
   else. Persistence of availability is not used, and would be the wrong thing to cite: a fired index
   is recorded, the record only grows, and selection skips anything recorded.
 * `valid_eventually_fires` is where monotonicity of `avail` does its work, together with
-  **least-selection**: once `e` is available it stays available, the step always takes the least
-  available unfired index, so only indices `< e` can precede it — finitely many, each at most once.
+  **least-selection** (`exists_pick_of_avail`): once `e` is available it stays available, the step
+  always takes the least available unfired index, so only indices `< e` can precede it — finitely
+  many, each at most once.
 
 The second consumes the first, so the two are not independent; but they rest on different facts, and
 `DovetailAudit` keeps them apart.
@@ -42,8 +48,6 @@ for "the next successful event", and no progress hypothesis anywhere. A requirem
 available but larger than the clock simply waits, which is what makes the delay in
 `DovetailAudit`'s fixture finite rather than a starvation.
 -/
-
-namespace FirstOrder.Language
 
 /-- Supplied availability data: whether requirement `e` is available at stage `s`, monotone in the
 stage. In the intended application this is a staged approximation's `isSome` conjoined with the
@@ -208,8 +212,8 @@ theorem exists_firesAt_of_mem_fired {e : ℕ} :
 /-- **Eventually fires.** A requirement that ever becomes available fires at some stage.
 
 Both ingredients are visible: `avail_mono` keeps `e` available while earlier requirements are
-processed, and `pick_le_of_avail` — least-selection — confines what can precede it to the finitely
-many indices below `e`, each of which fires at most once. -/
+processed, and `exists_pick_of_avail` — least-selection — confines what can precede it to the
+finitely many indices below `e`, each of which fires at most once. -/
 theorem valid_eventually_fires {e s₀ : ℕ} (h : A.avail s₀ e = true) :
     ∃ s, A.FiresAt e s := by
   by_contra hnone
@@ -263,5 +267,3 @@ theorem valid_eventually_fires {e s₀ : ℕ} (h : A.avail s₀ e = true) :
   omega
 
 end DovetailAvail
-
-end FirstOrder.Language

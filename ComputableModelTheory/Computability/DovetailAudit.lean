@@ -31,8 +31,6 @@ though `3` is available it cannot be selected — which is why the delay is fini
 starvation.
 -/
 
-namespace FirstOrder.Language
-
 /-! ### The general theorems -/
 
 /-- **At most once**, at an arbitrary availability datum. -/
@@ -107,14 +105,12 @@ theorem test_nothing_fires_at_zero (e : ℕ) : ¬ delayedAvail.FiresAt e 0 := by
 theorem test_record_after_five : delayedAvail.fired 5 = [0, 1, 2, 3] := by
   decide
 
-end FirstOrder.Language
-
-#assert_standard_axioms FirstOrder.Language.test_fires_at_most_once
-#assert_standard_axioms FirstOrder.Language.test_valid_eventually_fires
-#assert_standard_axioms FirstOrder.Language.test_least_selection
-#assert_standard_axioms FirstOrder.Language.test_record_monotone_nodup
-#assert_standard_axioms FirstOrder.Language.test_three_available_immediately
-#assert_standard_axioms FirstOrder.Language.test_three_delayed_not_starved
-#assert_standard_axioms FirstOrder.Language.test_smaller_fire_in_order
-#assert_standard_axioms FirstOrder.Language.test_nothing_fires_at_zero
-#assert_standard_axioms FirstOrder.Language.test_record_after_five
+#assert_standard_axioms test_fires_at_most_once
+#assert_standard_axioms test_valid_eventually_fires
+#assert_standard_axioms test_least_selection
+#assert_standard_axioms test_record_monotone_nodup
+#assert_standard_axioms test_three_available_immediately
+#assert_standard_axioms test_three_delayed_not_starved
+#assert_standard_axioms test_smaller_fire_in_order
+#assert_standard_axioms test_nothing_fires_at_zero
+#assert_standard_axioms test_record_after_five
