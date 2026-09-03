@@ -498,7 +498,7 @@ theorem capSelect_recursiveIn :
   H.capSelect_computableIn
 
 
-/-! ### Proposition 3.2's converse, at the canonical representation -/
+/-! ### Theorem 3.9's converse, at the canonical representation -/
 
 include H
 
