@@ -38,6 +38,15 @@ and the positive rows would be vacuous.
 **Locality and effectivity.** `test_local` pins that availability at stage `s` reads `d` only at
 chain stages `≤ s`; `test_effective` records uniform computability of the decoder and of
 availability at any oracle reading the family, with `O ⊆ E` appearing only there.
+
+**The history adapter breaks the computability circle.** `test_history_agrees` says availability
+read through a recorded prefix `[d 0, …, d s]` is availability at `d`; `test_history_effective` says
+the adapter is computable with **no** hypothesis on any member-index function — the form the
+clock-stage recursion can consume while `d`'s computability is still the theorem being proved.
+`test_guard_before_lookup` pins the operational order: a code naming a future chain stage is
+rejected by the stage guard, so the history is never indexed at that stage; the row states this for
+a history of length `s + 1` by reading availability through the *same* adapter with the history
+truncated to that length.
 -/
 
 open Encodable FirstOrder Language
@@ -108,6 +117,29 @@ theorem test_effective (hOE : O ⊆ E) (hd : ComputableIn E d) :
       ComputableIn E (fun p : ℕ × ℕ ↦ K.requirementAvail d p.1 p.2) ∧
         (K.stagedDecoder d hOE hd).approx = K.decodeAt d :=
   ⟨K.decodeAt_computableIn d hOE hd, K.requirementAvail_computableIn d hOE hd, rfl⟩
+
+/-- **History agreement**: a recorded prefix representing `d` on `0, …, s` gives stage-`s`
+availability at `d`. -/
+theorem test_history_agrees {hist : List ℕ} {s : ℕ} (hh : ∀ r ≤ s, hist[r]? = some (d r))
+    (e : ℕ) : K.requirementAvailFromHistory hist s e = K.requirementAvail d s e :=
+  K.requirementAvailFromHistory_eq d hh e
+
+/-- **The adapter is computable with no member-index hypothesis** — nothing about `d` appears. -/
+theorem test_history_effective (hOE : O ⊆ E) :
+    ComputableIn E fun p : (List ℕ × ℕ) × ℕ ↦ K.requirementAvailFromHistory p.1.1 p.1.2 p.2 :=
+  K.requirementAvailFromHistory_computableIn hOE
+
+/-- **Guard before lookup**: availability at stage `s` through any history equals availability
+through that history truncated to length `s + 1`, so no entry past the current stage is ever
+consulted. -/
+theorem test_guard_before_lookup (hist : List ℕ) (s e : ℕ) :
+    K.requirementAvailFromHistory hist s e =
+      K.requirementAvailFromHistory (hist.take (s + 1)) s e := by
+  unfold PartialAgeIn.requirementAvailFromHistory
+  exact (K.requirementAvail_local (d := fun r ↦ (hist.take (s + 1)).getD r 0)
+    (d' := fun r ↦ hist.getD r 0) (s := s) (fun r hr ↦ by
+      rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
+        List.getElem?_take_of_lt (Nat.lt_succ_of_le hr)]) e).symm
 
 end General
 
@@ -229,6 +261,9 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_fires_with_decoded_data
 #assert_standard_axioms FirstOrder.Language.test_local
 #assert_standard_axioms FirstOrder.Language.test_effective
+#assert_standard_axioms FirstOrder.Language.test_history_agrees
+#assert_standard_axioms FirstOrder.Language.test_history_effective
+#assert_standard_axioms FirstOrder.Language.test_guard_before_lookup
 #assert_standard_axioms FirstOrder.Language.test_q₀_static
 #assert_standard_axioms FirstOrder.Language.test_q₁_not_static
 #assert_standard_axioms FirstOrder.Language.test_landsBy_seven

@@ -9,13 +9,14 @@ import ComputableModelTheory.Computability.StagedPartial
 import ComputableModelTheory.ModelTheory.Computable.PartialMemberEmbedding
 
 /-!
-# The staged requirement decoder for Lemma 3.8
+# The staged requirement decoder for Theorem 3.9's requirements
 
-CHMM's Lemma 3.8 construction meets one requirement `R⟨i, r, k, f, g⟩` per stage, "from some
-uniform enumeration of all such maps". This module is that enumeration, made precise, together with
-the **availability** predicate the dovetailing scheduler (`DovetailAvail`) consumes. Nothing here
-calls a CAP selector: availability is about whether a requirement's coded data has been *seen to be
-legitimate*, never about whether its amalgamation has been computed.
+The proof of CHMM's Theorem 3.9 builds its chain by meeting one requirement `R⟨i, r, k, f, g⟩` per
+stage, "from some uniform enumeration of all such maps"; Lemma 3.8 is the criterion saying that
+meeting them all yields a Fraïssé limit. This module is that enumeration, made precise, together
+with the **availability** predicate the dovetailing scheduler (`DovetailAvail`) consumes. Nothing
+here calls a CAP selector: availability is about whether a requirement's coded data has been *seen
+to be legitimate*, never about whether its amalgamation has been computed.
 
 ## Three indices
 
@@ -76,7 +77,7 @@ namespace FirstOrder.Language
 
 /-! ### The requirement datum -/
 
-/-- The proof-free datum of one Lemma 3.8 requirement `R⟨i, r, k, f, g⟩`: `f : ~a_i → A_{d r}` is
+/-- The proof-free datum of one Theorem 3.9 requirement `R⟨i, r, k, f, g⟩`: `f : ~a_i → A_{d r}` is
 coded by its image tuple `chainImage`, `g : ~a_i → A_k` by `targetImage`. No proof fields, so
 that it is `Primcodable`. -/
 structure RequirementData where
@@ -488,22 +489,51 @@ def stagedDecoder (hOE : O ⊆ E) (hd : ComputableIn E d) : StagedPartialIn E (K
 
 /-! ### Availability -/
 
-/-- **Availability of a code at a stage**: the decoder has certified it, its chain stage has been
-reached (`r ≤ s`), and the static guards hold. No CAP call appears here, and nothing here depends
-on the chain beyond `d` at the code's own chain stage. -/
+/-- **Availability of a code at a stage**: the code decodes, its chain stage has been reached
+(`r ≤ s`), the static guards hold, and the decoder's landing certificate is in. The stage guard is
+tested **before** `d` is consulted: a code naming a future chain stage never requests a value of `d`
+that the clock-stage recursion has not yet produced. `requirementAvail_eq_true_iff` is the public
+specification, in terms of `decodeAt`. No CAP call appears here. -/
 def requirementAvail (s e : ℕ) : Bool :=
-  match K.decodeAt d s e with
-  | some q => decide (q.chainStage ≤ s ∧ K.StaticAdmissible q)
+  match (decode e : Option RequirementData) with
   | none => false
+  | some q =>
+    if q.chainStage ≤ s then
+      decide (K.StaticAdmissible q) && K.landsBy (d q.chainStage) s q.chainImage &&
+        K.landsBy q.targetIdx s q.targetImage
+    else false
 
 theorem requirementAvail_eq_true_iff {s e : ℕ} :
     K.requirementAvail d s e = true ↔
       ∃ q, K.decodeAt d s e = some q ∧ q.chainStage ≤ s ∧ K.StaticAdmissible q := by
   unfold requirementAvail
-  rcases h : K.decodeAt d s e with _ | q
-  · simp
-  · simp only [decide_eq_true_eq, Option.some.injEq]
-    exact ⟨fun hq ↦ ⟨q, rfl, hq⟩, fun ⟨q', hq', h'⟩ ↦ hq' ▸ h'⟩
+  rcases hq : (decode e : Option RequirementData) with _ | q
+  · refine ⟨fun h ↦ absurd h (by simp), ?_⟩
+    rintro ⟨q', hq', -, -⟩
+    rw [K.decodeAt_eq_none_of_decode d hq] at hq'
+    exact absurd hq' (by simp)
+  · change (if q.chainStage ≤ s then
+      decide (K.StaticAdmissible q) && K.landsBy (d q.chainStage) s q.chainImage &&
+        K.landsBy q.targetIdx s q.targetImage
+      else false) = true ↔ _
+    by_cases hr : q.chainStage ≤ s
+    · rw [if_pos hr]
+      simp only [Bool.and_eq_true, decide_eq_true_eq]
+      constructor
+      · rintro ⟨⟨hstat, h₁⟩, h₂⟩
+        exact ⟨q, (K.decodeAt_eq_some_iff d).2 ⟨hq, h₁, h₂⟩, hr, hstat⟩
+      · rintro ⟨q', hq', -, hstat⟩
+        obtain ⟨hq'', h₁, h₂⟩ := (K.decodeAt_eq_some_iff d).1 hq'
+        rw [hq] at hq''
+        obtain rfl := Option.some.inj hq''
+        exact ⟨⟨hstat, h₁⟩, h₂⟩
+    · rw [if_neg hr]
+      refine ⟨fun h ↦ absurd h (by simp), ?_⟩
+      rintro ⟨q', hq', hr', -⟩
+      have := K.decode_eq_of_decodeAt d hq'
+      rw [hq] at this
+      obtain rfl := Option.some.inj this
+      exact absurd hr' hr
 
 /-- **`avail_sound`**: an available code decodes — at this very stage — to a datum whose chain stage
 has been reached and whose static guards hold. -/
@@ -551,39 +581,137 @@ theorem requirementAvail_local {d' : ℕ → ℕ} {s : ℕ} (hdd : ∀ r ≤ s, 
   · rw [K.requirementAvail_eq_false_of_lt_chainStage d hq (not_le.1 hr),
       K.requirementAvail_eq_false_of_lt_chainStage d' hq (not_le.1 hr)]
 
-theorem requirementAvail_computableIn (hOE : O ⊆ E) (hd : ComputableIn E d) :
-    ComputableIn E fun p : ℕ × ℕ ↦ K.requirementAvail d p.1 p.2 := by
-  have hdec := K.decodeAt_computableIn d hOE hd
-  have hq : ComputableIn E fun r : (ℕ × ℕ) × RequirementData ↦ r.2 := ComputableIn.snd
-  have hs : ComputableIn E fun r : (ℕ × ℕ) × RequirementData ↦ r.1.1 :=
-    ComputableIn.fst.comp ComputableIn.fst
-  have hr : ComputableIn E fun r : (ℕ × ℕ) × RequirementData ↦ r.2.chainStage :=
-    ComputableIn.comp (α := (ℕ × ℕ) × RequirementData) (β := RequirementData) (σ := ℕ)
+/-- **Uniform computability of availability**, with the member-index lookup itself an input: for
+any computable `dl : α → ℕ → ℕ`, availability at `dl a` is computable in `a`. This is the form the
+clock-stage recursion consumes — it never assumes the function being constructed is computable. -/
+theorem requirementAvail_computableIn_uniform {α : Type*} [Primcodable α] (hOE : O ⊆ E)
+    {dl : α → ℕ → ℕ} {hs he : α → ℕ} (hdl : ComputableIn E fun p : α × ℕ ↦ dl p.1 p.2)
+    (hhs : ComputableIn E hs) (hhe : ComputableIn E he) :
+    ComputableIn E fun a ↦ K.requirementAvail (dl a) (hs a) (he a) := by
+  have hlands := K.landsBy_computableIn (E := E) hOE
+  have hdec : ComputableIn E fun a ↦ (decode (he a) : Option RequirementData) :=
+    ComputableIn.comp (α := α) (β := ℕ) (σ := Option RequirementData) (f := decode) (g := he)
+      (Computable.decode.computableIn (O := E)) hhe
+  have hq : ComputableIn E fun r : α × RequirementData ↦ r.2 := ComputableIn.snd
+  have ha : ComputableIn E fun r : α × RequirementData ↦ r.1 := ComputableIn.fst
+  have hs' : ComputableIn E fun r : α × RequirementData ↦ hs r.1 :=
+    ComputableIn.comp (α := α × RequirementData) (β := α) (σ := ℕ) (f := hs) (g := fun r ↦ r.1)
+      hhs ha
+  have hr : ComputableIn E fun r : α × RequirementData ↦ r.2.chainStage :=
+    ComputableIn.comp (α := α × RequirementData) (β := RequirementData) (σ := ℕ)
       (f := RequirementData.chainStage) (g := fun r ↦ r.2)
       (RequirementData.primrec_chainStage.to_comp.computableIn (O := E)) hq
-  have hle : ComputableIn E fun r : (ℕ × ℕ) × RequirementData ↦
-      decide (r.2.chainStage ≤ r.1.1) :=
-    (Primrec.nat_le.decide.to_comp.computableIn₂ (O := E)).comp hr hs
-  have hstat : ComputableIn E fun r : (ℕ × ℕ) × RequirementData ↦
-      decide (K.StaticAdmissible r.2) :=
-    ComputableIn.comp (α := (ℕ × ℕ) × RequirementData) (β := RequirementData) (σ := Bool)
+  have hdr : ComputableIn E fun r : α × RequirementData ↦ dl r.1 r.2.chainStage :=
+    ComputableIn.comp (α := α × RequirementData) (β := α × ℕ) (σ := ℕ)
+      (f := fun p ↦ dl p.1 p.2) (g := fun r ↦ (r.1, r.2.chainStage)) hdl
+      (ComputableIn.pair (α := α × RequirementData) (β := α) (γ := ℕ) (f := fun r ↦ r.1)
+        (g := fun r ↦ r.2.chainStage) ha hr)
+  have hk : ComputableIn E fun r : α × RequirementData ↦ r.2.targetIdx :=
+    ComputableIn.comp (α := α × RequirementData) (β := RequirementData) (σ := ℕ)
+      (f := RequirementData.targetIdx) (g := fun r ↦ r.2)
+      (RequirementData.primrec_targetIdx.to_comp.computableIn (O := E)) hq
+  have hf : ComputableIn E fun r : α × RequirementData ↦ r.2.chainImage :=
+    ComputableIn.comp (α := α × RequirementData) (β := RequirementData) (σ := Tuple ℕ)
+      (f := RequirementData.chainImage) (g := fun r ↦ r.2)
+      (RequirementData.primrec_chainImage.to_comp.computableIn (O := E)) hq
+  have hg : ComputableIn E fun r : α × RequirementData ↦ r.2.targetImage :=
+    ComputableIn.comp (α := α × RequirementData) (β := RequirementData) (σ := Tuple ℕ)
+      (f := RequirementData.targetImage) (g := fun r ↦ r.2)
+      (RequirementData.primrec_targetImage.to_comp.computableIn (O := E)) hq
+  have hpack₁ : ComputableIn E fun r : α × RequirementData ↦
+      ((dl r.1 r.2.chainStage, hs r.1), r.2.chainImage) :=
+    ComputableIn.pair (α := α × RequirementData) (β := ℕ × ℕ) (γ := Tuple ℕ)
+      (f := fun r ↦ (dl r.1 r.2.chainStage, hs r.1)) (g := fun r ↦ r.2.chainImage)
+      (ComputableIn.pair (α := α × RequirementData) (β := ℕ) (γ := ℕ)
+        (f := fun r ↦ dl r.1 r.2.chainStage) (g := fun r ↦ hs r.1) hdr hs') hf
+  have hpack₂ : ComputableIn E fun r : α × RequirementData ↦
+      ((r.2.targetIdx, hs r.1), r.2.targetImage) :=
+    ComputableIn.pair (α := α × RequirementData) (β := ℕ × ℕ) (γ := Tuple ℕ)
+      (f := fun r ↦ (r.2.targetIdx, hs r.1)) (g := fun r ↦ r.2.targetImage)
+      (ComputableIn.pair (α := α × RequirementData) (β := ℕ) (γ := ℕ)
+        (f := fun r ↦ r.2.targetIdx) (g := fun r ↦ hs r.1) hk hs') hg
+  have h₁ : ComputableIn E fun r : α × RequirementData ↦
+      K.landsBy (dl r.1 r.2.chainStage) (hs r.1) r.2.chainImage :=
+    ComputableIn.comp (α := α × RequirementData) (β := (ℕ × ℕ) × Tuple ℕ) (σ := Bool)
+      (f := fun p ↦ K.landsBy p.1.1 p.1.2 p.2)
+      (g := fun r ↦ ((dl r.1 r.2.chainStage, hs r.1), r.2.chainImage)) hlands hpack₁
+  have h₂ : ComputableIn E fun r : α × RequirementData ↦
+      K.landsBy r.2.targetIdx (hs r.1) r.2.targetImage :=
+    ComputableIn.comp (α := α × RequirementData) (β := (ℕ × ℕ) × Tuple ℕ) (σ := Bool)
+      (f := fun p ↦ K.landsBy p.1.1 p.1.2 p.2)
+      (g := fun r ↦ ((r.2.targetIdx, hs r.1), r.2.targetImage)) hlands hpack₂
+  have hstat : ComputableIn E fun r : α × RequirementData ↦ decide (K.StaticAdmissible r.2) :=
+    ComputableIn.comp (α := α × RequirementData) (β := RequirementData) (σ := Bool)
       (f := fun q ↦ decide (K.StaticAdmissible q)) (g := fun r ↦ r.2)
       (K.staticAdmissible_computableIn hOE) hq
-  have hguard : ComputableIn E fun r : (ℕ × ℕ) × RequirementData ↦
-      decide (r.2.chainStage ≤ r.1.1 ∧ K.StaticAdmissible r.2) :=
-    ((Primrec.and.to_comp.computableIn₂ (O := E)).comp hle hstat).of_eq fun r ↦ by
-      rw [Bool.decide_and]
-  refine (ComputableIn.option_casesOn (α := ℕ × ℕ) (β := RequirementData) (σ := Bool)
-    (o := fun p ↦ K.decodeAt d p.1 p.2) (f := fun _ ↦ false)
-    (g := fun p q ↦ decide (q.chainStage ≤ p.1 ∧ K.StaticAdmissible q)) hdec
-    (ComputableIn.const false) hguard.to₂).of_eq fun p ↦ ?_
+  have hconj : ComputableIn E fun r : α × RequirementData ↦
+      (decide (K.StaticAdmissible r.2) && K.landsBy (dl r.1 r.2.chainStage) (hs r.1) r.2.chainImage
+        && K.landsBy r.2.targetIdx (hs r.1) r.2.targetImage) :=
+    (Primrec.and.to_comp.computableIn₂ (O := E)).comp
+      ((Primrec.and.to_comp.computableIn₂ (O := E)).comp hstat h₁) h₂
+  have hle : ComputableIn E fun r : α × RequirementData ↦ decide (r.2.chainStage ≤ hs r.1) :=
+    (Primrec.nat_le.decide.to_comp.computableIn₂ (O := E)).comp hr hs'
+  have hbody : ComputableIn E fun r : α × RequirementData ↦
+      if r.2.chainStage ≤ hs r.1 then
+        (decide (K.StaticAdmissible r.2) &&
+          K.landsBy (dl r.1 r.2.chainStage) (hs r.1) r.2.chainImage &&
+            K.landsBy r.2.targetIdx (hs r.1) r.2.targetImage)
+      else false :=
+    ComputableIn.ite (α := α × RequirementData) (σ := Bool)
+      (c := fun r ↦ r.2.chainStage ≤ hs r.1)
+      (f := fun r ↦ decide (K.StaticAdmissible r.2) &&
+        K.landsBy (dl r.1 r.2.chainStage) (hs r.1) r.2.chainImage &&
+          K.landsBy r.2.targetIdx (hs r.1) r.2.targetImage)
+      (g := fun _ ↦ false) hle hconj (ComputableIn.const false)
+  refine (ComputableIn.option_casesOn (α := α) (β := RequirementData) (σ := Bool)
+    (o := fun a ↦ (decode (he a) : Option RequirementData)) (f := fun _ ↦ false)
+    (g := fun a q ↦ if q.chainStage ≤ hs a then
+      (decide (K.StaticAdmissible q) && K.landsBy (dl a q.chainStage) (hs a) q.chainImage &&
+        K.landsBy q.targetIdx (hs a) q.targetImage) else false)
+    hdec (ComputableIn.const false) hbody.to₂).of_eq fun a ↦ ?_
   unfold requirementAvail
-  cases K.decodeAt d p.1 p.2 <;> rfl
+  rcases hq : (decode (he a) : Option RequirementData) with _ | q <;> rfl
+
+/-- Availability at a fixed computable `d`, as a special case. -/
+theorem requirementAvail_computableIn (hOE : O ⊆ E) (hd : ComputableIn E d) :
+    ComputableIn E fun p : ℕ × ℕ ↦ K.requirementAvail d p.1 p.2 :=
+  K.requirementAvail_computableIn_uniform (α := ℕ × ℕ) hOE (dl := fun _ ↦ d)
+    (ComputableIn.comp (α := (ℕ × ℕ) × ℕ) (β := ℕ) (σ := ℕ) (f := d) (g := fun p ↦ p.2) hd
+      ComputableIn.snd) ComputableIn.fst ComputableIn.snd
+
+/-! ### Availability from a recorded history
+
+The clock-stage recursion computes `d (s + 1)` from `d 0, …, d s`; it cannot assume `d` computable,
+because that is what it is proving. So it consumes availability through a **history** — the list
+`[d 0, …, d s]` — and this adapter agrees with `requirementAvail d` whenever the history represents
+that prefix. The agreement is exactly `requirementAvail_local`, and the guard-before-lookup order
+means a code naming a future chain stage never indexes past the end of the history. -/
+
+/-- Availability read through a recorded history of member indices. -/
+def requirementAvailFromHistory (hist : List ℕ) (s e : ℕ) : Bool :=
+  K.requirementAvail (fun r ↦ hist.getD r 0) s e
+
+/-- **Agreement**: a history representing `d` on `0, …, s` gives stage-`s` availability at `d`. -/
+theorem requirementAvailFromHistory_eq {hist : List ℕ} {s : ℕ}
+    (hh : ∀ r ≤ s, hist[r]? = some (d r)) (e : ℕ) :
+    K.requirementAvailFromHistory hist s e = K.requirementAvail d s e :=
+  K.requirementAvail_local (d := fun r ↦ hist.getD r 0) (d' := d)
+    (fun r hr ↦ by rw [List.getD_eq_getElem?_getD, hh r hr]; rfl) e
+
+/-- The history adapter is uniformly computable in the history, the stage and the code — with no
+hypothesis on any member-index function. -/
+theorem requirementAvailFromHistory_computableIn (hOE : O ⊆ E) :
+    ComputableIn E fun p : (List ℕ × ℕ) × ℕ ↦ K.requirementAvailFromHistory p.1.1 p.1.2 p.2 :=
+  K.requirementAvail_computableIn_uniform (α := (List ℕ × ℕ) × ℕ) hOE
+    (dl := fun p r ↦ p.1.1.getD r 0) (hs := fun p ↦ p.1.2) (he := fun p ↦ p.2)
+    (((Primrec.list_getD (0 : ℕ)).to_comp.computableIn₂ (O := E)).comp
+      (ComputableIn.fst.comp (ComputableIn.fst.comp ComputableIn.fst)) ComputableIn.snd)
+    (ComputableIn.snd.comp ComputableIn.fst) ComputableIn.snd
 
 /-! Sealed for the same reason as `decodeAt`; use `requirementAvail_eq_true_iff`. -/
 attribute [irreducible] requirementAvail
 
-/-- **The dovetailing availability datum** for the Lemma 3.8 requirements. -/
+/-- **The dovetailing availability datum** for the Theorem 3.9 requirements. -/
 def requirementDovetail : DovetailAvail where
   avail := K.requirementAvail d
   avail_mono hst h := K.requirementAvail_mono d hst h
@@ -594,7 +722,8 @@ theorem requirementDovetail_avail :
 /-! ### Admissibility and coverage -/
 
 /-- **Admissibility** of a semantic requirement: the static guards, and both coded maps landing in
-their intended members. This is what Lemma 3.8 must meet for *every* `q`. -/
+their intended members. This is what the construction must meet for *every* `q`, so that Lemma 3.8
+applies. -/
 def Admissible (q : RequirementData) : Prop :=
   K.StaticAdmissible q ∧ K.CarrierValid (q.chainMap d) ∧ K.CarrierValid q.targetMap
 
