@@ -43,10 +43,10 @@ availability at any oracle reading the family, with `O ⊆ E` appearing only the
 read through a recorded prefix `[d 0, …, d s]` is availability at `d`; `test_history_effective` says
 the adapter is computable with **no** hypothesis on any member-index function — the form the
 clock-stage recursion can consume while `d`'s computability is still the theorem being proved.
-`test_guard_before_lookup` pins the operational order: a code naming a future chain stage is
-rejected by the stage guard, so the history is never indexed at that stage; the row states this for
-a history of length `s + 1` by reading availability through the *same* adapter with the history
-truncated to that length.
+`test_history_prefix_invariant` says availability at stage `s` depends only on the history's first
+`s + 1` entries. That is an *extensional* fact — the earlier lookup-first definition satisfied the
+same equation — so it does not certify that the stage guard is evaluated before the lookup; the
+guard's position is a property of the definition's text, read at `requirementAvail`.
 -/
 
 open Encodable FirstOrder Language
@@ -129,10 +129,9 @@ theorem test_history_effective (hOE : O ⊆ E) :
     ComputableIn E fun p : (List ℕ × ℕ) × ℕ ↦ K.requirementAvailFromHistory p.1.1 p.1.2 p.2 :=
   K.requirementAvailFromHistory_computableIn hOE
 
-/-- **Guard before lookup**: availability at stage `s` through any history equals availability
-through that history truncated to length `s + 1`, so no entry past the current stage is ever
-consulted. -/
-theorem test_guard_before_lookup (hist : List ℕ) (s e : ℕ) :
+/-- **Prefix invariance**: availability at stage `s` through any history equals availability through
+that history truncated to length `s + 1`. Extensional only — it does not pin evaluation order. -/
+theorem test_history_prefix_invariant (hist : List ℕ) (s e : ℕ) :
     K.requirementAvailFromHistory hist s e =
       K.requirementAvailFromHistory (hist.take (s + 1)) s e := by
   unfold PartialAgeIn.requirementAvailFromHistory
@@ -263,7 +262,7 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_effective
 #assert_standard_axioms FirstOrder.Language.test_history_agrees
 #assert_standard_axioms FirstOrder.Language.test_history_effective
-#assert_standard_axioms FirstOrder.Language.test_guard_before_lookup
+#assert_standard_axioms FirstOrder.Language.test_history_prefix_invariant
 #assert_standard_axioms FirstOrder.Language.test_q₀_static
 #assert_standard_axioms FirstOrder.Language.test_q₁_not_static
 #assert_standard_axioms FirstOrder.Language.test_landsBy_seven
