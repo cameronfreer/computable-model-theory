@@ -194,6 +194,12 @@ theorem list_findIdx {f : α → List β} {p : α → β → Bool} (hf : Computa
           (ComputableIn.snd.comp ComputableIn.snd))).to₂)
   exact h.of_eq fun a ↦ List.foldr_cond_eq_findIdx _ _
 
+/-- `List.find?`, relative to an oracle: the list read at its computable `findIdx`. -/
+theorem list_find? {f : α → List β} {p : α → β → Bool} (hf : ComputableIn O f)
+    (hp : ComputableIn₂ O p) : ComputableIn O fun a ↦ (f a).find? (p a) :=
+  ((Computable.list_getElem?.computableIn₂ (O := O)).comp hf
+    (ComputableIn.list_findIdx hf hp)).of_eq fun _ ↦ List.find?_eq_getElem?_findIdx.symm
+
 /-- `List.dedup`, relative to an oracle: the absolute fold composed with a computable list. -/
 theorem list_dedup [DecidableEq β] {f : α → List β} (hf : ComputableIn O f) :
     ComputableIn O fun a ↦ (f a).dedup :=
