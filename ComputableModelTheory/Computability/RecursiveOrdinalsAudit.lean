@@ -131,6 +131,10 @@ theorem test_strict_cut : ∀ α : Ordinal.{0}, α < omegaOneOf X ↔ α ∈ Rec
 
 theorem test_below_omega_one : omegaOneOf X < ω_ 1 := omegaOneOf.lt_omega_one
 
+/-- **The supremum characterization**, with boundedness exhibited separately. -/
+theorem test_eq_sSup : BddAbove (RecOrdinals X) ∧ omegaOneOf X = sSup (RecOrdinals X) :=
+  ⟨RecOrdinals.bddAbove, omegaOneOf.eq_sSup⟩
+
 /-- **No greatest presented ordinal.** -/
 theorem test_no_greatest : ∀ α, α < omegaOneOf X → α + 1 < omegaOneOf X :=
   fun _ ↦ omegaOneOf.succ_lt
@@ -152,4 +156,5 @@ theorem test_no_greatest : ∀ α, α < omegaOneOf X → α + 1 < omegaOneOf X :
 #assert_standard_axioms test_strict_cut_on_examples
 #assert_standard_axioms test_strict_cut
 #assert_standard_axioms test_below_omega_one
+#assert_standard_axioms test_eq_sSup
 #assert_standard_axioms test_no_greatest

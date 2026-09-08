@@ -10,9 +10,10 @@ import ComputableModelTheory.Util.AssertAxioms
 # Audit: program codes for one oracle
 
 **The oracle instruction is the oracle.** `test_oracle_is_oracle` is definitional, and
-`test_oracle_query_composes` runs a program that genuinely queries a non-computable-looking oracle
-(doubling) and post-processes the answer — the composition is with a real oracle call, not an
-absolute computable example dressed up.
+`test_oracle_query_composes` runs a program that queries the oracle and post-processes the answer.
+Together with `test_oracle_parameter_matters` — the same code against a different oracle — this
+establishes **oracle-parameter sensitivity**: the interpretation depends on the oracle argument, not
+on the code alone. Nothing stronger is claimed; the doubling oracle used here is itself computable.
 
 **Partiality is preserved, not papered over.** `test_divergent_oracle_stays_divergent` interprets
 the oracle instruction against the everywhere-undefined oracle; `test_rfind_diverges` runs an

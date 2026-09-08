@@ -27,30 +27,46 @@ In the dependency order the theorems actually follow:
 
 * **A** `RecWellOrder.type_lt_omega_one`: every presented ordinal is below `ω₁`, because the domain
   is a subtype of `ℕ`.
-* **B** `natOrder`, `finOrder`, `emptyOrder`: `ω`, every finite ordinal, and `0` are presented, by
-  actual computable domains and relations.
-* **C** `RecWellOrder.restrict`, `mem_recOrdinals_of_lt`: presented ordinals are downward closed —
+* **B** `RecWellOrder.natOrder`, `RecWellOrder.finOrder`, `RecWellOrder.emptyOrder`: `ω`, every
+  finite ordinal, and `0` are presented, by actual computable domains and relations.
+* **C** `RecWellOrder.restrict`, `RecOrdinals.mem_of_lt`: presented ordinals are downward closed —
   restrict a presentation to the initial segment below an element chosen **classically** by the
   order-type theorem. No ordinal comparison is decided and no element is computed from an ordinal.
-* **D** `RecWellOrder.succ`, `succ_mem_recOrdinals`: presented ordinals are successor closed — shift
+* **D** `RecWellOrder.succ`, `RecOrdinals.succ_mem`: presented ordinals are successor closed — shift
   the old domain to `n + 1` and reserve `0` for a new greatest element, so nothing assumes an unused
   natural number exists.
-* **E** `countable_recOrdinals`: the presented ordinals form a countable set. Each presentation's
+* **E** `RecOrdinals.countable`: the presented ordinals form a countable set. Each presentation's
   domain and relation are the interpretations of program codes (`OracleCode`, by completeness), so
-  `RecOrdinals X` lies in the range of `codeType X` over the countable type of code pairs. This
-  counts *code presentations*; no effective injection of order types into codes is claimed.
-* **F** `compl_recOrdinals_nonempty`, `omegaOneOf_notMem`: the complement is nonempty (it contains
-  `ω₁`, by A), so the infimum defining `omegaOneOf X` is attained and is not presented.
-* **G** `lt_omegaOneOf_iff`: `α < omegaOneOf X ↔ α ∈ RecOrdinals X` — leastness plus downward
+  `RecOrdinals X` lies in the range of `RecOrdinals.codeType X` over the countable type of code
+  pairs. This counts *code presentations*; no effective injection of order types into codes is
+  claimed.
+* **F** `omegaOneOf.compl_recOrdinals_nonempty`, `omegaOneOf.notMem_recOrdinals`: the complement is
+  nonempty (it contains `ω₁`, by A), so the infimum defining `omegaOneOf X` is attained and is not
+  presented.
+* **G** `omegaOneOf.lt_iff`: `α < omegaOneOf X ↔ α ∈ RecOrdinals X` — leastness plus downward
   closure, with nonmembership at the endpoint.
-* **H** `omegaOneOf_lt_omega_one`: `omegaOneOf X < ω₁`. Countably many code types, each below the
+* **H** `omegaOneOf.lt_omega_one`: `omegaOneOf X < ω₁`. Countably many code types, each below the
   regular cardinal `ℵ₁`, have supremum below `ω₁`; the successor of that supremum is not presented,
   so it bounds the infimum.
-* **I** `omega0_lt_omegaOneOf`, `succ_lt_omegaOneOf`: `ω < omegaOneOf X`, and no presented ordinal
+* **I** `omegaOneOf.omega0_lt`, `omegaOneOf.succ_lt`: `ω < omegaOneOf X`, and no presented ordinal
   is greatest.
-* **J** `RecWellOrder.transport`, `recOrdinals_mono`: Turing monotonicity, by relabelling the two
+* **J** `RecWellOrder.transport`, `RecOrdinals.mono`: Turing monotonicity, by relabelling the two
   computability proofs along `RecursiveIn.subst`; the domain, relation, and type are unchanged.
-* **K** `omegaOneOf_mono`, `omegaOneOf_eq_of_equiv`: monotonicity and Turing-equivalence invariance.
+* **K** `omegaOneOf.mono`, `omegaOneOf.eq_of_equiv`: monotonicity and Turing-equivalence invariance.
+* **Supremum** `omegaOneOf.eq_sSup`: `omegaOneOf X = sSup (RecOrdinals X)`, with boundedness
+  (`RecOrdinals.bddAbove`) proved explicitly; a consequence of G and D, not new machinery.
+
+## `codeType` is a countable envelope, not a characterization
+
+`RecOrdinals.codeType X` is defined on **every** code pair, with no requirement that the codes be
+total Boolean indicators: it returns the order type when the presented relation happens to
+well-order the presented set, and `0` otherwise. Two facts are proved about it and only two —
+every presented ordinal lies in its range (`RecOrdinals.type_mem_range_codeType`), and every value
+is below `ω₁` (`RecOrdinals.codeType_lt_omega_one`). The reverse inclusion, that every value in its
+range is presented, is **not** established and is not needed: a code pair whose partial
+interpretations happen to well-order a set need not present an `{X}`-*computable* domain. Nobody
+should identify the range of `codeType X`, or its supremum, with `RecOrdinals X` or `omegaOneOf X`
+without proof.
 
 ## What is not proved
 
@@ -407,6 +423,13 @@ the countable type of code pairs. -/
 theorem countable : (RecOrdinals X).Countable :=
   (Set.countable_range (codeType X)).mono subset_range_codeType
 
+/-- The presented ordinals are bounded above, by `ω₁` (A). -/
+theorem bddAbove : BddAbove (RecOrdinals X) :=
+  ⟨ω_ 1, fun _ h ↦ (lt_omega_one h).le⟩
+
+theorem nonempty : (RecOrdinals X).Nonempty :=
+  ⟨0, zero_mem⟩
+
 end RecOrdinals
 
 /-! ### The least non-presented ordinal -/
@@ -475,6 +498,18 @@ theorem pos : 0 < omegaOneOf X :=
 /-- **(I)** No presented ordinal is greatest: the boundary is closed under successor from below. -/
 theorem succ_lt {α : Ordinal.{0}} (h : α < omegaOneOf X) : α + 1 < omegaOneOf X :=
   lt_of_mem (RecOrdinals.succ_mem (lt_iff.1 h))
+
+/-- **The supremum characterization**: the least non-presented ordinal is the supremum of the
+presented ones. Boundedness is `RecOrdinals.bddAbove`; the two inequalities come from the strict
+cut (G) and successor closure (D). -/
+theorem eq_sSup : omegaOneOf X = sSup (RecOrdinals X) := by
+  apply le_antisymm
+  · by_contra h
+    have hlt : sSup (RecOrdinals X) < omegaOneOf X := not_le.1 h
+    have hmem : sSup (RecOrdinals X) + 1 ∈ RecOrdinals X :=
+      RecOrdinals.succ_mem (lt_iff.1 hlt)
+    exact absurd (le_csSup RecOrdinals.bddAbove hmem) (not_le.2 (Order.lt_succ _))
+  · exact csSup_le RecOrdinals.nonempty fun _ h ↦ (lt_of_mem h).le
 
 /-- **(K)** Turing monotonicity. -/
 theorem mono {Y : ℕ →. ℕ} (h : RecursiveIn {Y} X) : omegaOneOf X ≤ omegaOneOf Y :=
