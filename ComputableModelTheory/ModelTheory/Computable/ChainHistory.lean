@@ -543,6 +543,19 @@ theorem pickFromHistory_eq {d : ℕ → ℕ} {hist : List ℕ} {s : ℕ}
   funext e
   rw [K.requirementAvailFromHistory_eq d hh e]
 
+/-- **What a successful selection certifies**: the selected code is available through the history at
+this stage, has not fired, and is at most the stage. -/
+theorem avail_of_pickFromHistory {hist fired : List ℕ} {s e : ℕ}
+    (h : K.pickFromHistory hist fired s = some e) :
+    K.requirementAvailFromHistory hist s e = true ∧ e ∉ fired ∧ e ≤ s := by
+  have hmem := List.mem_range.1 (List.mem_of_find?_eq_some h)
+  have hp := List.find?_some h
+  rw [Bool.and_eq_true] at hp
+  refine ⟨hp.1, fun hmem' ↦ ?_, Nat.lt_succ_iff.1 hmem⟩
+  have : fired.contains e = true := List.contains_iff_mem.2 hmem'
+  rw [this] at hp
+  exact absurd hp.2 (by simp)
+
 /-- Selection from history is uniformly computable, with no hypothesis on any member-index
 function. -/
 theorem pickFromHistory_computableIn (hOE : O ⊆ E) :

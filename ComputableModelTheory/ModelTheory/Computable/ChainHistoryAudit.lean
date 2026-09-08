@@ -18,9 +18,12 @@ the commuting square consumes: both maps actual, the realizer named as `g.comp f
 **The fixture that tells them apart.** `nonactualCandidate` is `A_1 → A_0` with range `[7]`: carrier
 valid (the lifted family has full carriers) but **not** an embedding, since `A_1` has two recorded
 generators and the range has one entry. `test_nonactual_candidate_composes` proves nonactualness
-*alongside* convergence and landing of its composite with the identity. Using the stronger
-composition theorem at the firing step would reject exactly this candidate — and silently restrict
-which requirements the construction processes, with nothing complaining.
+*alongside* convergence and landing of its composite with the identity. What this row establishes
+is that composition needs no width equation. It does **not** model a candidate the firing step
+could see: its width mismatch already violates `StaticAdmissible`, so availability would never
+select it. The candidate that must still extend the chain — passing both width equations and the
+`(n+1)` guard yet nonactual for a semantic reason, such as collapsing two distinct generators —
+belongs to the transition audit.
 
 **Transport obeys its two laws and lands where it should.** `test_transport_self` and
 `test_transport_succ` are the laws the recursion will unfold; `test_transport_lands` says that under
