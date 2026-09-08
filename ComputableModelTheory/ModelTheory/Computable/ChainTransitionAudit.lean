@@ -177,15 +177,19 @@ theorem test_collapsing_fires (W : PartialCAPWitness E (threeWidthFamily O)) {S 
     (h : (threeWidthFamily O).RunInvariant S s)
     (hp : (threeWidthFamily O).pickFromHistory (stageHistory S.stages) S.fired s = some e)
     (he : (decode e : Option RequirementData) = some collapsingCandidate) :
-    ¬ (threeWidthFamily O).PartialIsEmbedding (collapsingCandidate.chainMap S.dHist) ∧
+    (∀ q : RequirementData, (decode e : Option RequirementData) = some q →
+        ¬ (threeWidthFamily O).PartialIsEmbedding (q.chainMap S.dHist)) ∧
       (PartialAgeIn.stepPart (threeWidthFamily O) W S s).Dom ∧
         ∀ S' ∈ PartialAgeIn.stepPart (threeWidthFamily O) W S s,
           (threeWidthFamily O).RunInvariant S' (s + 1) ∧ S'.fired = S.fired ++ [e] := by
-  refine ⟨test_collapsing_not_embedding O S.dHist, PartialAgeIn.stepPart_dom W h, fun S' hS' ↦
+  refine ⟨fun q hq ↦ ?_, PartialAgeIn.stepPart_dom W h, fun S' hS' ↦
     ⟨PartialAgeIn.runInvariant_of_mem W h hS', ?_⟩⟩
-  rcases test_fired_record W hS' with ⟨hnone, -⟩ | ⟨e', hp', hfired⟩
-  · rw [hp] at hnone; exact absurd hnone (by simp)
-  · rw [hp] at hp'; obtain rfl := Option.some.inj hp'; exact hfired
+  · rw [he] at hq
+    obtain rfl := Option.some.inj hq
+    exact test_collapsing_not_embedding O S.dHist
+  · rcases test_fired_record W hS' with ⟨hnone, -⟩ | ⟨e', hp', hfired⟩
+    · rw [hp] at hnone; exact absurd hnone (by simp)
+    · rw [hp] at hp'; obtain rfl := Option.some.inj hp'; exact hfired
 
 end Fixture
 
