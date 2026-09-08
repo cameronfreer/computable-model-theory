@@ -29,10 +29,16 @@ Records are proof-free and `Primcodable`; every semantic condition lives in `Cha
 ## Partial composition and finite transport
 
 `compPart G F` composes potential data by pushing `F`'s range tuple through `applyPotentialPart G`.
-It is `Part`-valued because application is: it halts when `F`'s entries lie in the generated carrier
-of `G`'s source, which is exactly what actualness of `F` supplies. `compPart_realizes` names the
-composite's realizer as `g.comp f`, and `compPart_partialIsEmbedding` is its existential shadow with
-endpoints.
+It is `Part`-valued because application is. Two contracts, for two consumers:
+
+* **the firing step** needs only `compPart_carrierValid`: if the middle indices match, `F` is
+  carrier-valid and `G` is an actual embedding, then composition halts on carrier-valid data with
+  the outer endpoints. Availability supplies exactly carrier validity of the scheduled candidate,
+  and the chain invariant supplies actualness of the transport — nothing stronger is available at
+  that point, and asking for actualness of `F` would silently restrict which requirements the
+  construction processes;
+* **the commuting square** needs `compPart_realizes`, which names the composite's realizer as
+  `g.comp f` when both maps are actual; `compPart_partialIsEmbedding` is its existential shadow.
 
 `transportPart stages r s` is the fold of `compPart` over the recorded steps `r+1, …, s`, starting
 from the identity data on `A_{d r}` — the finite `δ_{r,s}` read off the recorded prefix. Under the
@@ -143,9 +149,11 @@ theorem idData_computableIn (hOE : O ⊆ E) : ComputableIn E K.idData :=
 
 /-! ### Partial composition of potential data -/
 
-/-- **Partial composition**: push `F`'s range tuple through the application of `G`. Halts exactly
-when every entry of `F`'s range lies in the generated carrier of `G`'s source — which actualness of
-`F` guarantees. -/
+/-- **Partial composition**: push `F`'s range tuple through the application of `G`. `Part`-valued
+because application is. The guarantee the construction uses is `compPart_carrierValid`: when the
+middle indices match, `F` is carrier-valid and `G` is an actual embedding, composition halts on
+carrier-valid data with the outer endpoints — no actualness of `F`, and no generator-width equation
+for `F`, is needed. No exact-domain claim is made. -/
 noncomputable def compPart (G F : PotentialEmbeddingData) : Part PotentialEmbeddingData :=
   (listMapPart (K.applyPotentialPart G) F.rangeTuple).map fun v ↦
     PotentialEmbeddingData.ofTriple (F.domIdx, G.codIdx, v)
@@ -243,6 +251,59 @@ theorem compPart_partialIsEmbedding {G F : PotentialEmbeddingData} (hFG : F.codI
     (PotentialEmbeddingData.ofTriple (c, d, w))
   rw [hcomp]
   exact Part.mem_some _
+
+/-- **Halting from carrier validity alone.** With matching middle indices and an actual `G`, the
+composite is defined as soon as `F`'s range lies in the middle member — actualness of `F` and its
+generator width play no part. -/
+theorem compPart_dom_of_carrierValid {G F : PotentialEmbeddingData} (hFG : F.codIdx = G.domIdx)
+    (hF : K.CarrierValid F) (hG : K.PartialIsEmbedding G) : (K.compPart G F).Dom := by
+  refine Part.dom_iff_mem.2 ?_
+  have hdom : (listMapPart (K.applyPotentialPart G) F.rangeTuple).Dom :=
+    listMapPart_dom_iff.2 fun x hx ↦
+      K.applyPotentialPart_dom_of_partialIsEmbedding hG
+        (by rw [memberAt_domain, ← hFG]; exact hF x hx)
+  obtain ⟨v, hv⟩ := Part.dom_iff_mem.1 hdom
+  exact ⟨_, (Part.mem_map_iff _).2 ⟨v, hv, rfl⟩⟩
+
+/-- **Membership**: every value of the composite is `ofTriple (F.domIdx, G.codIdx, v)` for a tuple
+`v` obtained by applying `G` entrywise to `F`'s range. -/
+theorem mem_compPart_iff {G F H : PotentialEmbeddingData} :
+    H ∈ K.compPart G F ↔
+      ∃ v : Tuple ℕ, List.Forall₂ (fun a b ↦ b ∈ K.applyPotentialPart G a) F.rangeTuple v ∧
+        H = PotentialEmbeddingData.ofTriple (F.domIdx, G.codIdx, v) := by
+  unfold compPart
+  rw [Part.mem_map_iff]
+  constructor
+  · rintro ⟨v, hv, rfl⟩
+    exact ⟨v, mem_listMapPart_iff.1 hv, rfl⟩
+  · rintro ⟨v, hv, rfl⟩
+    exact ⟨v, mem_listMapPart_iff.2 hv, rfl⟩
+
+/-- **Landing**: with matching middle indices, a carrier-valid `F` and an actual `G`, every value of
+the composite is carrier-valid. -/
+theorem carrierValid_of_mem_compPart {G F H : PotentialEmbeddingData} (hFG : F.codIdx = G.domIdx)
+    (hF : K.CarrierValid F) (hG : K.PartialIsEmbedding G) (hH : H ∈ K.compPart G F) :
+    K.CarrierValid H := by
+  obtain ⟨v, hv, rfl⟩ := (K.mem_compPart_iff).1 hH
+  intro y hy
+  change y ∈ K.domainAt G.codIdx
+  have hy' : y ∈ v := hy
+  obtain ⟨⟨i, hi⟩, rfl⟩ := List.mem_iff_get.1 hy'
+  obtain ⟨hlen, hget⟩ := (List.forall₂_iff_get).1 hv
+  have hmem := hget i (by omega) hi
+  have hx : F.rangeTuple.get ⟨i, by omega⟩ ∈ (K.memberAt G.domIdx).domain := by
+    rw [memberAt_domain, ← hFG]; exact hF _ (List.get_mem _ _)
+  exact K.applyPotentialPart_mem_domainAt_of_partialIsEmbedding hG hx hmem
+
+/-- **The composition contract the firing step uses.** Matching middle indices, a carrier-valid
+candidate `F`, an actual transport `G`: the composite halts, has the outer endpoints, and is
+carrier-valid. Neither actualness of `F` nor a generator-width equation for `F` enters. -/
+theorem compPart_carrierValid {G F : PotentialEmbeddingData} (hFG : F.codIdx = G.domIdx)
+    (hF : K.CarrierValid F) (hG : K.PartialIsEmbedding G) :
+    ∃ H ∈ K.compPart G F, H.domIdx = F.domIdx ∧ H.codIdx = G.codIdx ∧ K.CarrierValid H := by
+  obtain ⟨H, hH⟩ := Part.dom_iff_mem.1 (K.compPart_dom_of_carrierValid hFG hF hG)
+  obtain ⟨v, -, rfl⟩ := (K.mem_compPart_iff).1 hH
+  exact ⟨_, hH, rfl, rfl, K.carrierValid_of_mem_compPart hFG hF hG hH⟩
 
 /-! ### The invariant -/
 

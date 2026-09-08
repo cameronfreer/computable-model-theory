@@ -9,10 +9,18 @@ import ComputableModelTheory.Util.AssertAxioms
 /-!
 # Audit: the recorded finite chain
 
-**Composition names its realizer.** `test_compPart_realizer` exhibits the composite's range tuple
-and the realizer `g.comp f` — the datum the commuting square at the firing stage will need — while
-`test_compPart_exists` is the existential shadow with endpoints, on arbitrary data. They are gated
-separately because the transition consumes the second and the square consumes the first.
+**Two composition contracts, gated separately.** `test_compPart_carrierValid` is the one the firing
+step consumes: matching middle indices, a *carrier-valid* candidate, an *actual* transport — and the
+composite halts, has the outer endpoints, and is carrier-valid. `test_compPart_realizer` is the one
+the commuting square consumes: both maps actual, the realizer named as `g.comp f`.
+`test_compPart_exists` is the latter's existential shadow.
+
+**The fixture that tells them apart.** `nonactualCandidate` is `A_1 → A_0` with range `[7]`: carrier
+valid (the lifted family has full carriers) but **not** an embedding, since `A_1` has two recorded
+generators and the range has one entry. `test_nonactual_candidate_composes` proves nonactualness
+*alongside* convergence and landing of its composite with the identity. Using the stronger
+composition theorem at the firing step would reject exactly this candidate — and silently restrict
+which requirements the construction processes, with nothing complaining.
 
 **Transport obeys its two laws and lands where it should.** `test_transport_self` and
 `test_transport_succ` are the laws the recursion will unfold; `test_transport_lands` says that under
@@ -57,6 +65,13 @@ theorem test_compPart_realizer {c d e : ℕ} {w v : Tuple ℕ}
         Part.some (PotentialEmbeddingData.ofTriple (c, e, v')) ∧
       K.PartialRealizes (PotentialEmbeddingData.ofTriple (c, e, v')) (g.comp f) :=
   K.compPart_realizes hf hg
+
+/-- **The firing-step contract**: carrier validity of the candidate, actualness of the transport,
+matching middle indices — and nothing about the candidate's width or actualness. -/
+theorem test_compPart_carrierValid {G F : PotentialEmbeddingData} (hFG : F.codIdx = G.domIdx)
+    (hF : K.CarrierValid F) (hG : K.PartialIsEmbedding G) :
+    ∃ H ∈ K.compPart G F, H.domIdx = F.domIdx ∧ H.codIdx = G.codIdx ∧ K.CarrierValid H :=
+  K.compPart_carrierValid hFG hF hG
 
 /-- **The existential shadow**, on arbitrary data with matching middle member. -/
 theorem test_compPart_exists {G F : PotentialEmbeddingData} (hFG : F.codIdx = G.domIdx)
@@ -143,11 +158,36 @@ theorem test_two_stages_transport :
     (Nat.zero_le 1) (rr := ⟨0, (twoStageFamily O).idData 0⟩)
     (rs := ⟨0, (twoStageFamily O).idData 0⟩) rfl rfl
 
+/-- A carrier-valid candidate `A_1 → A_0` that is **not** an embedding: `A_1` has two recorded
+generators, the range has one entry. -/
+def nonactualCandidate : PotentialEmbeddingData := PotentialEmbeddingData.ofTriple (1, 0, [7])
+
+theorem test_nonactual_candidate_carrierValid :
+    (twoStageFamily O).CarrierValid (nonactualCandidate) :=
+  fun _ _ ↦ by simp [twoStageFamily]
+
+theorem test_nonactual_candidate_not_embedding :
+    ¬ (twoStageFamily O).PartialIsEmbedding nonactualCandidate := by
+  rintro h
+  have := h.length
+  simp [nonactualCandidate, twoStageFamily, ComputableAgeIn.toPartialAge, succAgeMixed] at this
+
+/-- **Nonactual, yet it composes**: with the actual identity on `A_0`, the composite halts, has
+endpoints `1` and `0`, and is carrier-valid — proved alongside nonactualness of the candidate. -/
+theorem test_nonactual_candidate_composes :
+    ¬ (twoStageFamily O).PartialIsEmbedding nonactualCandidate ∧
+      ∃ H ∈ (twoStageFamily O).compPart ((twoStageFamily O).idData 0) nonactualCandidate,
+        H.domIdx = 1 ∧ H.codIdx = 0 ∧ (twoStageFamily O).CarrierValid H :=
+  ⟨test_nonactual_candidate_not_embedding O,
+    (twoStageFamily O).compPart_carrierValid rfl (test_nonactual_candidate_carrierValid O)
+      ((twoStageFamily O).idData_partialIsEmbedding 0)⟩
+
 end Fixture
 
 end FirstOrder.Language
 
 #assert_standard_axioms FirstOrder.Language.test_compPart_realizer
+#assert_standard_axioms FirstOrder.Language.test_compPart_carrierValid
 #assert_standard_axioms FirstOrder.Language.test_compPart_exists
 #assert_standard_axioms FirstOrder.Language.test_transport_self
 #assert_standard_axioms FirstOrder.Language.test_transport_succ
@@ -158,3 +198,6 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_effective
 #assert_standard_axioms FirstOrder.Language.test_two_stages_invariant
 #assert_standard_axioms FirstOrder.Language.test_two_stages_transport
+#assert_standard_axioms FirstOrder.Language.test_nonactual_candidate_carrierValid
+#assert_standard_axioms FirstOrder.Language.test_nonactual_candidate_not_embedding
+#assert_standard_axioms FirstOrder.Language.test_nonactual_candidate_composes
