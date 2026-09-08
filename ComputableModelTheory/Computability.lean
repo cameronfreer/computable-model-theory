@@ -12,6 +12,7 @@ import ComputableModelTheory.Computability.ListComputable
 import ComputableModelTheory.Computability.Dovetail
 import ComputableModelTheory.Computability.ListPredicates
 import ComputableModelTheory.Computability.ListSections
+import ComputableModelTheory.Computability.OracleCode
 import ComputableModelTheory.Computability.OraclePred
 import ComputableModelTheory.Computability.RecursiveIn
 import ComputableModelTheory.Computability.Reduction
