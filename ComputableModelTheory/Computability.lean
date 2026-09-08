@@ -15,7 +15,9 @@ import ComputableModelTheory.Computability.ListSections
 import ComputableModelTheory.Computability.OracleCode
 import ComputableModelTheory.Computability.OraclePred
 import ComputableModelTheory.Computability.RecursiveIn
+import ComputableModelTheory.Computability.OracleJoin
 import ComputableModelTheory.Computability.RecursiveOrdinals
+import ComputableModelTheory.Computability.RecursiveOrdinalsMul
 import ComputableModelTheory.Computability.Reduction
 import ComputableModelTheory.Computability.StagedPartial
 import ComputableModelTheory.Computability.StagedPartialExample
