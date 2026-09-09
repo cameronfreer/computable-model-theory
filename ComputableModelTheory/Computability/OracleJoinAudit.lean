@@ -17,8 +17,8 @@ totalized by joining.
 **The universal property is gated in both directions.** `test_projections` are the two reductions
 at the join itself; `test_universal` is the full iff at an arbitrary oracle set.
 
-**Only the maximum inequality.** `test_max_le_join` is the automatic bound. No row asserts equality
-with the maximum, because none is proved.
+The ordinal consequence of the join is audited with the ordinal layer
+(`RecursiveOrdinalsJoinAudit`), not here: this module depends only on the computability substrate.
 -/
 
 open Encodable
@@ -60,14 +60,8 @@ theorem test_join_computes_components (X Y : ℕ →. ℕ) {f : ℕ →. ℕ}
   RecursiveIn.subst h fun _ hg ↦ by
     rw [Set.mem_singleton_iff] at hg; rw [hg]; exact join.recursiveIn_left X Y
 
-/-- **The maximum inequality**, and nothing more. -/
-theorem test_max_le_join (X Y : ℕ →. ℕ) :
-    max (omegaOneOf X) (omegaOneOf Y) ≤ omegaOneOf (join X Y) :=
-  omegaOneOf.max_le_join X Y
-
 #assert_standard_axioms test_even_odd
 #assert_standard_axioms test_partial_preserved
 #assert_standard_axioms test_projections
 #assert_standard_axioms test_universal
 #assert_standard_axioms test_join_computes_components
-#assert_standard_axioms test_max_le_join

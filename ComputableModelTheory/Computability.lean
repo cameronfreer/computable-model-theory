@@ -17,6 +17,7 @@ import ComputableModelTheory.Computability.OraclePred
 import ComputableModelTheory.Computability.RecursiveIn
 import ComputableModelTheory.Computability.OracleJoin
 import ComputableModelTheory.Computability.RecursiveOrdinals
+import ComputableModelTheory.Computability.RecursiveOrdinalsJoin
 import ComputableModelTheory.Computability.RecursiveOrdinalsMul
 import ComputableModelTheory.Computability.Reduction
 import ComputableModelTheory.Computability.StagedPartial

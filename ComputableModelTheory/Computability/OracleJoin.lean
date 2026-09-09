@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
 import ComputableModelTheory.Computability.RecursiveIn
-import ComputableModelTheory.Computability.RecursiveOrdinals
 
 /-!
 # The join of two partial oracles
@@ -14,12 +13,10 @@ import ComputableModelTheory.Computability.RecursiveOrdinals
 
 The **universal reduction property** (`recursiveIn_join_iff`) says an oracle set computes the join
 exactly when it computes both components. Its two projections are the two directions read at the
-join itself (`recursiveIn_left`, `recursiveIn_right`), and the only consequence for the recursive
-ordinals drawn here is the automatic inequality
-
-`max (omegaOneOf X) (omegaOneOf Y) ≤ omegaOneOf (join X Y)`
-
-(`omegaOneOf.max_le_join`), by monotonicity. **Equality with the maximum is not asserted.**
+join itself (`recursiveIn_left`, `recursiveIn_right`). This module depends only on the
+computability substrate; the consequence for recursive ordinals — the automatic inequality
+`max (omegaOneOf X) (omegaOneOf Y) ≤ omegaOneOf (join X Y)`, and nothing stronger — lives in
+`RecursiveOrdinalsJoin`.
 
 The partial-recursiveness proof of the join composes two `RecursiveIn.option_casesOn_right`s: the
 first yields `X (n / 2)` on even `n` and a total dummy on odd `n`; binding the second replaces the
@@ -111,13 +108,3 @@ theorem recursiveIn_join_iff {O : Set (ℕ →. ℕ)} :
     fun ⟨hX, hY⟩ ↦ recursiveIn_of X Y hX hY⟩
 
 end join
-
-namespace omegaOneOf
-
-/-- **The automatic join bound**: both boundaries are at most the join's. Equality with the maximum
-is **not** claimed. -/
-theorem max_le_join (X Y : ℕ →. ℕ) :
-    max (omegaOneOf X) (omegaOneOf Y) ≤ omegaOneOf (join X Y) :=
-  max_le (mono (join.recursiveIn_left X Y)) (mono (join.recursiveIn_right X Y))
-
-end omegaOneOf
