@@ -50,6 +50,7 @@ import ComputableModelTheory.ModelTheory.Computable.ChainTransition
 import ComputableModelTheory.ModelTheory.Computable.ChainRun
 import ComputableModelTheory.ModelTheory.Computable.ChainAssembly
 import ComputableModelTheory.ModelTheory.Computable.RunChain
+import ComputableModelTheory.ModelTheory.Computable.LimitTupleExhaustion
 import ComputableModelTheory.ModelTheory.Computable.CollapsingCandidate
 import ComputableModelTheory.ModelTheory.Computable.RepresentationConjugation
 import ComputableModelTheory.ModelTheory.Computable.RepresentationWitnessTransport

@@ -3,6 +3,7 @@ Copyright (c) 2026 Cameron Freer. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
+import ComputableModelTheory.ModelTheory.Computable.ChainAssembly
 import ComputableModelTheory.ModelTheory.Computable.ChainHistory
 
 /-!
@@ -15,6 +16,9 @@ generators) into
 both width equations and the `(n+1)` guard, is carrier-valid in every member, and is **not** an
 embedding. It is the candidate the construction must still process — the transition must extend the
 chain on it, and the scheduler must eventually select its code.
+
+Also here: `identityChain`, the constant chain on member `0` with identity steps, the smallest
+concrete input of the chain assembly, used by the assembly and exhaustion audits.
 -/
 
 open Encodable FirstOrder Language
@@ -68,5 +72,19 @@ theorem collapsingCandidate_not_partialIsEmbedding (d : ℕ → ℕ) :
   have hval : (0 : ℕ) = 1 := congrArg Subtype.val hinj
   exact absurd hval (by decide)
 
+
+/-! ### The identity chain -/
+
+/-- The constant chain on member `0` with identity steps. -/
+noncomputable def identityChain : (threeWidthFamily O).EmbeddingChainData where
+  d := fun _ ↦ 0
+  step := fun _ ↦ (threeWidthFamily O).idData 0
+  step_domIdx := fun _ ↦ rfl
+  step_codIdx := fun _ ↦ rfl
+  step_isEmbedding := fun _ ↦ (threeWidthFamily O).idData_partialIsEmbedding 0
+
+theorem identityChain_nonempty :
+    ((threeWidthFamily O).domainAt ((identityChain O).d 0)).Nonempty :=
+  ⟨0, by simp [threeWidthFamily]⟩
 
 end FirstOrder.Language

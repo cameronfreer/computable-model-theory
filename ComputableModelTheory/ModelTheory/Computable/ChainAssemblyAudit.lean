@@ -78,18 +78,6 @@ section Fixture
 
 variable (O : Set (ℕ →. ℕ))
 
-/-- The constant chain on member `0` with identity steps. -/
-noncomputable def identityChain : (threeWidthFamily O).EmbeddingChainData where
-  d := fun _ ↦ 0
-  step := fun _ ↦ (threeWidthFamily O).idData 0
-  step_domIdx := fun _ ↦ rfl
-  step_codIdx := fun _ ↦ rfl
-  step_isEmbedding := fun _ ↦ (threeWidthFamily O).idData_partialIsEmbedding 0
-
-theorem test_identity_chain_nonempty :
-    ((threeWidthFamily O).domainAt ((identityChain O).d 0)).Nonempty :=
-  ⟨0, by simp [threeWidthFamily]⟩
-
 /-- Every fold value of the identity chain is realized by the identity: it sends any point to
 itself. -/
 theorem test_identity_fold (k : ℕ) {δ : PotentialEmbeddingData}
@@ -112,7 +100,7 @@ theorem test_identity_fold (k : ℕ) {δ : PotentialEmbeddingData}
 
 /-- **The identity chain's transport is the identity**, at every stage. -/
 theorem test_identity_chain_transport (hOE : O ⊆ E) (k x : ℕ) :
-    x ∈ ((identityChain O).toChain (test_identity_chain_nonempty O) hOE (ComputableIn.const 0)
+    x ∈ ((identityChain O).toChain (identityChain_nonempty O) hOE (ComputableIn.const 0)
       (ComputableIn.const _)).transportTo 0 (0 + k) x := by
   obtain ⟨δ, hδ⟩ := Part.dom_iff_mem.1 ((identityChain O).foldData_dom 0 k)
   exact ((identityChain O).mem_transportTo_iff_applyPotentialPart _ hOE _ _ 0 k hδ
@@ -130,6 +118,5 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_fold_actual
 #assert_standard_axioms FirstOrder.Language.test_fold_halts
 #assert_standard_axioms FirstOrder.Language.test_transport_identification
-#assert_standard_axioms FirstOrder.Language.test_identity_chain_nonempty
 #assert_standard_axioms FirstOrder.Language.test_identity_fold
 #assert_standard_axioms FirstOrder.Language.test_identity_chain_transport
