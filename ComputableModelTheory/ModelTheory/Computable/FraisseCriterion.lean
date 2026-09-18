@@ -151,7 +151,7 @@ theorem closureRangeEquiv_symm_apply {M N : Type*} [L.Structure M] [L.Structure 
 
 namespace CeStructureChainIn
 
-variable {D : CeStructureChainIn O L}
+variable {E : Set (ℕ →. ℕ)} {D : CeStructureChainIn E L}
 
 namespace LimitIn
 

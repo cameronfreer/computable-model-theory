@@ -14,7 +14,7 @@ structure at every positive index — in the empty language, where embeddings ar
 every structure is trivially a structure. Its constant chain on the point, with identity steps,
 assembles to a chain whose limit is a point; the criterion's hypotheses (semantic HP and JEP, stage
 membership, the full extension property) are discharged on it by case analysis, and
-`tinyLimit_isFraisseLimit` obtains `IsFraisseLimit` for that limit from the generic theorem.
+`tinyAge.limit_isFraisseLimit` obtains `IsFraisseLimit` for that limit from the generic theorem.
 
 This is the smallest fixture on which all four inputs of the criterion are non-vacuous: HP needs the
 empty member (the closure of the empty tuple in the point is empty), JEP needs a common member, the

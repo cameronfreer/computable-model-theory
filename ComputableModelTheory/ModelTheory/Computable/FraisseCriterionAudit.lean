@@ -30,7 +30,7 @@ variable {O : Set (ℕ →. ℕ)} {L : Language} [L.EffectiveLanguage]
 
 section General
 
-variable (K : PartialAgeIn O L) {D : CeStructureChainIn O L} {Z : D.LimitIn}
+variable (K : PartialAgeIn O L) {E : Set (ℕ →. ℕ)} {D : CeStructureChainIn E L} {Z : D.LimitIn}
 
 theorem test_classSet (i : ℕ) {A B : CategoryTheory.Bundled L.Structure} (hA : A ∈ K.classSet)
     (e : A ≃[L] B) :
