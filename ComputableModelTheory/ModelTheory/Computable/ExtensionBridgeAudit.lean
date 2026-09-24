@@ -31,6 +31,16 @@ bridge owes:
 * `test_nontrivial_square` — a stage that is not a subsingleton, and a request whose square has
   content: with `f` sending the point to `1` and `g` sending it to `0`, every extension produced by
   the one-point property is forced to disagree, in the limit, with the image of `0`.
+
+Two rows exercise `.extension` end to end:
+
+* `test_extension_zero_iterations` — a target recorded on generators `[]`: the prefix induction
+  takes no step, and `.extension` passes from prefix zero straight through final identification.
+* `test_prefix_induction` — `[0]` into `[0, 0, 1]` with `f` sending the point to `1` and `g` to
+  `0`. The width gap is two, so the one-point property cannot be applied directly;
+  `prefixState_succ` steps through prefix widths `1, 2, 3` on the unchanged singleton carrier `{0}`
+  and then adds `1`, and the final square, obtained through `.extension`, sends the point away
+  from the image of `0`.
 -/
 
 open Encodable FirstOrder Language
@@ -194,6 +204,87 @@ theorem test_nontrivial_square :
     have := congrArg Subtype.val (((listAge.limit O).stageEmbedding 1).injective hcontra)
     exact absurd this Nat.one_ne_zero
 
+/-- **Zero iterations, through final identification**: the target is recorded on generators `[]`,
+so the prefix induction takes no step, and `.extension` passes from the prefix-zero state straight
+to the identification of the representative with the target. -/
+theorem test_extension_zero_iterations (r : ℕ)
+    (f : ((listAge O).memberAt (encode ([] : List ℕ))).domain ↪[Language.empty]
+      ((listAge.chain O).stageAt r).domain)
+    (g : ((listAge O).memberAt (encode ([] : List ℕ))).domain ↪[Language.empty]
+      ((listAge O).memberAt (encode ([] : List ℕ))).domain) :
+    (listAge O).gens (encode ([] : List ℕ)) = [] ∧
+      ∃ (s : ℕ) (h : ((listAge O).memberAt (encode ([] : List ℕ))).domain ↪[Language.empty]
+        ((listAge.chain O).stageAt s).domain),
+        r ≤ s ∧ ∀ x, (listAge.limit O).stageEmbedding s (h (g x)) =
+          (listAge.limit O).stageEmbedding r (f x) :=
+  ⟨by rw [listAge.gens_eq, listOf_encode],
+    (listAge.onePoint O).extension (listAge.hasMappedHP O) r _ _ f g⟩
+
+/-- `f`: the point of `{0}` to `1` in stage `1`'s member. -/
+noncomputable def ptToOne : ((listAge O).memberAt (encode [0])).domain ↪[Language.empty]
+    ((listAge O).memberAt (listAge.segIdx 1)).domain :=
+  emptyEmbedding (embOfSubsingleton ⟨1, (listAge.mem_domainAt_segIdx O).2 (by omega)⟩)
+
+/-- `g`: `{0}` on `[0]` into `{0, 1}` on `[0, 0, 1]`, the point to `0`. -/
+noncomputable def ptToWide : ((listAge O).memberAt (encode [0])).domain ↪[Language.empty]
+    ((listAge O).memberAt (encode [0, 0, 1])).domain :=
+  listAge.inclusion O (by rw [listOf_encode, listOf_encode]; simp)
+
+/-- **The prefix induction itself**: from `[0]` into `[0, 0, 1]` the width gap is two, so the
+one-point property does not apply directly. The prefix tuples have widths `1, 2, 3` on the
+unchanged singleton carrier `{0}`, and `prefixState_succ` steps through each of them; the last step
+adds `1`. The final square then comes through `.extension`, and it has content: the image of the
+point is forced, in the limit, away from the image of `0`. -/
+theorem test_prefix_induction :
+    ((listAge O).gens (encode [0, 0, 1])).length = ((listAge O).gens (encode [0])).length + 2 ∧
+      (∀ t ≤ 2, (prefixTuple (listAge O) (ptToWide O) t).length = t + 1 ∧
+        ∀ x ∈ prefixTuple (listAge O) (ptToWide O) t, x = 0) ∧
+      1 ∈ prefixTuple (listAge O) (ptToWide O) 3 ∧
+      (listAge.onePoint O).PrefixState (r := 1) (ptToWide O) (ptToOne O) 1 ∧
+      (listAge.onePoint O).PrefixState (r := 1) (ptToWide O) (ptToOne O) 2 ∧
+      (listAge.onePoint O).PrefixState (r := 1) (ptToWide O) (ptToOne O) 3 ∧
+      ∃ (s : ℕ) (h : ((listAge O).memberAt (encode [0, 0, 1])).domain ↪[Language.empty]
+        ((listAge.chain O).stageAt s).domain),
+        1 ≤ s ∧ (∀ x, (listAge.limit O).stageEmbedding s (h (ptToWide O x)) =
+          (listAge.limit O).stageEmbedding 1 (listAge.stageEquiv O 1 (ptToOne O x))) ∧
+        (listAge.limit O).stageEmbedding s (h (ptToWide O (pt O))) ≠
+          (listAge.limit O).stageEmbedding 1 (stage1 O 0 (by omega)) := by
+  have hA : (listAge O).gens (encode [0]) = [0] := by rw [listAge.gens_eq, listOf_encode]
+  have hB : (listAge O).gens (encode [0, 0, 1]) = [0, 0, 1] := by
+    rw [listAge.gens_eq, listOf_encode]
+  have hBlen : ((listAge O).gens (encode [0, 0, 1])).length = 3 := by rw [hB]; rfl
+  have hHP := listAge.hasMappedHP O
+  have h1 := (listAge.onePoint O).prefixState_succ (ptToWide O) (ptToOne O) hHP (t := 0)
+    (by omega) ((listAge.onePoint O).prefixState_zero (ptToWide O) (ptToOne O) hHP)
+  have h2 := (listAge.onePoint O).prefixState_succ (ptToWide O) (ptToOne O) hHP (t := 1)
+    (by omega) h1
+  have h3 := (listAge.onePoint O).prefixState_succ (ptToWide O) (ptToOne O) hHP (t := 2)
+    (by omega) h2
+  obtain ⟨s, h, hrs, hsq⟩ := (listAge.onePoint O).extension hHP 1 _ _
+    ((listAge.stageEquiv O 1).toEmbedding.comp (ptToOne O)) (ptToWide O)
+  refine ⟨by rw [hA, hB]; rfl, fun t ht ↦ ⟨?_, fun x hx ↦ ?_⟩, ?_, h1, h2, h3, s, h, hrs, hsq,
+    fun hcontra ↦ ?_⟩
+  · rw [prefixTuple_length _ (by rw [hBlen]; omega), hA, List.length_singleton]
+    omega
+  · rcases List.mem_append.1 hx with hx | hx
+    · obtain ⟨k, rfl⟩ := List.mem_ofFn.1 hx
+      have hk := (mem_domainAt_encode O).1 ((listAge O).gensView (encode [0]) k).2
+      exact List.mem_singleton.1 hk
+    · rw [hB] at hx
+      obtain _ | _ | _ | t := t
+      · simp at hx
+      · simpa using hx
+      · simp only [List.take_succ_cons, List.take_zero, List.mem_cons, List.not_mem_nil,
+          or_false, or_self] at hx
+        exact hx
+      · omega
+  · refine List.mem_append_right _ ?_
+    rw [hB]
+    simp
+  · rw [hsq] at hcontra
+    have := congrArg Subtype.val (((listAge.limit O).stageEmbedding 1).injective hcontra)
+    exact absurd this Nat.one_ne_zero
+
 end Fixture
 
 end FirstOrder.Language
@@ -208,3 +299,5 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_zero_added_generators
 #assert_standard_axioms FirstOrder.Language.test_repeated_generator
 #assert_standard_axioms FirstOrder.Language.test_nontrivial_square
+#assert_standard_axioms FirstOrder.Language.test_extension_zero_iterations
+#assert_standard_axioms FirstOrder.Language.test_prefix_induction
