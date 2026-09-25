@@ -311,6 +311,25 @@ theorem mappedCHPSpec : (listAge O).MappedCHPSpec chpSel := by
   change (listOf (encode s)).get k = s.get _
   exact List.get_of_eq (listOf_encode s) k
 
+/-- **The CJEP selector of the list age**: concatenation, with both legs inclusions. -/
+def jointSel (i j : ℕ) : PartialJointEmbeddingData :=
+  PartialJointEmbeddingData.ofTriple (encode (listOf i ++ listOf j), listOf i, listOf j)
+
+theorem jointSel_computableIn : ComputableIn O fun p : ℕ × ℕ ↦ jointSel p.1 p.2 :=
+  (PartialJointEmbeddingData.primrec_ofTriple.comp
+    (Primrec.pair (Primrec.encode.comp (Primrec.list_append.comp (primrec_listOf.comp Primrec.fst)
+      (primrec_listOf.comp Primrec.snd)))
+      (Primrec.pair (primrec_listOf.comp Primrec.fst) (primrec_listOf.comp Primrec.snd)))).to_comp
+    |>.computableIn
+
+theorem jointSpec : (listAge O).JointSpec jointSel := by
+  intro i j
+  have hl : ∀ x ∈ listOf i, x ∈ listOf (encode (listOf i ++ listOf j)) := fun x hx ↦ by
+    rw [listOf_encode]; exact List.mem_append_left _ hx
+  have hr : ∀ x ∈ listOf j, x ∈ listOf (encode (listOf i ++ listOf j)) := fun x hx ↦ by
+    rw [listOf_encode]; exact List.mem_append_right _ hx
+  exact ⟨⟨inclusion O hl, rfl, fun _ ↦ rfl⟩, ⟨inclusion O hr, rfl, fun _ ↦ rfl⟩⟩
+
 /-! ### The run on the list age -/
 
 theorem base_nonempty : ((listAge O).domainAt (encode [0])).Nonempty :=
