@@ -71,8 +71,10 @@ theorem test_prefixRequirement {j t : ℕ} {st : ℕ × ℕ × List ℕ}
     (hinv : PrefixInv K W i sel j t st) (ht : t < (K.gens (sel i j).apexIdx).length) {c' : ℕ}
     (hA : K.PartialIsEmbedding
       (PotentialEmbeddingData.ofTriple (c', (sel i j).apexIdx, prefixList K i sel j (t + 1)))) :
-    K.Admissible (memberIdx K W i) (prefixRequirement K st c') :=
-  (prefixRequirement_spec hinv ht hA).2.2
+    K.PartialIsEmbedding ((prefixRequirement K st c').chainMap (memberIdx K W i)) ∧
+      K.PartialIsEmbedding (prefixRequirement K st c').targetMap ∧
+        K.Admissible (memberIdx K W i) (prefixRequirement K st c') :=
+  prefixRequirement_spec hinv ht hA
 
 include hjoint in
 /-- **The apex at the last prefix**: its generators go to `H_T.drop n`, no inverse computed. -/

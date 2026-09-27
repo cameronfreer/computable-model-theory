@@ -330,6 +330,18 @@ theorem jointSpec : (listAge O).JointSpec jointSel := by
     rw [listOf_encode]; exact List.mem_append_right _ hx
   exact ⟨⟨inclusion O hl, rfl, fun _ ↦ rfl⟩, ⟨inclusion O hr, rfl, fun _ ↦ rfl⟩⟩
 
+/-- The paper-facing hereditary property of the list age. -/
+theorem mappedPartialCHPIn : PartialAgeIn.MappedPartialCHPIn O (listAge O) := by
+  refine ⟨chpSel, chpSel_recursiveIn, fun e s hs ↦ ?_⟩
+  obtain ⟨c, hc, F, hlen, hF⟩ := mappedCHPSpec e s hs
+  exact ⟨c, hc, hlen, F, hF⟩
+
+/-- The paper-facing joint embedding property of the list age. -/
+theorem partialCJEPIn : (listAge O).PartialCJEPIn O := by
+  refine ⟨jointSel, jointSel_computableIn, fun i j ↦ ?_⟩
+  obtain ⟨⟨Fi, hli, hFi⟩, ⟨Fj, hlj, hFj⟩⟩ := jointSpec (O := O) i j
+  exact ⟨⟨hli, Fi, hFi⟩, ⟨hlj, Fj, hFj⟩⟩
+
 /-! ### The run on the list age -/
 
 theorem base_nonempty : ((listAge O).domainAt (encode [0])).Nonempty :=

@@ -92,7 +92,9 @@ noncomputable def runForwardStage (e : ℕ) : ℕ := (runForwardAnswer Z chpSel 
 noncomputable def runForwardTuple (e : ℕ) : List ℕ :=
   (runForwardAnswer Z chpSel cert hchpSpec e).1.2
 
-/-- The member CHP selected: the forward cover's source index. -/
+/-- The member CHP selected. It is the `sourceIndex` of the selected embedding
+(`runToSelectedEmbedding`), and hence the forward cover's **target** index: the cover runs
+`F.canonicalAge → K`, matching query `e` with member `runForwardIndex e` of `K`. -/
 noncomputable def runForwardIndex (e : ℕ) : ℕ := (runForwardAnswer Z chpSel cert hchpSpec e).2
 
 theorem runForward_mem (e : ℕ) :
