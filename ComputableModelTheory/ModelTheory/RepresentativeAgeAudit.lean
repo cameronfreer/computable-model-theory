@@ -10,7 +10,7 @@ import ComputableModelTheory.Util.AssertAxioms
 # Audit: Fraïssé classes from concrete representatives
 
 Outside the root import spine; CI checks it through `scripts/run-audit-modules.sh`, and with
-warnings as errors through `scripts/check-classical-fraisse.sh`.
+warnings as errors through `scripts/check-classical-layer.sh`.
 
 * **Independent universes**: language, index and carrier universes are separate
   (`test_countable_quotient`); the class lives in the carrier universe.

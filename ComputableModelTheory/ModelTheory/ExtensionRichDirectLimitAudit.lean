@@ -10,7 +10,7 @@ import ComputableModelTheory.Util.AssertAxioms
 # Audit: extension-rich direct limits
 
 Outside the root import spine; CI checks it through `scripts/run-audit-modules.sh`, and with
-warnings as errors through `scripts/check-classical-fraisse.sh`.
+warnings as errors through `scripts/check-classical-layer.sh`.
 
 * **Independent universes**: source, stage and index universes are separate
   (`test_factor_independent_universes`).
