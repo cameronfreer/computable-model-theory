@@ -5,6 +5,7 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Age
 import ComputableModelTheory.ModelTheory.Computable
+import ComputableModelTheory.ModelTheory.ExtensionRichFamily
 import ComputableModelTheory.ModelTheory.Syntax
 import ComputableModelTheory.ModelTheory.TupleClosure
 
