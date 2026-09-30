@@ -16,7 +16,7 @@ equation exercising the computed value against the specification recursion on co
 input. Outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/Computability/RecursiveInAudit.lean
+lake lean ComputableModelTheory/Computability/RecursiveInAudit.lean
 ```
 -/
 

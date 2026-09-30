@@ -14,7 +14,7 @@ predicates, and the coded↔realized commutativity theorem, checked by
 `#assert_standard_axioms`. Outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/PotentialSpanAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/PotentialSpanAudit.lean
 ```
 
 Coverage: `Primcodable` instances for both structures; computable projections and pair

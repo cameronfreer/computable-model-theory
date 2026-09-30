@@ -13,7 +13,7 @@ Named acceptance tests for atomic equivalence of tuples, checked by
 `#assert_standard_axioms`. Outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/AtomicEquivAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/AtomicEquivAudit.lean
 ```
 -/
 

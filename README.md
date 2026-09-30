@@ -63,6 +63,11 @@ lake build
 scripts/run-audit-modules.sh
 ```
 
+The audit runner elaborates each module with `lake lean` (so the package's Lean options apply, as
+under `lake build`), in parallel: `AUDIT_JOBS` sets the concurrency (default: CPUs, at most 8), and
+`AUDIT_TMPDIR` the base directory for its scratch space. `scripts/test-run-audit-modules.sh` tests
+the runner itself.
+
 Audit modules sit outside the root import spine. They pin public API contracts as acceptance
 tests — including behavioral gates on concrete fixtures, not type-checking alone — and check the
 axiom policy on those contracts. The runner discovers them from the git index, so a new audit
@@ -77,6 +82,22 @@ Built on mathlib. Classical infinitary-logic foundations — atomic diagrams, ba
 Henkin completeness — are imported from
 [infinitary-logic](https://github.com/cameronfreer/infinitary-logic) as a pinned dependency rather
 than reproved here.
+
+Both dependencies are pinned to immutable commits in `lakefile.toml`, and the manifest locks the
+transitive ones to exactly infinitary-logic's.
+
+**Temporary mathlib fork.** mathlib is currently pinned to
+[`cameronfreer/mathlib4`](https://github.com/cameronfreer/mathlib4) at `346a4bd`, not to an
+upstream tag. That commit is upstream mathlib `v4.35.0-rc3` plus three additive commits — new
+`Mathlib/ModelTheory/Infinitary` modules and their tests, and the corresponding imports in
+`Mathlib.lean` — which infinitary-logic builds on and which are being upstreamed. No existing
+mathlib module is modified, so the mathlib cache serves every module except the new ones and
+`Mathlib.lean`. The pin is forced: one build has one mathlib, and infinitary-logic needs those
+modules.
+
+*Replacement condition:* once those commits are in an upstream mathlib release and
+infinitary-logic repins to it, this project returns to an upstream mathlib tag in the same bump.
+Until then, a downstream project that depends on this one must use the same mathlib commit.
 
 ## License
 

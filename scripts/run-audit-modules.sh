@@ -2,7 +2,7 @@
 # Run every audit module (the axiom-policy acceptance gates) exactly as CI does.
 #
 # Audit modules live outside the root import spine, so `lake build` alone never
-# elaborates them; each must be checked explicitly with `lake env lean`. The tracked set
+# elaborates them; each must be checked explicitly with `lake lean`. The tracked set
 # is discovered from git (sorted for determinism) rather than hard-coded or shell-globbed,
 # so a newly added *Audit.lean file can never be silently skipped.
 #
@@ -43,31 +43,60 @@ if [ "${bad_imports}" -ne 0 ]; then
 fi
 
 # Modules are elaborated with `lake lean`, not `lake env lean`, so that the package's Lean options
-# (`leanOptions` and `moreLeanArgs` in lakefile.toml) apply exactly as they do under `lake build`.
-# They run in parallel (AUDIT_JOBS, default: the number of CPUs, at most 8); each module's output is
-# captured and printed in the sorted order, so the log reads as a sequential run.
+# (`leanOptions` in lakefile.toml) apply exactly as they do under `lake build` and in the editor.
+#
+# They run in parallel. Environment:
+# * AUDIT_JOBS: a positive integer (default: the number of CPUs, at most 8). `xargs -P 0` would mean
+#   unbounded concurrency, so zero and non-numbers are rejected.
+# * AUDIT_TMPDIR: base directory for the per-run scratch directory (default: $TMPDIR, else /tmp).
+#   The logs live there, and so do the temporary files of the Lean processes, which run with TMPDIR
+#   pointing inside it; the whole directory is removed on exit.
+# * AUDIT_LEAN_CMD: the elaboration command (default: `lake lean`); overridden only by the runner's
+#   self-test.
+# Each job is identified by its position in the sorted list, not by a name derived from its path, so
+# distinct paths can never share a log or an exit status. Output is printed in sorted order, so the
+# log reads as a sequential run.
 all_list="$(printf '%s\n%s\n' "${tracked_list}" "${untracked_list}" | grep . || true)"
 count="$(printf '%s' "${all_list}" | grep -c . || true)"
-jobs="${AUDIT_JOBS:-$(nproc 2>/dev/null || echo 2)}"
-[ "${jobs}" -gt 8 ] && [ -z "${AUDIT_JOBS:-}" ] && jobs=8
 
-logdir="$(mktemp -d)"
-trap 'rm -rf "${logdir}"' EXIT
+if printf '%s\n' "${all_list}" | grep -q '[[:space:]]'; then
+  echo "ERROR: audit module paths must not contain whitespace:" >&2
+  printf '%s\n' "${all_list}" | grep '[[:space:]]' | sed 's/^/    /' >&2
+  exit 1
+fi
+
+if [ -n "${AUDIT_JOBS:-}" ]; then
+  case "${AUDIT_JOBS}" in
+    ''|*[!0-9]*|0*) echo "ERROR: AUDIT_JOBS must be a positive integer, got '${AUDIT_JOBS}'" >&2
+      exit 2 ;;
+  esac
+  jobs="${AUDIT_JOBS}"
+else
+  jobs="$(nproc 2>/dev/null || echo 2)"
+  [ "${jobs}" -gt 8 ] && jobs=8
+fi
+
+tmpbase="${AUDIT_TMPDIR:-${TMPDIR:-/tmp}}"
+rundir="$(mktemp -d "${tmpbase%/}/audit-run.XXXXXX")"
+trap 'rm -rf "${rundir}"' EXIT
+mkdir -p "${rundir}/tmp"
+export AUDIT_LEAN_CMD="${AUDIT_LEAN_CMD:-lake lean}"
+
 if [ "${count}" -gt 0 ]; then
-  printf '%s\n' "${all_list}" |
-    xargs -P "${jobs}" -I {} sh -c \
-      'k="$(printf "%s" "$1" | tr / _)"
-       if lake lean "$1" > "$0/$k.log" 2>&1; then echo 0; else echo 1; fi > "$0/$k.rc"' \
-      "${logdir}" {} || true
+  printf '%s\n' "${all_list}" | awk '{ print NR, $0 }' |
+    TMPDIR="${rundir}/tmp" xargs -P "${jobs}" -L 1 sh -c \
+      'if ${AUDIT_LEAN_CMD} "$2" > "$0/$1.log" 2>&1; then echo 0; else echo 1; fi > "$0/$1.rc"' \
+      "${rundir}" || true
 fi
 
 status=0
+n=0
 while IFS= read -r file; do
   [ -n "${file}" ] || continue
+  n=$((n + 1))
   echo "== ${file}"
-  key="$(printf '%s' "${file}" | tr / _)"
-  cat "${logdir}/${key}.log" 2>/dev/null || true
-  if [ "$(cat "${logdir}/${key}.rc" 2>/dev/null || echo 1)" != 0 ]; then
+  cat "${rundir}/${n}.log" 2>/dev/null || true
+  if [ "$(cat "${rundir}/${n}.rc" 2>/dev/null || echo 1)" != 0 ]; then
     status=1
     echo "-- FAILED: ${file}" >&2
   fi

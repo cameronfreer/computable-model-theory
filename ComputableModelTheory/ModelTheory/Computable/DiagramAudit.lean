@@ -15,7 +15,7 @@ and their computability, checked by `#assert_standard_axioms`. Outside the root 
 spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/DiagramAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/DiagramAudit.lean
 ```
 -/
 

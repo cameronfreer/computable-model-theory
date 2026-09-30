@@ -19,6 +19,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+      # The audit runner's own regression test: fast, and needs no build.
+      - run: scripts/test-run-audit-modules.sh
       - uses: leanprover/lean-action@v1
       # Audit modules live outside the root import spine; the runner discovers them via
       # git ls-files so a new *Audit.lean can never be silently skipped, and runs them in parallel

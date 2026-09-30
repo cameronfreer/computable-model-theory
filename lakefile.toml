@@ -2,23 +2,23 @@ name = "computable-model-theory"
 version = "0.1.0"
 keywords = ["math"]
 defaultTargets = ["ComputableModelTheory", "ComputableModelTheoryUtil"]
-# Lean v4.35 porting shim; see `[leanOptions]` below.
-moreLeanArgs = ["-Dbackward.isDefEq.respectTransparency.instanceSearchTypes=false"]
-
-[leanOptions]
-pp.unicode.fun = true # pretty-prints `fun a ↦ b`
-relaxedAutoImplicit = false
-weak.linter.mathlibStandardSet = true
-maxSynthPendingDepth = 3
-# Lean v4.35 porting shims, set project-wide until the affected proofs are repaired individually
-# (Mathlib's own port sets the same options per declaration):
-# * `isDefEq` now respects transparency on implicit arguments, which breaks `rw`/`simp` on targets
-#   that only typecheck after unfolding `PFun` (`α →. β`);
-# * instance-search assignments must preserve types up to `.instances` transparency, which breaks
-#   coercions of embeddings between `Bundled` carriers typed with explicit structures. That option
-#   extends `backward.isDefEq.respectTransparency`, so TOML cannot also nest it here; it is passed
-#   through `moreLeanArgs` above.
-backward.isDefEq.respectTransparency = false
+# Lean options, as an array of `[name, value]` pairs: one representation read by both `lake build`
+# and the language server (`moreLeanArgs` reaches only the former), and one that can hold an option
+# alongside a longer option extending its name, which TOML's nested-key form cannot.
+leanOptions = [
+  ["pp.unicode.fun", true], # pretty-prints `fun a ↦ b`
+  ["relaxedAutoImplicit", false],
+  ["weak.linter.mathlibStandardSet", true],
+  ["maxSynthPendingDepth", 3],
+  # Lean v4.35 porting shims, set project-wide until the affected proofs are repaired individually
+  # (Mathlib's own port sets the same options per declaration):
+  # * `isDefEq` now respects transparency on implicit arguments, which breaks `rw`/`simp` on
+  #   targets that only typecheck after unfolding `PFun` (`α →. β`);
+  # * instance-search assignments must preserve types up to `.instances` transparency, which breaks
+  #   coercions of embeddings between `Bundled` carriers typed with explicit structures.
+  ["backward.isDefEq.respectTransparency", false],
+  ["backward.isDefEq.respectTransparency.instanceSearchTypes", false],
+]
 
 [[require]]
 name = "InfinitaryLogic"
