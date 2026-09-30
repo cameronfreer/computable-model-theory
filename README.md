@@ -91,7 +91,7 @@ transitive ones to exactly infinitary-logic's.
 upstream tag. That commit is upstream mathlib `v4.35.0-rc3` plus three additive commits — new
 `Mathlib/ModelTheory/Infinitary` modules and their tests, and the corresponding imports in
 `Mathlib.lean` — which infinitary-logic builds on and which are being upstreamed. No existing
-mathlib module is modified, so the mathlib cache serves every module except the new ones and
+leaf module is modified, so the mathlib cache serves every module except the new ones and
 `Mathlib.lean`. The pin is forced: one build has one mathlib, and infinitary-logic needs those
 modules.
 
