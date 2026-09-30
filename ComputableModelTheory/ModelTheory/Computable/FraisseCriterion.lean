@@ -7,6 +7,7 @@ import Mathlib.ModelTheory.Fraisse
 import Mathlib.ModelTheory.PartialEquiv
 import ComputableModelTheory.ModelTheory.Computable.LimitTupleExhaustion
 import ComputableModelTheory.ModelTheory.Computable.PartialMemberEmbedding
+import ComputableModelTheory.ModelTheory.ExtensionRichFamily
 
 /-!
 # Lemma 3.8 as a semantic criterion: the limit of an extension-closed chain is a Fraïssé limit
@@ -36,6 +37,12 @@ its own programs separately.
    `IsExtensionPair M M` (`isExtensionPair_iff_exists_embedding_closure_singleton_sup`), then
    `isUltrahomogeneous_iff_IsExtensionPair` with countable generation from countability, and the
    `IsFraisseLimit` packaging.
+
+Steps 3 and 4 run through the classical criterion of `ExtensionRichFamily`, applied to the stage
+images `stageRange r` in the limit: they are finitely cofinal (`fgCofinal_stageRange`), the chain
+data and HP make them extension rich (`FraisseChainData.extensionRich`), each is in the class
+(`stageRange_mem_classSet`), and the class is hereditary (`HasHP.classSet_hereditary`). Coverage
+of the class by the stages stays here, as the upper-layer JEP argument.
 
 The square in the extension property is stated in the limit — `Z.stageEmbedding s (h (g a)) =
 Z.stageEmbedding r (f a)` — which is what the criterion consumes; a square in the chain gives it
@@ -147,6 +154,27 @@ theorem closureRangeEquiv_symm_apply {M N : Type*} [L.Structure M] [L.Structure 
   rw [Equiv.apply_symm_apply] at this
   exact this.symm
 
+/-! ### The represented class is hereditary -/
+
+namespace PartialAgeIn
+
+variable {K : PartialAgeIn O L}
+
+/-- **The semantic hereditary property makes the represented class hereditary**, in Mathlib's
+sense: a finitely generated structure embedding into a member is generated there by the image of
+its generators, and HP names that closure as a member. -/
+theorem HasHP.classSet_hereditary (hHP : K.HasHP) : Hereditary K.classSet := by
+  intro A hA N hN
+  obtain ⟨i, ⟨eA⟩⟩ := hA
+  obtain ⟨hNfg, ⟨ι⟩⟩ := hN
+  obtain ⟨n, t, ht⟩ := fg_iff_exists_fin_generating_family.1 (Structure.fg_def.1 hNfg)
+  let ι' : N ↪[L] (K.memberAt i).domain := eA.symm.toEmbedding.comp ι
+  obtain ⟨j, ⟨φ⟩⟩ := hHP i n fun k ↦ ι' (t k)
+  exact K.mem_classSet_of_equiv (i := j)
+    ((φ.comp ((closureRangeEquiv ι' t).comp ((equivOfEq ht.symm).comp topEquiv.symm))).symm)
+
+end PartialAgeIn
+
 /-! ### The chain hypotheses -/
 
 namespace CeStructureChainIn
@@ -189,6 +217,140 @@ theorem closure_range_stageEmbedding (s : ℕ) {n : ℕ} (w : Fin n → (D.stage
       closure L (Set.range fun k ↦ Z.stageEmbedding s (w k)) :=
   embedding_map_closure_range _ w
 
+/-! ### The stage images, as a family of substructures of the limit -/
+
+variable (Z) in
+/-- The image of stage `r` in the limit. -/
+def stageRange (r : ℕ) : L.Substructure Z.presentation.domain :=
+  (Z.stageEmbedding r).toHom.range
+
+theorem mem_stageRange_iff {r : ℕ} {x : Z.presentation.domain} :
+    x ∈ Z.stageRange r ↔ ∃ y, Z.stageEmbedding r y = x :=
+  Iff.rfl
+
+/-- **Coherence**: an earlier stage's image lies in a later one's, by transport and the limit's
+coherence along it. -/
+theorem stageRange_mono {r s : ℕ} (hrs : r ≤ s) : Z.stageRange r ≤ Z.stageRange s := by
+  rintro _ ⟨y, rfl⟩
+  obtain ⟨z, hz, hzs⟩ := CeStructureChainIn.exists_transport_mem hrs y.2
+  obtain ⟨_, heq⟩ := Z.stageEmbedding_transport hrs y.2 hz
+  exact ⟨⟨z, hzs⟩, heq.symm⟩
+
+/-- Every element of the limit lies in some stage's image. -/
+theorem exists_mem_stageRange (x : Z.presentation.domain) : ∃ r, x ∈ Z.stageRange r := by
+  obtain ⟨r, y, hy, heq⟩ := Z.coverage x
+  exact ⟨r, ⟨y, hy⟩, heq⟩
+
+variable (Z) in
+/-- **The stage images are finitely cofinal**: they are directed and exhaust the limit. -/
+theorem fgCofinal_stageRange : FGCofinal Z.stageRange :=
+  fgCofinal_of_directed
+    (fun r s ↦ ⟨max r s, stageRange_mono (le_max_left r s), stageRange_mono (le_max_right r s)⟩)
+    Z.exists_mem_stageRange
+
+/-- A finitely generated substructure inside a stage's image is the image of the closure of a
+tuple of that stage. -/
+theorem exists_stage_generators {r : ℕ} {T : L.Substructure Z.presentation.domain}
+    (hT : T.FG) (hTr : T ≤ Z.stageRange r) :
+    ∃ (n : ℕ) (w : Fin n → (D.stageAt r).domain),
+      closure L (Set.range fun k ↦ Z.stageEmbedding r (w k)) = T := by
+  obtain ⟨n, t, ht⟩ := fg_iff_exists_fin_generating_family.1 hT
+  choose w hw using fun k ↦ hTr (ht ▸ subset_closure (Set.mem_range_self k) : t k ∈ T)
+  exact ⟨n, w, by rw [show (fun k ↦ Z.stageEmbedding r (w k)) = t from funext hw, ht]⟩
+
+/-! ### The represented class, read through the stage images -/
+
+/-- Each stage's image is in the represented class. -/
+theorem FraisseChainData.stageRange_mem_classSet (C : FraisseChainData K Z) (r : ℕ) :
+    CategoryTheory.Bundled.of (c := L.Structure) (Z.stageRange r) ∈ K.classSet := by
+  obtain ⟨i, ⟨e⟩⟩ := C.stage_iso r
+  exact K.mem_classSet_of_equiv ((Z.stageEmbedding r).equivRange.comp e.symm)
+
+/-- Every member of the represented class embeds into some stage's image: coverage, from JEP and
+the extension property. -/
+theorem FraisseChainData.exists_embedding_stageRange (C : FraisseChainData K Z) (hJ : K.HasJEP)
+    {A : CategoryTheory.Bundled L.Structure} (hA : A ∈ K.classSet) :
+    ∃ r, Nonempty (A ↪[L] Z.stageRange r) := by
+  obtain ⟨i, ⟨e⟩⟩ := hA
+  obtain ⟨r, ⟨u⟩⟩ := C.coverage hJ i
+  exact ⟨r, ⟨(Z.stageEmbedding r).equivRange.toEmbedding.comp (u.comp e.symm.toEmbedding)⟩⟩
+
+/-- **The chain data make the stage images extension rich.** Given finitely generated
+`S ≤ T ≤` stage `r`'s image and `f : S ↪` that image: pull `S` and `T` back to generating tuples of
+stage `r`, read them in stage `r`'s member, name their closures as members by HP, extend there by
+the chain's extension property, and return to the limit. The receiving stage is later, but extension
+richness does not ask for that. -/
+theorem FraisseChainData.extensionRich (C : FraisseChainData K Z) (hHP : K.HasHP) :
+    ExtensionRich Z.stageRange := by
+  intro r S T hS hT hST hTr f
+  set ι := Z.stageEmbedding r with hι
+  -- (a) generating tuples of `S` and `T` in stage `r`
+  obtain ⟨n, wS, hwS⟩ := Z.exists_stage_generators hS (hST.trans hTr)
+  obtain ⟨m, wT, hwT⟩ := Z.exists_stage_generators hT hTr
+  let eS : closure L (Set.range wS) ≃[L] S := (equivOfEq hwS).comp (closureRangeEquiv ι wS)
+  let eT : closure L (Set.range wT) ≃[L] T := (equivOfEq hwT).comp (closureRangeEquiv ι wT)
+  have hleST : closure L (Set.range wS) ≤ closure L (Set.range wT) := by
+    rw [← map_le_map_iff_of_injective (f := ι.toHom) ι.injective,
+      embedding_map_closure_range, embedding_map_closure_range, hwS, hwT]
+    exact hST
+  -- (b) the stage is a member; HP names the two generated closures
+  obtain ⟨i, ⟨e⟩⟩ := C.stage_iso r
+  obtain ⟨a, ⟨φa⟩⟩ := hHP i n fun k ↦ e (wS k)
+  obtain ⟨b, ⟨φb⟩⟩ := hHP i m fun k ↦ e (wT k)
+  let eA : closure L (Set.range wS) ≃[L] closure L (Set.range fun k ↦ e (wS k)) :=
+    closureRangeEquiv e.toEmbedding wS
+  let eB : closure L (Set.range wT) ≃[L] closure L (Set.range fun k ↦ e (wT k)) :=
+    closureRangeEquiv e.toEmbedding wT
+  have hle : closure L (Set.range fun k ↦ e (wS k)) ≤ closure L (Set.range fun k ↦ e (wT k)) := by
+    refine closure_le.2 ?_
+    rintro _ ⟨k, rfl⟩
+    have hk := (closureRangeEquiv e.toEmbedding wT ⟨wS k, hleST (subset_closure ⟨k, rfl⟩)⟩).2
+    rw [closureRangeEquiv_apply] at hk
+    exact hk
+  -- (c) the inclusion and `f`, as member embeddings
+  let g : (K.memberAt a).domain ↪[L] (K.memberAt b).domain :=
+    φb.toEmbedding.comp ((inclusion hle).comp φa.symm.toEmbedding)
+  let f'' : (K.memberAt a).domain ↪[L] (D.stageAt r).domain :=
+    ι.equivRange.symm.toEmbedding.comp
+      (f.comp (eS.toEmbedding.comp (eA.symm.toEmbedding.comp φa.symm.toEmbedding)))
+  -- (d) extend
+  obtain ⟨s, h, -, hsq⟩ := C.extension r a b f'' g
+  refine ⟨s, (Z.stageEmbedding s).equivRange.toEmbedding.comp
+    (h.comp (φb.toEmbedding.comp (eB.toEmbedding.comp eT.symm.toEmbedding))), fun x ↦ ?_⟩
+  -- (e) the point of member `a` naming `x`, and the square
+  set q : (K.memberAt a).domain := φa (eA (eS.symm x)) with hq
+  have hstage : ((eS.symm x : closure L (Set.range wS)) : (D.stageAt r).domain) =
+      ((eT.symm (inclusion hST x) : closure L (Set.range wT)) : (D.stageAt r).domain) := by
+    apply ι.injective
+    have h₁ : ι ((eS.symm x : closure L (Set.range wS)) : (D.stageAt r).domain) =
+        (x : Z.presentation.domain) := by
+      rw [show eS.symm x = (closureRangeEquiv ι wS).symm ((equivOfEq hwS).symm x) from rfl,
+        closureRangeEquiv_symm_apply, equivOfEq_symm_apply]
+    have h₂ : ι ((eT.symm (inclusion hST x) : closure L (Set.range wT)) : (D.stageAt r).domain) =
+        (x : Z.presentation.domain) := by
+      rw [show eT.symm (inclusion hST x) =
+          (closureRangeEquiv ι wT).symm ((equivOfEq hwT).symm (inclusion hST x)) from rfl,
+        closureRangeEquiv_symm_apply, equivOfEq_symm_apply]
+      rfl
+    rw [h₁, h₂]
+  have hgq : g q = φb (eB (eT.symm (inclusion hST x))) := by
+    simp only [g, hq, Embedding.comp_apply, Equiv.coe_toEmbedding, Equiv.symm_apply_apply]
+    congr 1
+    refine Subtype.ext ?_
+    change ((closureRangeEquiv e.toEmbedding wS (eS.symm x) : closure L _) :
+        (K.memberAt i).domain) =
+      ((closureRangeEquiv e.toEmbedding wT (eT.symm (inclusion hST x)) : closure L _) :
+        (K.memberAt i).domain)
+    rw [closureRangeEquiv_apply, closureRangeEquiv_apply, hstage]
+  have hf'' : ι (f'' q) = (f x : Z.presentation.domain) := by
+    change ι (ι.equivRange.symm (f (eS (eA.symm (φa.symm q))))) = _
+    rw [← Embedding.equivRange_apply, Equiv.apply_symm_apply, hq]
+    simp only [Equiv.symm_apply_apply, Equiv.apply_symm_apply]
+  have := hsq q
+  rw [hgq, hf''] at this
+  change Z.stageEmbedding s (h (φb (eB (eT.symm (inclusion hST x))))) = _
+  exact this
+
 /-- **Every finitely generated substructure of the limit is a member**, up to isomorphism: its
 generators lie in one stage, that stage is a member, and HP closes. -/
 theorem FraisseChainData.fg_mem_classSet (C : FraisseChainData K Z) (hHP : K.HasHP)
@@ -213,16 +375,10 @@ theorem FraisseChainData.fg_mem_classSet (C : FraisseChainData K Z) (hHP : K.Has
 
 /-- **Age equality.** -/
 theorem FraisseChainData.age_eq (C : FraisseChainData K Z) (hHP : K.HasHP) (hJ : K.HasJEP) :
-    L.age Z.presentation.domain = K.classSet := by
-  ext A
-  constructor
-  · rintro ⟨hfg, ⟨f⟩⟩
-    exact C.fg_mem_classSet hHP hfg f
-  · intro hA
-    refine ⟨K.classSet_fg hA, ?_⟩
-    obtain ⟨i, ⟨e⟩⟩ := hA
-    obtain ⟨s, ⟨u⟩⟩ := C.coverage hJ i
-    exact ⟨(Z.stageEmbedding s).comp (u.comp e.symm.toEmbedding)⟩
+    L.age Z.presentation.domain = K.classSet :=
+  age_eq_of_fgCofinal K.classSet hHP.classSet_hereditary C.stageRange_mem_classSet
+    (fun _ hA ↦ C.exists_embedding_stageRange hJ hA) (fun _ hA ↦ K.classSet_fg hA)
+    (fgCofinal_stageRange Z)
 
 /-! ### Step 4: the extension pair, ultrahomogeneity, and the packaging -/
 
@@ -250,126 +406,23 @@ member; HP names the members generated by the preimages of `S`'s generators, wit
 preimage of `m`; `f` factors through the stage; the chain's extension property extends; and the
 stage injection returns to the limit. -/
 theorem FraisseChainData.isExtensionPair (C : FraisseChainData K Z) (hHP : K.HasHP) :
-    L.IsExtensionPair Z.presentation.domain Z.presentation.domain := by
-  rw [isExtensionPair_iff_exists_embedding_closure_singleton_sup]
-  intro S hS f m
-  -- (a) a generating tuple of `S`, and `S` as its closure in the limit
-  obtain ⟨n, tS, htS⟩ :=
-    fg_iff_exists_fin_generating_family.1 (Structure.fg_def.1 ((fg_iff_structure_fg S).1 hS))
-  set t : Fin n → Z.presentation.domain := fun k ↦ (tS k : Z.presentation.domain) with ht_def
-  have hSt : closure L (Set.range t) = S := by
-    have h1 : S = (⊤ : L.Substructure S).map S.subtype.toHom := by
-      rw [← Hom.range_eq_map, range_subtype]
-    rw [h1, ← htS, map_closure, ← Set.range_comp]
-    rfl
-  -- (b) one stage for the generators, their images, and the new point
-  obtain ⟨s, hs⟩ := Z.exists_stage_list
-    (List.ofFn t ++ List.ofFn (fun k ↦ f (tS k)) ++ [m])
-  choose x hx hxeq using fun k ↦ hs (t k) (by simp)
-  choose y hy hyeq using fun k ↦ hs (f (tS k)) (by simp)
-  obtain ⟨u, hu, hueq⟩ := hs m (by simp)
-  set ι := Z.stageEmbedding s with hι
-  let x' : Fin n → (D.stageAt s).domain := fun k ↦ ⟨x k, hx k⟩
-  let u' : (D.stageAt s).domain := ⟨u, hu⟩
-  let xu : Fin (n + 1) → (D.stageAt s).domain := Fin.cons u' x'
-  let mt : Fin (n + 1) → Z.presentation.domain := Fin.cons m t
-  -- (c) `f` factors through the stage
-  have hf_range : ∀ z : S, f z ∈ ι.toHom.range :=
-    range_le_of_generators htS f ι fun k ↦ ⟨⟨y k, hy k⟩, hyeq k⟩
-  let fD : S ↪[L] (D.stageAt s).domain :=
-    ι.equivRange.symm.toEmbedding.comp (f.codRestrict ι.toHom.range hf_range)
-  have hfD : ∀ z : S, ι (fD z) = f z := fun z ↦ by
-    show ι (ι.equivRange.symm (f.codRestrict ι.toHom.range hf_range z)) = f z
-    rw [← Embedding.equivRange_apply, Equiv.apply_symm_apply]
-    rfl
-  -- (d) the stage is a member; HP names the two generated members
-  obtain ⟨i, ⟨e⟩⟩ := C.stage_iso s
-  obtain ⟨a, ⟨φa⟩⟩ := hHP i n fun k ↦ e (x' k)
-  obtain ⟨b, ⟨φb⟩⟩ := hHP i (n + 1) fun k ↦ e (xu k)
-  have hle : closure L (Set.range fun k ↦ e (x' k)) ≤
-      closure L (Set.range fun k ↦ e (xu k)) := by
-    refine closure_mono ?_
-    rintro _ ⟨k, rfl⟩
-    exact ⟨k.succ, by simp [xu]⟩
-  let g : (K.memberAt a).domain ↪[L] (K.memberAt b).domain :=
-    φb.toEmbedding.comp ((inclusion hle).comp φa.symm.toEmbedding)
-  -- (e) the members, read back in the stage and in the limit
-  have hS_eq : closure L (Set.range fun k ↦ ι (x' k)) = S := by
-    rw [show (fun k ↦ ι (x' k)) = t from funext hxeq]; exact hSt
-  let eS : closure L (Set.range x') ≃[L] S :=
-    (equivOfEq hS_eq).comp (closureRangeEquiv ι x')
-  let eA : closure L (Set.range x') ≃[L] closure L (Set.range fun k ↦ e (x' k)) :=
-    closureRangeEquiv e.toEmbedding x'
-  let f'' : (K.memberAt a).domain ↪[L] (D.stageAt s).domain :=
-    fD.comp (eS.toEmbedding.comp (eA.symm.toEmbedding.comp φa.symm.toEmbedding))
-  -- (f) extend
-  obtain ⟨s', h, -, hsq⟩ := C.extension s a b f'' g
-  -- (g) the extension, returned to the limit
-  have hT_eq : closure L (Set.range fun k ↦ ι (xu k)) = closure L {m} ⊔ S := by
-    have hcons : (fun k ↦ ι (xu k)) = mt := by
-      funext k
-      refine Fin.cases ?_ (fun k ↦ ?_) k
-      · simpa [xu, mt] using hueq
-      · simpa [xu, mt] using hxeq k
-    rw [hcons]
-    show closure L (Set.range (Fin.cons m t)) = _
-    rw [Fin.range_cons, closure_insert, hSt]
-  let eT : closure L (Set.range xu) ≃[L] (closure L {m} ⊔ S : L.Substructure _) :=
-    (equivOfEq hT_eq).comp (closureRangeEquiv ι xu)
-  let eB : closure L (Set.range xu) ≃[L] closure L (Set.range fun k ↦ e (xu k)) :=
-    closureRangeEquiv e.toEmbedding xu
-  refine ⟨(Z.stageEmbedding s').comp
-    (h.comp (φb.toEmbedding.comp (eB.toEmbedding.comp eT.symm.toEmbedding))), ?_⟩
-  -- (h) it extends `f`
-  refine Embedding.ext fun z ↦ ?_
-  -- the point of member `a` corresponding to `z`
-  set q : (K.memberAt a).domain := φa (eA (eS.symm z)) with hq
-  have hgq : g q = φb (eB (eT.symm (inclusion le_sup_right z))) := by
-    simp only [g, hq, Embedding.comp_apply, Equiv.coe_toEmbedding, Equiv.symm_apply_apply]
-    congr 1
-    refine Subtype.ext ?_
-    have hval : ((eS.symm z : closure L (Set.range x')) : (D.stageAt s).domain) =
-        ((eT.symm (inclusion le_sup_right z) : closure L (Set.range xu)) :
-          (D.stageAt s).domain) := by
-      apply ι.injective
-      have h1 : ι ((eS.symm z : closure L (Set.range x')) : (D.stageAt s).domain) =
-          (z : Z.presentation.domain) := by
-        rw [show eS.symm z = (closureRangeEquiv ι x').symm ((equivOfEq hS_eq).symm z) from rfl,
-          closureRangeEquiv_symm_apply, equivOfEq_symm_apply]
-      have h2 : ι ((eT.symm (inclusion le_sup_right z) : closure L (Set.range xu)) :
-          (D.stageAt s).domain) = (z : Z.presentation.domain) := by
-        rw [show eT.symm (inclusion le_sup_right z) =
-          (closureRangeEquiv ι xu).symm ((equivOfEq hT_eq).symm (inclusion le_sup_right z)) from
-          rfl, closureRangeEquiv_symm_apply, equivOfEq_symm_apply]
-        rfl
-      rw [h1, h2]
-    have hincl : ∀ w : closure L (Set.range fun k ↦ e (x' k)),
-        (((inclusion hle) w : closure L (Set.range fun k ↦ e (xu k))) : (K.memberAt i).domain) =
-          (w : (K.memberAt i).domain) := fun _ ↦ rfl
-    rw [hincl]
-    show ((closureRangeEquiv e.toEmbedding x' (eS.symm z) : closure L _) : (K.memberAt i).domain) =
-      ((closureRangeEquiv e.toEmbedding xu (eT.symm (inclusion le_sup_right z)) : closure L _) :
-        (K.memberAt i).domain)
-    rw [closureRangeEquiv_apply, closureRangeEquiv_apply, hval]
-  have hf'' : f'' q = fD z := by
-    simp only [f'', hq, Embedding.comp_apply, Equiv.coe_toEmbedding, Equiv.symm_apply_apply,
-      Equiv.apply_symm_apply]
-  have := hsq q
-  rw [hgq, hf'', hfD] at this
-  show f z = (Z.stageEmbedding s') (h (φb (eB (eT.symm (inclusion le_sup_right z)))))
-  exact this.symm
+    L.IsExtensionPair Z.presentation.domain Z.presentation.domain :=
+  isExtensionPair_of_extensionRich (fgCofinal_stageRange Z) (C.extensionRich hHP)
 
 /-- **Ultrahomogeneity**, through Mathlib: the limit is countably generated (it is countable), so
 the extension pair is ultrahomogeneity. -/
 theorem FraisseChainData.isUltrahomogeneous (C : FraisseChainData K Z) (hHP : K.HasHP) :
     L.IsUltrahomogeneous Z.presentation.domain :=
-  (isUltrahomogeneous_iff_IsExtensionPair Structure.cg_of_countable).2 (C.isExtensionPair hHP)
+  isUltrahomogeneous_of_extensionRich Structure.cg_of_countable (fgCofinal_stageRange Z)
+    (C.extensionRich hHP)
 
 /-- **Lemma 3.8, semantically**: the limit of a chain of members with the full extension property
 is a Fraïssé limit of the represented class, for `K` with semantic HP and JEP. -/
 theorem FraisseChainData.isFraisseLimit (C : FraisseChainData K Z) (hHP : K.HasHP)
     (hJ : K.HasJEP) : L.IsFraisseLimit K.classSet Z.presentation.domain :=
-  ⟨C.isUltrahomogeneous hHP, C.age_eq hHP hJ⟩
+  isFraisseLimit_of_extensionRich K.classSet (fgCofinal_stageRange Z) (C.extensionRich hHP)
+    hHP.classSet_hereditary C.stageRange_mem_classSet
+    (fun _ hA ↦ C.exists_embedding_stageRange hJ hA) (fun _ hA ↦ K.classSet_fg hA)
 
 end LimitIn
 
