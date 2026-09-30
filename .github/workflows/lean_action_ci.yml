@@ -15,6 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: leanprover/lean-action@v1
+      # The classical Fraïssé layer, strictly: warnings as errors, and without the package's
+      # compatibility settings (see the script's header).
+      - run: scripts/check-classical-fraisse.sh
       # Audit modules live outside the root import spine; the runner discovers them
       # via git ls-files so a new *Audit.lean can never be silently skipped.
       - run: scripts/run-audit-modules.sh

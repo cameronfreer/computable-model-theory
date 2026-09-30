@@ -9,11 +9,8 @@ import ComputableModelTheory.Util.AssertAxioms
 /-!
 # Audit: extension-rich families of substructures
 
-Outside the root import spine; CI checks it explicitly with
-
-```
-lake env lean ComputableModelTheory/ModelTheory/ExtensionRichFamilyAudit.lean
-```
+Outside the root import spine; CI checks it through `scripts/run-audit-modules.sh`, and with
+warnings as errors through `scripts/check-classical-fraisse.sh`.
 
 1. **Independent universes, weak hypotheses.** `test_isExtensionPair` restates the core theorem
    over `Language.{u, v}`, `M : Type w`, `I : Type z`, with no countability, no `Nonempty M`, and
@@ -27,7 +24,8 @@ lake env lean ComputableModelTheory/ModelTheory/ExtensionRichFamilyAudit.lean
 5. **Directed exhaustion needs an inhabited index**: `test_directed_needs_index` — on the empty
    carrier, the empty family is directed and covers every point, yet is not cofinal.
 6. **The age-union theorem assumes only cofinality**: `test_age_eq_iUnion`.
-7. **Standard axioms** for every principal theorem (below).
+7. **Standard axioms** for every declaration of the production module
+   (`#assert_module_standard_axioms`, which scans by defining module), and for the regression rows.
 8. **Import isolation**: the `run_cmd` at the end checks that the production module's only import
    besides the implicit `Init` is `Mathlib.ModelTheory.Fraisse`, and that its transitive import
    closure contains no module of this library or of `InfinitaryLogic`. This audit's own import of
@@ -158,3 +156,4 @@ run_cmd do
 #assert_standard_axioms FirstOrder.Language.test_empty_index_not_cofinal
 #assert_standard_axioms FirstOrder.Language.test_empty_carrier
 #assert_standard_axioms FirstOrder.Language.test_directed_needs_index
+#assert_module_standard_axioms ComputableModelTheory.ModelTheory.ExtensionRichFamily

@@ -9,15 +9,17 @@ import ComputableModelTheory.Util.AssertAxioms
 /-!
 # Audit: extension-rich direct limits
 
-Outside the root import spine; CI checks it explicitly.
+Outside the root import spine; CI checks it through `scripts/run-audit-modules.sh`, and with
+warnings as errors through `scripts/check-classical-fraisse.sh`.
 
 * **Independent universes**: source, stage and index universes are separate
   (`test_factor_independent_universes`).
 * **Empty stages** satisfy the extension squares (`test_empty_stages`).
 * **Non-inclusion transitions**: a system whose successor maps are an arbitrary automorphism still
   supports literal stage factorization (`test_automorphism_transitions`).
-* **Standard axioms** for every declaration of the production module (scanned by module, whatever
-  the namespace) and for the regression rows.
+* **Standard axioms** for every declaration of the production module
+  (`#assert_module_standard_axioms`, which scans by defining module, whatever the namespace) and
+  for the regression rows.
 * **Import isolation**: the production module imports only `ExtensionRichFamily` besides `Init`, and
   its transitive closure contains no other module of this library and nothing of `InfinitaryLogic`.
 * **Positive proof controls**: `isFraisseLimit_directLimit` depends on stage factorization, the AP
@@ -71,22 +73,13 @@ private partial def usedConstants (env : Environment) (todo : List Name)
       | none => usedConstants env rest (seen.insert n)
       | some ci => usedConstants env (ci.getUsedConstantsAsSet.toList ++ rest) (seen.insert n)
 
--- Standard axioms for every declaration of the production module; its import boundary; and the
--- positive proof controls.
+-- The production module's import boundary, and the positive proof controls.
 open Lean in
 run_cmd do
   let env ← getEnv
   let target := `ComputableModelTheory.ModelTheory.ExtensionRichDirectLimit
   let family := `ComputableModelTheory.ModelTheory.ExtensionRichFamily
   let some idx := env.getModuleIdx? target | throwError "{target} is not imported"
-  let mut count := 0
-  for (n, _) in env.constants.toList do
-    if env.getModuleIdxFor? n == some idx then
-      count := count + 1
-      for ax in ← collectAxioms n do
-        unless [``propext, ``Classical.choice, ``Quot.sound].contains ax do
-          throwError "{n} uses nonstandard axiom {ax}"
-  if count == 0 then throwError "no declarations found in {target}"
   let direct := (env.header.moduleData[idx.toNat]!).imports.map (·.module)
   unless direct.filter (· != `Init) == #[family] do
     throwError "unexpected direct imports of {target}: {direct}"
@@ -112,3 +105,5 @@ run_cmd do
 #assert_standard_axioms FirstOrder.Language.test_factor_independent_universes
 #assert_standard_axioms FirstOrder.Language.test_empty_stages
 #assert_standard_axioms FirstOrder.Language.test_automorphism_transitions
+
+#assert_module_standard_axioms ComputableModelTheory.ModelTheory.ExtensionRichDirectLimit

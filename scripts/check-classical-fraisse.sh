@@ -3,6 +3,11 @@
 # ExtensionRichDirectLimit): build the modules, then elaborate each module and its audit with
 # warnings as errors and the Mathlib standard linter set. Fails fast.
 #
+# Deliberately `lake env lean`, not `lake lean`: the ordinary audit sweep elaborates with the
+# package's Lean options, including any project-wide compatibility settings the effective layer
+# needs, but this gate checks the classical layer *without* them, so the extraction cannot silently
+# acquire the effective layer's elaboration debt. Options it does need are passed explicitly below.
+#
 # Usage: scripts/check-classical-fraisse.sh   (from anywhere inside the repo)
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"

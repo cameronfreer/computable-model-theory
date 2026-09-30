@@ -66,11 +66,18 @@ theorem must still build, from a countable hereditary class with joint embedding
 a sequence satisfying `SequenceExtension`, stage membership and coverage. The construction must
 serve outgoing embeddings from *historical* stages, transported along the literal connecting maps
 — serving only the current stage loses requests. One schedule: enumerate the outgoing embeddings
-of each representative (countable for finitely generated sources and countable targets, by
-`Structure.FG.countable_embedding`); at time `Nat.pair n k`, amalgamate outgoing embedding `k` of
-stage `n` against the transition from `n` to the current stage, and use joint embedding to take in
-the next representative. The Lean obligation is the dependent finite-prefix recursion, its
-coherence, and fairness — not an additional countability or effectiveness hypothesis.
+of each representative; at time `Nat.pair n k`, amalgamate outgoing embedding `k` of stage `n`
+against the transition from `n` to the current stage, and use joint embedding to take in the next
+representative. The Lean obligation is the dependent finite-prefix recursion, its coherence, and
+fairness.
+
+**That theorem needs a countability hypothesis on carriers.** The enumeration of outgoing
+embeddings uses `Structure.FG.countable_embedding`, which needs *countable target carriers*.
+Countably many isomorphism classes does not supply that, and neither does finite generation alone
+for an arbitrary signature. So the existence theorem is to be stated under countable
+representative carriers, or with that derived from countably many function symbols and finite
+generation. This is separate from `isFraisse_representativeClass`, which needs no signature or
+carrier hypothesis, and from the criteria above.
 
 ## How this library uses them
 
@@ -84,7 +91,11 @@ Fraïssé class (`isFraisse_classSet`), and CAP supplies that amalgamation
 
 ## Checks
 
-`scripts/check-classical-fraisse.sh` builds the three modules and elaborates each module and its
-audit with warnings as errors. The audits scan every declaration of each module for the standard
-axioms, check the import boundary, and pin regressions: independent universes, empty index and
-empty carriers, empty stages, and transitions given by arbitrary automorphisms.
+`scripts/check-classical-fraisse.sh`, run in CI after the build, builds the three modules and
+elaborates each module and its audit with warnings as errors and `autoImplicit=false`. It uses
+`lake env lean` on purpose: the ordinary audit sweep elaborates with the package's Lean options,
+including project-wide compatibility settings the effective layer may need, while this gate checks
+the classical layer without them. Each audit runs `#assert_module_standard_axioms`, which checks
+the standard axioms on every declaration of the module by defining module, whatever its namespace.
+The audits also check the import boundary and pin regressions: independent universes, empty index
+and empty carriers, empty stages, and transitions given by arbitrary automorphisms.

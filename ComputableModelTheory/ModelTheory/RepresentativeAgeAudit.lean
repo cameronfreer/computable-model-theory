@@ -9,7 +9,8 @@ import ComputableModelTheory.Util.AssertAxioms
 /-!
 # Audit: Fraïssé classes from concrete representatives
 
-Outside the root import spine; CI checks it explicitly.
+Outside the root import spine; CI checks it through `scripts/run-audit-modules.sh`, and with
+warnings as errors through `scripts/check-classical-fraisse.sh`.
 
 * **Independent universes**: language, index and carrier universes are separate
   (`test_countable_quotient`); the class lives in the carrier universe.
@@ -17,8 +18,9 @@ Outside the root import spine; CI checks it explicitly.
   (`test_countable_quotient`).
 * **An empty index gives the empty class** (`test_empty_index`); **an empty carrier can be a
   representative** (`test_empty_carrier`) — inhabited index and inhabited carriers are distinct.
-* **Standard axioms** for every declaration of the production module (the `run_cmd` below scans the
-  module's own constants, whatever their namespace) and for the regression rows.
+* **Standard axioms** for every declaration of the production module
+  (`#assert_module_standard_axioms`, which scans by defining module, whatever the namespace) and
+  for the regression rows.
 * **Import isolation**: the production module's only import besides `Init` is
   `Mathlib.ModelTheory.Fraisse`, and its transitive closure contains no module of this library or of
   `InfinitaryLogic`.
@@ -55,21 +57,12 @@ theorem test_empty_index {L : Language} (F : Empty → Bundled L.Structure) :
 
 end FirstOrder.Language
 
--- Every declaration of the production module uses only the standard axioms, and the module's
--- imports stay below the computable layers.
+-- The production module's imports stay below the computable layers.
 open Lean in
 run_cmd do
   let env ← getEnv
   let target := `ComputableModelTheory.ModelTheory.RepresentativeAge
   let some idx := env.getModuleIdx? target | throwError "{target} is not imported"
-  let mut count := 0
-  for (n, _) in env.constants.toList do
-    if env.getModuleIdxFor? n == some idx then
-      count := count + 1
-      for ax in ← collectAxioms n do
-        unless [``propext, ``Classical.choice, ``Quot.sound].contains ax do
-          throwError "{n} uses nonstandard axiom {ax}"
-  if count == 0 then throwError "no declarations found in {target}"
   let direct := (env.header.moduleData[idx.toNat]!).imports.map (·.module)
   unless direct.filter (· != `Init) == #[`Mathlib.ModelTheory.Fraisse] do
     throwError "unexpected direct imports of {target}: {direct}"
@@ -88,3 +81,5 @@ run_cmd do
 #assert_standard_axioms FirstOrder.Language.test_countable_quotient
 #assert_standard_axioms FirstOrder.Language.test_empty_carrier
 #assert_standard_axioms FirstOrder.Language.test_empty_index
+
+#assert_module_standard_axioms ComputableModelTheory.ModelTheory.RepresentativeAge
