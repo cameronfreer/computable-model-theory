@@ -14,7 +14,7 @@ Named acceptance tests for `IsComputableStructureIn`/`IsCEStructureIn`, checked 
 `#assert_standard_axioms`. Outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/StructureAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/StructureAudit.lean
 ```
 -/
 

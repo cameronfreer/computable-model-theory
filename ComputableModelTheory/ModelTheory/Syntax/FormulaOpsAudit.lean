@@ -13,7 +13,7 @@ Named acceptance tests for the sigma-level formula constructors, checked by
 `#assert_standard_axioms`. Outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Syntax/FormulaOpsAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Syntax/FormulaOpsAudit.lean
 ```
 -/
 

@@ -13,7 +13,7 @@ Named acceptance tests for `Primcodable (Σ k, L.Term (α ⊕ Fin k))`, checked 
 `#assert_standard_axioms`. Outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Syntax/TermSigmaAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Syntax/TermSigmaAudit.lean
 ```
 -/
 

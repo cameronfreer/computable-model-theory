@@ -363,7 +363,6 @@ theorem generatedPresentation_toPartial_domain (i : ℕ) (t : Tuple ℕ) (ht : t
     (K.generatedPresentation i t ht).toPartial.domain = (K.generatedAt i t).domain := by
   rw [CePresentationIn.toPartial_domain, K.generatedPresentation_domain i t ht,
     generatedAt, (K.bundleAt i).generatedPresentationOf_domain t]
-  rfl
 
 end ComputableAgeIn
 

@@ -187,7 +187,7 @@ theorem chain_stage_domain (r : ℕ) : ((chain O).stageAt r).domain = (tinyAge O
 /-- Every stage carrier is the point's carrier, as a set; hence a subsingleton. -/
 noncomputable def stageEquiv (r : ℕ) :
     ((chain O).stageAt r).domain ≃ ((tinyAge O).memberAt 1).domain :=
-  _root_.Equiv.setCongr (chain_stage_domain O r)
+  Set.equivOfEq (chain_stage_domain O r)
 
 instance (r : ℕ) : Subsingleton ((chain O).stageAt r).domain :=
   (stageEquiv O r).subsingleton

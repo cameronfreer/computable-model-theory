@@ -14,7 +14,7 @@ Named acceptance tests for decode-and-evaluate and r.e. closure membership, chec
 `#assert_standard_axioms`. Outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/TermClosureAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/TermClosureAudit.lean
 ```
 -/
 

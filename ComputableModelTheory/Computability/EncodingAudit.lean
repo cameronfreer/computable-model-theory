@@ -14,7 +14,7 @@ decoding behavior that canonicalization arguments rely on. Checked by
 `#assert_standard_axioms`; outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/Computability/EncodingAudit.lean
+lake lean ComputableModelTheory/Computability/EncodingAudit.lean
 ```
 -/
 

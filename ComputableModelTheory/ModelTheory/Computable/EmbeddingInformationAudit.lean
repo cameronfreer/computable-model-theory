@@ -14,7 +14,7 @@ embedding information, checked by `#assert_standard_axioms`. Outside the root im
 spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/EmbeddingInformationAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/EmbeddingInformationAudit.lean
 ```
 -/
 

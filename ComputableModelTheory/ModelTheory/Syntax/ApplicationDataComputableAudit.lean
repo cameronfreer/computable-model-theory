@@ -15,7 +15,7 @@ Named acceptance tests for the oracle-relative `ofSymbolArgs?` wrappers, checked
 it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Syntax/ApplicationDataComputableAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Syntax/ApplicationDataComputableAudit.lean
 ```
 -/
 
