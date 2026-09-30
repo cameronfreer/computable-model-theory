@@ -42,17 +42,36 @@ if [ "${bad_imports}" -ne 0 ]; then
   exit 1
 fi
 
+# Modules are elaborated with `lake lean`, not `lake env lean`, so that the package's Lean options
+# (`leanOptions` and `moreLeanArgs` in lakefile.toml) apply exactly as they do under `lake build`.
+# They run in parallel (AUDIT_JOBS, default: the number of CPUs, at most 8); each module's output is
+# captured and printed in the sorted order, so the log reads as a sequential run.
+all_list="$(printf '%s\n%s\n' "${tracked_list}" "${untracked_list}" | grep . || true)"
+count="$(printf '%s' "${all_list}" | grep -c . || true)"
+jobs="${AUDIT_JOBS:-$(nproc 2>/dev/null || echo 2)}"
+[ "${jobs}" -gt 8 ] && [ -z "${AUDIT_JOBS:-}" ] && jobs=8
+
+logdir="$(mktemp -d)"
+trap 'rm -rf "${logdir}"' EXIT
+if [ "${count}" -gt 0 ]; then
+  printf '%s\n' "${all_list}" |
+    xargs -P "${jobs}" -I {} sh -c \
+      'k="$(printf "%s" "$1" | tr / _)"
+       if lake lean "$1" > "$0/$k.log" 2>&1; then echo 0; else echo 1; fi > "$0/$k.rc"' \
+      "${logdir}" {} || true
+fi
+
 status=0
-count=0
 while IFS= read -r file; do
   [ -n "${file}" ] || continue
-  count=$((count + 1))
   echo "== ${file}"
-  if ! lake env lean "${file}"; then
+  key="$(printf '%s' "${file}" | tr / _)"
+  cat "${logdir}/${key}.log" 2>/dev/null || true
+  if [ "$(cat "${logdir}/${key}.rc" 2>/dev/null || echo 1)" != 0 ]; then
     status=1
     echo "-- FAILED: ${file}" >&2
   fi
-done < <(printf '%s\n%s\n' "${tracked_list}" "${untracked_list}")
+done <<< "${all_list}"
 
 if [ "${count}" -eq 0 ]; then
   echo "No audit modules found via git ls-files '*Audit.lean'" >&2

@@ -2,24 +2,35 @@ name = "computable-model-theory"
 version = "0.1.0"
 keywords = ["math"]
 defaultTargets = ["ComputableModelTheory", "ComputableModelTheoryUtil"]
+# Lean v4.35 porting shim; see `[leanOptions]` below.
+moreLeanArgs = ["-Dbackward.isDefEq.respectTransparency.instanceSearchTypes=false"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
 relaxedAutoImplicit = false
 weak.linter.mathlibStandardSet = true
 maxSynthPendingDepth = 3
+# Lean v4.35 porting shims, set project-wide until the affected proofs are repaired individually
+# (Mathlib's own port sets the same options per declaration):
+# * `isDefEq` now respects transparency on implicit arguments, which breaks `rw`/`simp` on targets
+#   that only typecheck after unfolding `PFun` (`α →. β`);
+# * instance-search assignments must preserve types up to `.instances` transparency, which breaks
+#   coercions of embeddings between `Bundled` carriers typed with explicit structures. That option
+#   extends `backward.isDefEq.respectTransparency`, so TOML cannot also nest it here; it is passed
+#   through `moreLeanArgs` above.
+backward.isDefEq.respectTransparency = false
 
 [[require]]
 name = "InfinitaryLogic"
 git = "https://github.com/cameronfreer/infinitary-logic"
-rev = "6614ec7076f0b4d1911f48cb89a51d5e693fea88"
+rev = "38c4bae70547d107d42843f51ce7cee00481811b"
 
 # Mathlib last so its dependency versions take precedence over transitive ones
 # (e.g. batteries / Cli pulled in by LeanArchitect), per Mathlib's lake update guidance.
 [[require]]
 name = "mathlib"
-scope = "leanprover-community"
-rev = "v4.32.0"
+git = "https://github.com/cameronfreer/mathlib4"
+rev = "346a4bd3f95e8591976c91259badc6d2c300f638"
 
 [[lean_lib]]
 name = "ComputableModelTheory"

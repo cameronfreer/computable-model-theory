@@ -590,7 +590,6 @@ theorem pickFromHistory_computableIn (hOE : O ⊆ E) :
       (g := fun q ↦ decide (q.2 ∈ q.1.1.2)) (Primrec.not.to_comp.computableIn (O := E))
       hmem).of_eq fun q ↦ by
         congr 1
-        exact (Bool.eq_iff_iff.2 (by rw [decide_eq_true_iff, List.contains_iff_mem])).symm
   have hp : ComputableIn E fun q : ((List ℕ × List ℕ) × ℕ) × ℕ ↦
       (K.requirementAvailFromHistory q.1.1.1 q.1.2 q.2 && !q.1.1.2.contains q.2) :=
     ComputableIn₂.comp (α := ((List ℕ × List ℕ) × ℕ) × ℕ) (β := Bool) (γ := Bool) (σ := Bool)
