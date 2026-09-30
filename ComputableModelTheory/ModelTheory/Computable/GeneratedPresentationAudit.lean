@@ -16,7 +16,7 @@ structure-instance ambiguity. Outside the root import spine; CI checks it explic
 with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/GeneratedPresentationAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/GeneratedPresentationAudit.lean
 ```
 -/
 

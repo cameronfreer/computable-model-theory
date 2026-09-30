@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Computable.RankPresentation
+import Mathlib.Data.Set.Finite.Basic
 
 /-!
 # Level-2: computable initial-segment presentations and certified upgrades

@@ -194,7 +194,6 @@ theorem partialCommutes_iff_isAmalgamationOf {S : PotentialSpanData}
       (Eq.symm hshape.2.2))).trans ?_
   refine forall_congr' fun x ↦ ?_
   rw [reindexPE_apply, reindexPE_apply, reindexPE_apply, reindexPE_apply]
-  exact Iff.rfl
 
 end PartialAgeIn
 

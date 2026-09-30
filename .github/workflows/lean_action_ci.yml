@@ -5,6 +5,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# A newer push to the same ref supersedes a running check.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -14,10 +19,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+      # The audit runner's own regression test: fast, and needs no build.
+      - run: scripts/test-run-audit-modules.sh
       - uses: leanprover/lean-action@v1
       # The classical Fraïssé layer, strictly: warnings as errors, and without the package's
       # compatibility settings (see the script's header).
       - run: scripts/check-classical-fraisse.sh
-      # Audit modules live outside the root import spine; the runner discovers them
-      # via git ls-files so a new *Audit.lean can never be silently skipped.
+      # Audit modules live outside the root import spine; the runner discovers them via
+      # git ls-files so a new *Audit.lean can never be silently skipped, and runs them in parallel
+      # with the package's Lean options (`lake lean`).
       - run: scripts/run-audit-modules.sh

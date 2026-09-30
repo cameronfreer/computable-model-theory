@@ -365,7 +365,6 @@ theorem satStack_eq_map_listDecode
     simp only [hd, List.length_map, List.getElem_map]
     by_cases h : 2 ≤ (listDecode (L := L) (α := Fin k) l).length
     · rw [dif_pos h, dif_pos h, List.map_cons, ← List.map_drop, flagOf_imp]
-      rfl
     · rw [dif_neg h, dif_neg h]
       rfl
   | Sum.inr (Sum.inr 1) :: l =>
@@ -374,7 +373,6 @@ theorem satStack_eq_map_listDecode
     simp only [hd, List.length_map, List.getElem_map]
     by_cases h : 1 ≤ (listDecode (L := L) (α := Fin k) l).length
     · rw [dif_pos h, dif_pos h, List.map_cons, ← List.map_drop, flagOf_all]
-      rfl
     · rw [dif_neg h, dif_neg h]
       rfl
 

@@ -14,7 +14,7 @@ Named acceptance tests for the tuple API and the central closure gate, checked b
 `#assert_standard_axioms`. Outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/TupleClosureAudit.lean
+lake lean ComputableModelTheory/ModelTheory/TupleClosureAudit.lean
 ```
 -/
 

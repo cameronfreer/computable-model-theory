@@ -14,7 +14,7 @@ classical age, checked by `#assert_standard_axioms`. Outside the root import spi
 checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/ComputableAgeAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/ComputableAgeAudit.lean
 ```
 -/
 

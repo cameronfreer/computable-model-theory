@@ -14,7 +14,7 @@ formulas, checked by `#assert_standard_axioms`. Outside the root import spine; C
 it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Syntax/FormulaSigmaAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Syntax/FormulaSigmaAudit.lean
 ```
 -/
 

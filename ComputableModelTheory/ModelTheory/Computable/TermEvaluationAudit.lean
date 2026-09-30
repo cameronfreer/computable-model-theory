@@ -15,7 +15,7 @@ checked by `#assert_standard_axioms`. Outside the root import spine; CI checks i
 explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/TermEvaluationAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/TermEvaluationAudit.lean
 ```
 -/
 
