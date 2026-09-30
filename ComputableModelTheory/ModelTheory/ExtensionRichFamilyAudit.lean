@@ -12,7 +12,7 @@ import ComputableModelTheory.Util.AssertAxioms
 Outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/ExtensionRichFamilyAudit.lean
+lake lean ComputableModelTheory/ModelTheory/ExtensionRichFamilyAudit.lean
 ```
 
 1. **Independent universes, weak hypotheses.** `test_isExtensionPair` restates the core theorem
