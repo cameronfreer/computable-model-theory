@@ -96,10 +96,11 @@ Fraïssé class (`isFraisse_classSet`), and CAP supplies that amalgamation
 ## Checks
 
 `scripts/check-classical-layer.sh`, run in CI after the build, builds the three modules (and the
-rest of the classical layer, such as orbit isolation) and elaborates each module and its audit with warnings as errors and `autoImplicit=false`. It uses
-`lake env lean` on purpose: the ordinary audit sweep elaborates with the package's Lean options,
-including project-wide compatibility settings the effective layer may need, while this gate checks
-the classical layer without them. Each audit runs `#assert_module_standard_axioms`, which checks
+rest of the classical layer: orbit isolation and countable primeness) and elaborates each module
+and its audit with warnings as errors and `autoImplicit=false`. It uses `lake env lean` on
+purpose: the ordinary audit sweep elaborates with the package's Lean options, including
+project-wide compatibility settings the effective layer may need, while this gate checks the
+classical layer without them. Each audit runs `#assert_module_standard_axioms`, which checks
 the standard axioms on every declaration of the module by defining module, whatever its namespace.
 The audits also check the import boundary and pin regressions: independent universes, empty index
 and empty carriers, empty stages, and transitions given by arbitrary automorphisms.
