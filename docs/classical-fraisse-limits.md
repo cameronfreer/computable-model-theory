@@ -36,7 +36,11 @@ suffices to recognize finitely generated substructures of representatives), join
 amalgamation of the representatives transfer to the whole class; the amalgamation premise keeps
 the literal commuting square. `isFraisse_representativeClass` assembles Mathlib's `IsFraisse`
 from an inhabited countable index. Countability is of isomorphism classes
-(`representativeClass_countable_quotient`), not of the bundled class.
+(`representativeClass_countable_quotient`), not of the bundled class. When the age of `M` lies in the class, every
+finite tuple of `M` factors literally through an embedding of a representative
+(`exists_factor_tuple_of_age_subset`; repeated coordinates allowed, and
+`exists_factor_embedding_of_age_subset` for injective tuples). The choice is classical, not an
+effective pullback.
 
 ## Direct limits (`ExtensionRichDirectLimit`)
 

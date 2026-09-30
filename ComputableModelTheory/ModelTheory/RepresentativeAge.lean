@@ -11,6 +11,11 @@ Package the isomorphism closure of a family of structures using hereditary
 closure on finitely generated substructures and AP/JEP on the representatives.
 The index type and carrier universe are independent. No ambient limit, effective
 presentation, or countability of the language is needed for the class theorem.
+
+When the age of a structure lies in the representative class, every finite tuple factors literally
+through an embedding of a representative (`exists_factor_tuple_of_age_subset`, and
+`exists_factor_embedding_of_age_subset` for injective tuples). The representative and the
+isomorphism are chosen classically; this is not an effective pullback of tuples.
 -/
 
 universe u v w z
@@ -91,5 +96,35 @@ theorem isFraisse_representativeClass [Nonempty I] [Countable I]
   hereditary := representativeClass_hereditary F hsub
   jointEmbedding := representativeClass_jointEmbedding F hjep
   amalgamation := representativeClass_amalgamation F hap
+
+/-! ### Finite tuples factor through representatives -/
+
+section Factor
+
+variable {F} {M : Type w} [L.Structure M]
+
+/-- If the age of `M` lies in the representative class, every finite tuple of `M`, repeated
+coordinates allowed, factors literally through an embedding of some representative. The
+representative is isomorphic to the substructure the tuple generates, which need not be empty when
+the tuple is (constants). No finite generation of the other representatives is assumed. -/
+theorem exists_factor_tuple_of_age_subset (h : L.age M ⊆ representativeClass F) {n : ℕ}
+    (a : Fin n → M) : ∃ (i : I) (e : F i ↪[L] M) (b : Fin n → F i), e ∘ b = a := by
+  let S := Substructure.closure L (Set.range a)
+  obtain ⟨i, ⟨u⟩⟩ := h (age.fg_substructure (Substructure.fg_closure (Set.finite_range a)))
+  refine ⟨i, S.subtype.comp u.symm.toEmbedding,
+    fun j ↦ u ⟨a j, Substructure.subset_closure (Set.mem_range_self j)⟩, ?_⟩
+  funext j
+  exact congrArg Subtype.val (u.symm_apply_apply _)
+
+/-- The injective form: an injective tuple factors through an injective tuple of a
+representative, with the literal equation of embeddings. -/
+theorem exists_factor_embedding_of_age_subset (h : L.age M ⊆ representativeClass F) {n : ℕ}
+    (a : Fin n ↪ M) :
+    ∃ (i : I) (e : F i ↪[L] M) (b : Fin n ↪ F i), b.trans e.toEmbedding = a := by
+  obtain ⟨i, e, b, hb⟩ := exists_factor_tuple_of_age_subset h a
+  have hinj : Function.Injective (e ∘ b) := hb ▸ a.injective
+  exact ⟨i, e, ⟨b, hinj.of_comp⟩, Function.Embedding.ext (congrFun hb)⟩
+
+end Factor
 
 end FirstOrder.Language
