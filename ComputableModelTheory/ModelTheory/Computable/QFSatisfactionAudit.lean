@@ -15,7 +15,7 @@ satisfaction decider, checked by `#assert_standard_axioms`. Outside the root imp
 spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/QFSatisfactionAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/QFSatisfactionAudit.lean
 ```
 -/
 

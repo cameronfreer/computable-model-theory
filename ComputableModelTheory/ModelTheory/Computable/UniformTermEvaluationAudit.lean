@@ -13,7 +13,7 @@ Named acceptance tests for the age-indexed term evaluator, checked by
 `#assert_standard_axioms`. Outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/UniformTermEvaluationAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/UniformTermEvaluationAudit.lean
 ```
 -/
 

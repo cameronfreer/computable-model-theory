@@ -333,7 +333,6 @@ theorem atomicData?_eq_some_of_rel {n : ℕ} (R : L.Relations n)
     show (termOfSymbol? ∘ fun i : Fin n ↦ (Sum.inl ⟨0, ts i⟩ : FormulaSymbol L α)) =
       some ∘ fun i ↦ (ts i).relabel (Sum.elim id Fin.elim0) from funext fun i ↦ rfl,
     List.filterMap_eq_map]
-  rfl
 
 theorem atomicData?_isSome_iff (φ : L.Formula α) :
     (atomicData? φ).isSome ↔ (φ : L.BoundedFormula α 0).IsAtomic := by

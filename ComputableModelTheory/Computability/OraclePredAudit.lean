@@ -16,7 +16,7 @@ This module is deliberately not imported by the library's root spine; CI checks 
 explicitly with
 
 ```
-lake env lean ComputableModelTheory/Computability/OraclePredAudit.lean
+lake lean ComputableModelTheory/Computability/OraclePredAudit.lean
 ```
 -/
 

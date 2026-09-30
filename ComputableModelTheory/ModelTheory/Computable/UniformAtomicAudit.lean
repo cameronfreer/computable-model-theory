@@ -14,7 +14,7 @@ bridge, checked by `#assert_standard_axioms`. Outside the root import spine; CI 
 it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/UniformAtomicAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/UniformAtomicAudit.lean
 ```
 -/
 

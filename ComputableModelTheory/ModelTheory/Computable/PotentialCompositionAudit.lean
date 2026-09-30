@@ -13,7 +13,7 @@ Named acceptance tests for `compData`, its transport helpers, and `checkedComp`,
 `#assert_standard_axioms`. Outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/PotentialCompositionAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/PotentialCompositionAudit.lean
 ```
 
 Coverage: composition's oracle-computability; the projection identities; minimal

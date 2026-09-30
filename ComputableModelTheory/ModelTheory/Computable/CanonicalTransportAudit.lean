@@ -13,7 +13,7 @@ Named acceptance tests for canonical least-term transport, checked by
 `#assert_standard_axioms`. Outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/ModelTheory/Computable/CanonicalTransportAudit.lean
+lake lean ComputableModelTheory/ModelTheory/Computable/CanonicalTransportAudit.lean
 ```
 
 Coverage: the reusable total-search helper; the four computability contracts; the

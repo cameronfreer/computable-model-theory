@@ -71,7 +71,9 @@ theorem List.foldr_cond_eq_findIdx {β : Type*} (p : β → Bool) (l : List β) 
     l.foldr (fun b n ↦ cond (p b) 0 (n + 1)) 0 = l.findIdx p := by
   induction l with
   | nil => rfl
-  | cons b l ih => rw [List.foldr_cons, ih, List.findIdx_cons]
+  | cons b l ih =>
+    rw [List.foldr_cons, ih, List.findIdx_cons]
+    cases p b <;> rfl
 
 namespace Primrec
 

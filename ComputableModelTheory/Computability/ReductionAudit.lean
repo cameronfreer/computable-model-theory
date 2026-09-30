@@ -14,7 +14,7 @@ checked by `#assert_standard_axioms` (defined in `ComputableModelTheory.Util.Ass
 Outside the root import spine; CI checks it explicitly with
 
 ```
-lake env lean ComputableModelTheory/Computability/ReductionAudit.lean
+lake lean ComputableModelTheory/Computability/ReductionAudit.lean
 ```
 -/
 
