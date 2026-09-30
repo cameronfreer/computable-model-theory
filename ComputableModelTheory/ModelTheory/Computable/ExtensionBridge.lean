@@ -400,6 +400,40 @@ theorem PartialCJEPIn.hasJEP (h : PartialCJEPIn E K) : K.HasJEP := by
   obtain ⟨⟨-, Fi, -⟩, ⟨-, Fj, -⟩⟩ := hsel i j
   exact ⟨(sel i j).apexIdx, ⟨Fi⟩, ⟨Fj⟩⟩
 
+/-- **CAP gives semantic amalgamation of member embeddings**, with a literal commuting square: code
+the two embeddings by their generator images, run the selector on that actual span, and read the
+square off its conditional soundness. -/
+theorem PartialCAPIn.memberAmalgamation (h : K.PartialCAPIn E) (i j k : ℕ)
+    (f : (K.memberAt i).domain ↪[L] (K.memberAt j).domain)
+    (g : (K.memberAt i).domain ↪[L] (K.memberAt k).domain) :
+    ∃ (l : ℕ) (a : (K.memberAt j).domain ↪[L] (K.memberAt l).domain)
+      (b : (K.memberAt k).domain ↪[L] (K.memberAt l).domain), a.comp f = b.comp g := by
+  obtain ⟨W⟩ := h.nonempty_witness
+  let F : PotentialEmbeddingData := PotentialEmbeddingData.ofTriple
+    (i, j, List.ofFn fun t ↦ ((f (K.gensView i t) : (K.memberAt j).domain) : ℕ))
+  let G : PotentialEmbeddingData := PotentialEmbeddingData.ofTriple
+    (i, k, List.ofFn fun t ↦ ((g (K.gensView i t) : (K.memberAt k).domain) : ℕ))
+  have hF : K.PartialRealizes F f :=
+    ⟨List.length_ofFn.symm, fun t ↦ by
+      change _ = (List.ofFn fun t ↦ ((f (K.gensView i t) : _) : ℕ)).get (Fin.cast _ t)
+      rw [List.get_ofFn]
+      rfl⟩
+  have hG : K.PartialRealizes G g :=
+    ⟨List.length_ofFn.symm, fun t ↦ by
+      change _ = (List.ofFn fun t ↦ ((g (K.gensView i t) : _) : ℕ)).get (Fin.cast _ t)
+      rw [List.get_ofFn]
+      rfl⟩
+  have hspan : K.PartialSpanActual (PotentialSpanData.ofPair (F, G)) := ⟨rfl, ⟨f, hF⟩, ⟨g, hG⟩⟩
+  obtain ⟨D, hD⟩ := Part.dom_iff_mem.1 (W.halts _ hspan.carrierValidSpan)
+  obtain ⟨-, d, m₁, m₂, apex, fl, fr, gl, gr, hfl, hfr, hgl, hgr, hsq⟩ := W.sound _ D hD hspan
+  obtain rfl : i = d := hfl.1
+  obtain rfl : j = m₁ := hfl.2.1
+  obtain rfl : k = m₂ := hfr.2.1
+  have hfl' : fl = f := hfl.unique ⟨rfl, rfl, hF⟩
+  have hfr' : fr = g := hfr.unique ⟨rfl, rfl, hG⟩
+  subst hfl' hfr'
+  exact ⟨apex, gl, gr, hsq⟩
+
 /-! ### Stages are members -/
 
 namespace EmbeddingChainData

@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Cameron Freer
 -/
 import ComputableModelTheory.ModelTheory.Computable.PureSetExample
-import ComputableModelTheory.ModelTheory.Computable.ListAgeExample
+import ComputableModelTheory.ModelTheory.Computable.ListAgeCAP
 import ComputableModelTheory.Util.AssertAxioms
 
 /-!
@@ -21,6 +21,12 @@ no oracle inclusion appears in any signature.
 rich (`test_extensionRich`), and the class is hereditary with every stage image in it
 (`test_classSet_inputs`); coverage is the upper-layer JEP argument (`test_stageRange_coverage`). In
 every row the family lives at `O` and the chain at `E`, with no inclusion between them.
+
+**A class of representatives.** The represented class is the representative class of the bundled
+members (`test_classSet_eq_representativeClass`), so HP, JEP and amalgamation of member embeddings
+make it a Fraïssé class in Mathlib's sense (`test_isFraisse_classSet`); CAP supplies that
+amalgamation (`test_memberAmalgamation`), and the list age is discharged end to end
+(`test_listAge_isFraisse`).
 
 **Discharged on an actual fixture.** `test_tiny_isFraisseLimit` is `IsFraisseLimit` for the
 two-member age's limit, obtained by discharging every hypothesis on `tinyAge` — not by restating the
@@ -91,6 +97,28 @@ theorem test_stageRange_coverage (C : CeStructureChainIn.LimitIn.FraisseChainDat
     ∃ r, Nonempty (A ↪[L] Z.stageRange r) :=
   C.exists_embedding_stageRange hJ hA
 
+theorem test_classSet_eq_representativeClass :
+    (K.classSet : Set (CategoryTheory.Bundled.{0} L.Structure)) =
+      representativeClass K.memberBundled :=
+  K.classSet_eq_representativeClass
+
+/-- **The represented class is a Fraïssé class**, from HP, JEP and member amalgamation. -/
+theorem test_isFraisse_classSet (hHP : K.HasHP) (hJ : K.HasJEP)
+    (hAP : ∀ (i j k : ℕ) (f : K.memberBundled i ↪[L] K.memberBundled j)
+      (g : K.memberBundled i ↪[L] K.memberBundled k),
+      ∃ (l : ℕ) (a : K.memberBundled j ↪[L] K.memberBundled l)
+        (b : K.memberBundled k ↪[L] K.memberBundled l), a.comp f = b.comp g) :
+    IsFraisse (K.classSet : Set (CategoryTheory.Bundled.{0} L.Structure)) :=
+  PartialAgeIn.isFraisse_classSet hHP hJ hAP
+
+/-- **CAP gives member amalgamation** with a literal commuting square. -/
+theorem test_memberAmalgamation (h : K.PartialCAPIn E) (i j k : ℕ)
+    (f : (K.memberAt i).domain ↪[L] (K.memberAt j).domain)
+    (g : (K.memberAt i).domain ↪[L] (K.memberAt k).domain) :
+    ∃ (l : ℕ) (a : (K.memberAt j).domain ↪[L] (K.memberAt l).domain)
+      (b : (K.memberAt k).domain ↪[L] (K.memberAt l).domain), a.comp f = b.comp g :=
+  h.memberAmalgamation i j k f g
+
 end General
 
 /-! ### The fixture -/
@@ -133,6 +161,13 @@ theorem test_listAge_extensionRich :
       (CeStructureChainIn.LimitIn.fgCofinal_stageRange _)
       ((listAge.fraisseChainData O).extensionRich (listAge.hasMappedHP O).hasHP)⟩
 
+/-- **The list age is a Fraïssé class**, every hypothesis discharged: HP and JEP of the list age,
+and amalgamation from its pushout CAP witness. -/
+theorem test_listAge_isFraisse :
+    IsFraisse ((listAge O).classSet : Set (CategoryTheory.Bundled.{0} Language.empty.Structure)) :=
+  PartialAgeIn.isFraisse_classSet (listAge.hasMappedHP O).hasHP (listAge.hasJEP O)
+    fun i j k f g ↦ (listAge.capWitness O).partialCAPIn.memberAmalgamation i j k f g
+
 /-- And on the two-member age. -/
 theorem test_tiny_extensionRich : ExtensionRich (tinyAge.limit O).stageRange :=
   (tinyAge.fraisseChainData O).extensionRich (tinyAge.hasHP O)
@@ -157,3 +192,7 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_stageRange_coverage
 #assert_standard_axioms FirstOrder.Language.test_listAge_extensionRich
 #assert_standard_axioms FirstOrder.Language.test_tiny_extensionRich
+#assert_standard_axioms FirstOrder.Language.test_classSet_eq_representativeClass
+#assert_standard_axioms FirstOrder.Language.test_isFraisse_classSet
+#assert_standard_axioms FirstOrder.Language.test_memberAmalgamation
+#assert_standard_axioms FirstOrder.Language.test_listAge_isFraisse
