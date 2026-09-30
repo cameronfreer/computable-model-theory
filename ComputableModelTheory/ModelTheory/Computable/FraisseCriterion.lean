@@ -8,6 +8,7 @@ import Mathlib.ModelTheory.PartialEquiv
 import ComputableModelTheory.ModelTheory.Computable.LimitTupleExhaustion
 import ComputableModelTheory.ModelTheory.Computable.PartialMemberEmbedding
 import ComputableModelTheory.ModelTheory.ExtensionRichFamily
+import ComputableModelTheory.ModelTheory.RepresentativeAge
 
 /-!
 # Lemma 3.8 as a semantic criterion: the limit of an extension-closed chain is a Fraïssé limit
@@ -172,6 +173,44 @@ theorem HasHP.classSet_hereditary (hHP : K.HasHP) : Hereditary K.classSet := by
   obtain ⟨j, ⟨φ⟩⟩ := hHP i n fun k ↦ ι' (t k)
   exact K.mem_classSet_of_equiv (i := j)
     ((φ.comp ((closureRangeEquiv ι' t).comp ((equivOfEq ht.symm).comp topEquiv.symm))).symm)
+
+end PartialAgeIn
+
+/-! ### The represented class as a class of representatives -/
+
+namespace PartialAgeIn
+
+variable (K : PartialAgeIn O L)
+
+/-- **The represented class is the representative class of the bundled members**, in the members'
+own carrier universe. -/
+theorem classSet_eq_representativeClass :
+    (K.classSet : Set (CategoryTheory.Bundled.{0} L.Structure)) =
+      representativeClass K.memberBundled := by
+  ext A
+  exact ⟨fun ⟨i, ⟨e⟩⟩ ↦ ⟨i, ⟨e.symm⟩⟩, fun ⟨i, ⟨e⟩⟩ ↦ ⟨i, ⟨e.symm⟩⟩⟩
+
+variable {K}
+
+/-- HP, read on substructures: every finitely generated substructure of a member is a member, up to
+isomorphism. -/
+theorem HasHP.exists_equiv_of_fg (hHP : K.HasHP) (i : ℕ) (S : L.Substructure (K.memberAt i).domain)
+    (hS : S.FG) : ∃ j, Nonempty (S ≃[L] K.memberBundled j) := by
+  obtain ⟨n, t, rfl⟩ := fg_iff_exists_fin_generating_family.1 hS
+  obtain ⟨j, ⟨φ⟩⟩ := hHP i n t
+  exact ⟨j, ⟨φ⟩⟩
+
+/-- **The represented class is a Fraïssé class** (Mathlib's `IsFraisse`), given semantic HP, JEP and
+amalgamation of member embeddings with a literal commuting square. -/
+theorem isFraisse_classSet (hHP : K.HasHP) (hJ : K.HasJEP)
+    (hAP : ∀ (i j k : ℕ) (f : K.memberBundled i ↪[L] K.memberBundled j)
+      (g : K.memberBundled i ↪[L] K.memberBundled k),
+      ∃ (l : ℕ) (a : K.memberBundled j ↪[L] K.memberBundled l)
+        (b : K.memberBundled k ↪[L] K.memberBundled l), a.comp f = b.comp g) :
+    IsFraisse (K.classSet : Set (CategoryTheory.Bundled.{0} L.Structure)) := by
+  rw [classSet_eq_representativeClass]
+  exact isFraisse_representativeClass K.memberBundled (fun i ↦ K.memberAt_fg i)
+    hHP.exists_equiv_of_fg hJ hAP
 
 end PartialAgeIn
 
