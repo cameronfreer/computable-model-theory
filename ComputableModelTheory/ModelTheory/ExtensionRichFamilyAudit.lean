@@ -10,7 +10,7 @@ import ComputableModelTheory.Util.AssertAxioms
 # Audit: extension-rich families of substructures
 
 Outside the root import spine; CI checks it through `scripts/run-audit-modules.sh`, and with
-warnings as errors through `scripts/check-classical-fraisse.sh`.
+warnings as errors through `scripts/check-classical-layer.sh`.
 
 1. **Independent universes, weak hypotheses.** `test_isExtensionPair` restates the core theorem
    over `Language.{u, v}`, `M : Type w`, `I : Type z`, with no countability, no `Nonempty M`, and
