@@ -10,17 +10,25 @@ import ComputableModelTheory.ModelTheory.Computable.BackForth
 
 Both half-steps, iterated. One **round** at stage `n` performs *both* halves with the same `n`: the
 forth step matches the source point `n`, and the back step — on the state the forth step produced —
-matches the target point `n`. The run is `Nat.rec` over rounds, starting from the empty state.
+matches the target point `n`. The run is `Nat.rec` over rounds, starting from a supplied initial
+state `s₀` — Proposition 3.2 starts from `empty`, Corollary 3.5 from a prescribed match.
 
 ## Not parity alternation
 
 Every successor performs both halves. A scheme that alternated on parity — forth at even stages,
 back at odd — would need `n / 2` as the point to match and would leave the two tuples at different
-lengths between stages. Here `stateAt n` always has both tuples of length `2 * n`, and after stage
-`n + 1` the number `n` is present on *both* sides: at source position `2 * n` because the forth half
-pushed it there, and at target position `2 * n + 1` because the back half did. Those two positions
-are what the eventual surjectivity arguments consume, and they are deliberately different: the
-source tuple's `2 * n + 1` entry is the point the back half's homogeneity *chose*, not `n`.
+lengths between stages. Here each tuple of `stateAt s₀ n` has its initial length plus `2 * n`, and
+after stage `n + 1` the number `n` is present on *both* sides: at source position
+`s₀.sourceTuple.length + 2 * n` because the forth half pushed it there, and at target position
+`s₀.targetTuple.length + 2 * n + 1` because the back half did. Those two positions are what the
+eventual surjectivity arguments consume, and they are deliberately different. On a matched seed the
+two initial lengths agree, so both offsets are the seed length `ℓ`; from `empty` they are `0`.
+
+## The seed
+
+The initial state is arbitrary data. Only `stateAt_matched` needs it to be matched, and nothing else
+in this module looks at it: the half-steps assume only that the *current* state is matched. The run
+only appends, so every coordinate of the seed — repeated ones included — survives at every stage.
 
 ## Persistence
 
@@ -33,7 +41,7 @@ arithmetic, so the two-entry step is stated once and the general `m ≤ n` case 
 
 The whole run is computable in the **map** oracle `E`. The presentation oracle is never consulted
 and no inclusion between them is assumed, which is inherited from the two half-steps: this module
-adds only `Nat.rec`.
+adds only `Nat.rec`, whose base case is the fixed seed (a constant).
 
 Stopping here. The total maps — the common-later-stage lookup lemmas, and the inverse and structure
 laws — are their own unit.
@@ -50,7 +58,7 @@ section Run
 variable {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
   (r : RepresentationCoverIn E S.canonicalAge T.canonicalAge)
   (rb : RepresentationCoverIn E T.canonicalAge S.canonicalAge)
-  (H : ComputablyHomogeneousIn E T) (Hs : ComputablyHomogeneousIn E S)
+  (H : ComputablyHomogeneousIn E T) (Hs : ComputablyHomogeneousIn E S) (s₀ : BackForthState)
 
 namespace BackForthState
 
@@ -102,33 +110,37 @@ theorem roundState_computableIn :
 
 /-! ### The run -/
 
-/-- **The run**: rounds iterated from the empty state. -/
+/-- **The run**: rounds iterated from the seed `s₀`. -/
 noncomputable def stateAt (n : ℕ) : BackForthState :=
-  Nat.rec empty (fun y IH ↦ roundState r rb H Hs y IH) n
+  Nat.rec s₀ (fun y IH ↦ roundState r rb H Hs y IH) n
 
-@[simp] theorem stateAt_zero : stateAt r rb H Hs 0 = empty := rfl
+@[simp] theorem stateAt_zero : stateAt r rb H Hs s₀ 0 = s₀ := rfl
 
 @[simp] theorem stateAt_succ (n : ℕ) :
-    stateAt r rb H Hs (n + 1) = roundState r rb H Hs n (stateAt r rb H Hs n) := rfl
+    stateAt r rb H Hs s₀ (n + 1) = roundState r rb H Hs n (stateAt r rb H Hs s₀ n) := rfl
 
-theorem stateAt_computableIn : ComputableIn E (stateAt r rb H Hs) := by
+theorem stateAt_computableIn : ComputableIn E (stateAt r rb H Hs s₀) := by
   have hround : ComputableIn₂ E fun (_ : ℕ) (p : ℕ × BackForthState) ↦
       roundState r rb H Hs p.1 p.2 :=
     ((roundState_computableIn r rb H Hs).comp ComputableIn.snd).to₂
-  exact (ComputableIn.nat_rec ComputableIn.id (ComputableIn.const empty) hround).of_eq
+  exact (ComputableIn.nat_rec ComputableIn.id (ComputableIn.const s₀) hround).of_eq
     fun _ ↦ rfl
 
-/-- **The invariant holds at every stage.** The base case is the empty state, from the forward cover
-alone; each successor is one round. -/
-theorem stateAt_matched (n : ℕ) : (stateAt r rb H Hs n).Matched S T := by
+/-- **The invariant holds at every stage**, from a matched seed; each successor is one round. -/
+theorem stateAt_matched {s₀ : BackForthState} (h₀ : s₀.Matched S T) (n : ℕ) :
+    (stateAt r rb H Hs s₀ n).Matched S T := by
   induction n with
-  | zero => exact empty_matched r
+  | zero => exact h₀
   | succ n ih => exact roundState_matched r rb H Hs n ih
+
+/-- **The empty start** is matched by the forward cover alone — Proposition 3.2's base case. -/
+theorem stateAt_empty_matched (n : ℕ) : (stateAt r rb H Hs empty n).Matched S T :=
+  stateAt_matched r rb H Hs (empty_matched r) n
 
 /-! ### Lengths and discovery positions -/
 
 theorem stateAt_sourceTuple_length (n : ℕ) :
-    (stateAt r rb H Hs n).sourceTuple.length = 2 * n := by
+    (stateAt r rb H Hs s₀ n).sourceTuple.length = s₀.sourceTuple.length + 2 * n := by
   induction n with
   | zero => rfl
   | succ n ih =>
@@ -137,7 +149,7 @@ theorem stateAt_sourceTuple_length (n : ℕ) :
     omega
 
 theorem stateAt_targetTuple_length (n : ℕ) :
-    (stateAt r rb H Hs n).targetTuple.length = 2 * n := by
+    (stateAt r rb H Hs s₀ n).targetTuple.length = s₀.targetTuple.length + 2 * n := by
   induction n with
   | zero => rfl
   | succ n ih =>
@@ -145,20 +157,20 @@ theorem stateAt_targetTuple_length (n : ℕ) :
     simp
     omega
 
-/-- **The source point `n` is discovered at position `2 * n`** — the forth half of round `n` put it
-there. -/
+/-- **The source point `n` is discovered at position `s₀.sourceTuple.length + 2 * n`** — the forth
+half of round `n` put it there. -/
 theorem stateAt_sourceTuple_getElem?_two_mul (n : ℕ) :
-    (stateAt r rb H Hs (n + 1)).sourceTuple[2 * n]? = some n := by
+    (stateAt r rb H Hs s₀ (n + 1)).sourceTuple[s₀.sourceTuple.length + 2 * n]? = some n := by
   rw [stateAt_succ, roundState_sourceTuple,
     List.getElem?_append_right (by rw [stateAt_sourceTuple_length]),
     stateAt_sourceTuple_length]
   simp
 
-/-- **The target point `n` is discovered at position `2 * n + 1`** — the back half of round `n` put
-it there. A different position from the source side, because the two rounds append their two new
-entries in opposite orders. -/
+/-- **The target point `n` is discovered at position `s₀.targetTuple.length + 2 * n + 1`** — the
+back half of round `n` put it there. A different position from the source side, because the two
+rounds append their two new entries in opposite orders. -/
 theorem stateAt_targetTuple_getElem?_two_mul_succ (n : ℕ) :
-    (stateAt r rb H Hs (n + 1)).targetTuple[2 * n + 1]? = some n := by
+    (stateAt r rb H Hs s₀ (n + 1)).targetTuple[s₀.targetTuple.length + 2 * n + 1]? = some n := by
   rw [stateAt_succ, roundState_targetTuple,
     List.getElem?_append_right (by rw [stateAt_targetTuple_length]; omega),
     stateAt_targetTuple_length]
@@ -171,30 +183,30 @@ and then extended by transitivity — no lookup arithmetic is involved, which is
 usable at an arbitrary pair of stages. -/
 
 theorem stateAt_sourceTuple_prefix_succ (n : ℕ) :
-    (stateAt r rb H Hs n).sourceTuple <+: (stateAt r rb H Hs (n + 1)).sourceTuple := by
+    (stateAt r rb H Hs s₀ n).sourceTuple <+: (stateAt r rb H Hs s₀ (n + 1)).sourceTuple := by
   rw [stateAt_succ, roundState_sourceTuple]
   exact List.prefix_append _ _
 
 theorem stateAt_targetTuple_prefix_succ (n : ℕ) :
-    (stateAt r rb H Hs n).targetTuple <+: (stateAt r rb H Hs (n + 1)).targetTuple := by
+    (stateAt r rb H Hs s₀ n).targetTuple <+: (stateAt r rb H Hs s₀ (n + 1)).targetTuple := by
   rw [stateAt_succ, roundState_targetTuple]
   exact List.prefix_append _ _
 
 theorem stateAt_sourceTuple_prefix {m n : ℕ} (h : m ≤ n) :
-    (stateAt r rb H Hs m).sourceTuple <+: (stateAt r rb H Hs n).sourceTuple := by
+    (stateAt r rb H Hs s₀ m).sourceTuple <+: (stateAt r rb H Hs s₀ n).sourceTuple := by
   obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_le h
   clear h
   induction k with
   | zero => exact List.prefix_refl _
-  | succ k ih => exact ih.trans (stateAt_sourceTuple_prefix_succ r rb H Hs (m + k))
+  | succ k ih => exact ih.trans (stateAt_sourceTuple_prefix_succ r rb H Hs s₀ (m + k))
 
 theorem stateAt_targetTuple_prefix {m n : ℕ} (h : m ≤ n) :
-    (stateAt r rb H Hs m).targetTuple <+: (stateAt r rb H Hs n).targetTuple := by
+    (stateAt r rb H Hs s₀ m).targetTuple <+: (stateAt r rb H Hs s₀ n).targetTuple := by
   obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_le h
   clear h
   induction k with
   | zero => exact List.prefix_refl _
-  | succ k ih => exact ih.trans (stateAt_targetTuple_prefix_succ r rb H Hs (m + k))
+  | succ k ih => exact ih.trans (stateAt_targetTuple_prefix_succ r rb H Hs s₀ (m + k))
 
 end BackForthState
 

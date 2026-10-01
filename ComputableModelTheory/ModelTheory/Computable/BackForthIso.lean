@@ -76,7 +76,7 @@ section Iso
 variable {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
   (r : RepresentationCoverIn E S.canonicalAge T.canonicalAge)
   (rb : RepresentationCoverIn E T.canonicalAge S.canonicalAge)
-  (H : ComputablyHomogeneousIn E T) (Hs : ComputablyHomogeneousIn E S)
+  (H : ComputablyHomogeneousIn E T) (Hs : ComputablyHomogeneousIn E S) (s₀ : BackForthState)
 
 namespace BackForthState
 
@@ -85,16 +85,16 @@ namespace BackForthState
 /-- A value matched by stage `N`, as a point of that stage's source member. Its own discovery
 occurrence witnesses membership. -/
 noncomputable def stagePoint {N v : ℕ} (h : v + 1 ≤ N) :
-    (S.canonicalAge.memberAt (stateAt r rb H Hs N).tightMap.domIdx).domain :=
+    (S.canonicalAge.memberAt (stateAt r rb H Hs s₀ N).tightMap.domIdx).domain :=
   ⟨v, by
     refine S.mem_canonicalAge_domainAt_of_mem_gens ?_
-    rw [show allTupleFor (stateAt r rb H Hs N).tightMap.domIdx
-      = (stateAt r rb H Hs N).sourceTuple from allTupleFor_encode _]
-    exact List.mem_of_getElem? (sourceTuple_getElem?_two_mul_of_le r rb H Hs h)⟩
+    rw [show allTupleFor (stateAt r rb H Hs s₀ N).tightMap.domIdx
+      = (stateAt r rb H Hs s₀ N).sourceTuple from allTupleFor_encode _]
+    exact List.mem_of_getElem? (sourceTuple_getElem?_two_mul_of_le r rb H Hs s₀ h)⟩
 
 @[simp] theorem stagePoint_coe {N v : ℕ} (h : v + 1 ≤ N) :
-    ((stagePoint r rb H Hs h : (S.canonicalAge.memberAt
-      (stateAt r rb H Hs N).tightMap.domIdx).domain) : ℕ) = v := rfl
+    ((stagePoint r rb H Hs s₀ h : (S.canonicalAge.memberAt
+      (stateAt r rb H Hs s₀ N).tightMap.domIdx).domain) : ℕ) = v := rfl
 
 /-- **The stage realizer computes `toFun`.** At a matched stage, the realizer's value at any point
 named by a recorded source entry is `toFun` of that entry.
@@ -102,23 +102,23 @@ named by a recorded source entry is `toFun` of that entry.
 The one bridge between the finite stages and the limit map: the positional reading of the realizer
 says where the point goes *in the stage's target tuple*, and the graph lemma says that entry is
 `toFun` of the source entry. Both the arguments and the output of a function application use it. -/
-theorem realizer_toFun {N : ℕ}
-    {f : (S.canonicalAge.memberAt (stateAt r rb H Hs N).tightMap.domIdx).domain ↪[L]
-      (T.canonicalAge.memberAt (stateAt r rb H Hs N).tightMap.codIdx).domain}
+theorem realizer_toFun {s₀ : BackForthState} (h₀ : s₀.Matched S T) {N : ℕ}
+    {f : (S.canonicalAge.memberAt (stateAt r rb H Hs s₀ N).tightMap.domIdx).domain ↪[L]
+      (T.canonicalAge.memberAt (stateAt r rb H Hs s₀ N).tightMap.codIdx).domain}
     (hf : PartialAgeIn.PartialRealizesBetween S.canonicalAge T.canonicalAge
-      (stateAt r rb H Hs N).tightMap f)
-    {i : ℕ} {x : (S.canonicalAge.memberAt (stateAt r rb H Hs N).tightMap.domIdx).domain}
-    (hx : (stateAt r rb H Hs N).sourceTuple[i]? = some (x : ℕ)) :
-    ((f x : (T.canonicalAge.memberAt (stateAt r rb H Hs N).tightMap.codIdx).domain) : ℕ)
-      = toFun r rb H Hs (x : ℕ) := by
-  have hi : i < (stateAt r rb H Hs N).sourceTuple.length := by
+      (stateAt r rb H Hs s₀ N).tightMap f)
+    {i : ℕ} {x : (S.canonicalAge.memberAt (stateAt r rb H Hs s₀ N).tightMap.domIdx).domain}
+    (hx : (stateAt r rb H Hs s₀ N).sourceTuple[i]? = some (x : ℕ)) :
+    ((f x : (T.canonicalAge.memberAt (stateAt r rb H Hs s₀ N).tightMap.codIdx).domain) : ℕ)
+      = toFun r rb H Hs s₀ (x : ℕ) := by
+  have hi : i < (stateAt r rb H Hs s₀ N).sourceTuple.length := by
     by_contra hc
     rw [List.getElem?_eq_none (by omega)] at hx
     exact absurd hx (by simp)
-  have hval : ((x : ℕ)) = (stateAt r rb H Hs N).sourceTuple[i] :=
+  have hval : ((x : ℕ)) = (stateAt r rb H Hs s₀ N).sourceTuple[i] :=
     (Option.some.inj ((List.getElem?_eq_getElem hi).symm.trans hx)).symm
   have h1 := realizer_getElem? hf hi hval
-  have h2 := targetTuple_getElem?_eq_toFun r rb H Hs hx
+  have h2 := targetTuple_getElem?_eq_toFun r rb H Hs h₀ hx
   exact (Option.some.inj (h1.symm.trans h2))
 
 /-! ### The structure laws -/
@@ -126,34 +126,35 @@ theorem realizer_toFun {N : ℕ}
 /-- **The forward map commutes with function interpretation.** At `funStage`, every argument and the
 value itself are matched, so all `n + 1` points live in the stage's source member and the realizer's
 `map_fun'` is the law wanted. -/
-theorem toFun_funMap {n : ℕ} (fs : L.Functions n) (v : Fin n → ℕ) :
-    toFun r rb H Hs (@Structure.funMap L ℕ S.inst n fs v)
-      = @Structure.funMap L ℕ T.inst n fs fun k ↦ toFun r rb H Hs (v k) := by
-  obtain ⟨f, hf⟩ := stateAt_matched r rb H Hs (funStage S fs v)
+theorem toFun_funMap {s₀ : BackForthState} (h₀ : s₀.Matched S T) {n : ℕ} (fs : L.Functions n)
+    (v : Fin n → ℕ) :
+    toFun r rb H Hs s₀ (@Structure.funMap L ℕ S.inst n fs v)
+      = @Structure.funMap L ℕ T.inst n fs fun k ↦ toFun r rb H Hs s₀ (v k) := by
+  obtain ⟨f, hf⟩ := stateAt_matched r rb H Hs h₀ (funStage S fs v)
   set x : Fin n → (S.canonicalAge.memberAt
-      (stateAt r rb H Hs (funStage S fs v)).tightMap.domIdx).domain :=
-    fun k ↦ stagePoint r rb H Hs (le_funStage_of_arg S fs v k) with hxdef
+      (stateAt r rb H Hs s₀ (funStage S fs v)).tightMap.domIdx).domain :=
+    fun k ↦ stagePoint r rb H Hs s₀ (le_funStage_of_arg S fs v k) with hxdef
   have hxk : ∀ k, ((x k : (S.canonicalAge.memberAt
-      (stateAt r rb H Hs (funStage S fs v)).tightMap.domIdx).domain) : ℕ) = v k := fun _ ↦ rfl
+      (stateAt r rb H Hs s₀ (funStage S fs v)).tightMap.domIdx).domain) : ℕ) = v k := fun _ ↦ rfl
   -- the value, as a point of the same member
   have hout : @Structure.funMap L _ _ n fs x
-      = stagePoint r rb H Hs (funMap_lt_funStage S fs v) := by
+      = stagePoint r rb H Hs s₀ (funMap_lt_funStage S fs v) := by
     refine Subtype.ext ?_
     change @Structure.funMap L ℕ S.inst n fs (fun k ↦ ((x k : _) : ℕ))
       = @Structure.funMap L ℕ S.inst n fs v
     exact congrArg _ (funext hxk)
   -- the arguments and the value both read through the same bridge
   have hargs : ∀ k, ((f (x k) : (T.canonicalAge.memberAt
-      (stateAt r rb H Hs (funStage S fs v)).tightMap.codIdx).domain) : ℕ)
-      = toFun r rb H Hs (v k) := fun k ↦
-    realizer_toFun r rb H Hs hf
-      (sourceTuple_getElem?_two_mul_of_le r rb H Hs (le_funStage_of_arg S fs v k))
-  have hvalue : ((f (stagePoint r rb H Hs (funMap_lt_funStage S fs v)) :
+      (stateAt r rb H Hs s₀ (funStage S fs v)).tightMap.codIdx).domain) : ℕ)
+      = toFun r rb H Hs s₀ (v k) := fun k ↦
+    realizer_toFun r rb H Hs h₀ hf
+      (sourceTuple_getElem?_two_mul_of_le r rb H Hs s₀ (le_funStage_of_arg S fs v k))
+  have hvalue : ((f (stagePoint r rb H Hs s₀ (funMap_lt_funStage S fs v)) :
       (T.canonicalAge.memberAt
-        (stateAt r rb H Hs (funStage S fs v)).tightMap.codIdx).domain) : ℕ)
-      = toFun r rb H Hs (@Structure.funMap L ℕ S.inst n fs v) :=
-    realizer_toFun r rb H Hs hf
-      (sourceTuple_getElem?_two_mul_of_le r rb H Hs (funMap_lt_funStage S fs v))
+        (stateAt r rb H Hs s₀ (funStage S fs v)).tightMap.codIdx).domain) : ℕ)
+      = toFun r rb H Hs s₀ (@Structure.funMap L ℕ S.inst n fs v) :=
+    realizer_toFun r rb H Hs h₀ hf
+      (sourceTuple_getElem?_two_mul_of_le r rb H Hs s₀ (funMap_lt_funStage S fs v))
   rw [← hvalue, ← hout, HomClass.map_fun (L := L) f fs x]
   change @Structure.funMap L ℕ T.inst n fs (fun k ↦ ((f (x k) : _) : ℕ)) = _
   exact congrArg _ (funext hargs)
@@ -161,32 +162,70 @@ theorem toFun_funMap {n : ℕ} (fs : L.Functions n) (v : Fin n → ℕ) :
 /-- **The forward map preserves and reflects relations.** `argsStage` suffices — a relation
 application names no value beyond its arguments — and `map_rel'` is an `iff`, so both directions
 come out at once. -/
-theorem toFun_relMap {n : ℕ} (R : L.Relations n) (v : Fin n → ℕ) :
-    @Structure.RelMap L ℕ T.inst n R (fun k ↦ toFun r rb H Hs (v k))
+theorem toFun_relMap {s₀ : BackForthState} (h₀ : s₀.Matched S T) {n : ℕ} (R : L.Relations n)
+    (v : Fin n → ℕ) :
+    @Structure.RelMap L ℕ T.inst n R (fun k ↦ toFun r rb H Hs s₀ (v k))
       ↔ @Structure.RelMap L ℕ S.inst n R v := by
-  obtain ⟨f, hf⟩ := stateAt_matched r rb H Hs (argsStage v)
+  obtain ⟨f, hf⟩ := stateAt_matched r rb H Hs h₀ (argsStage v)
   set x : Fin n → (S.canonicalAge.memberAt
-      (stateAt r rb H Hs (argsStage v)).tightMap.domIdx).domain :=
-    fun k ↦ stagePoint r rb H Hs (le_argsStage v k) with hxdef
+      (stateAt r rb H Hs s₀ (argsStage v)).tightMap.domIdx).domain :=
+    fun k ↦ stagePoint r rb H Hs s₀ (le_argsStage v k) with hxdef
   have hargs : ∀ k, ((f (x k) : (T.canonicalAge.memberAt
-      (stateAt r rb H Hs (argsStage v)).tightMap.codIdx).domain) : ℕ)
-      = toFun r rb H Hs (v k) := fun k ↦
-    realizer_toFun r rb H Hs hf
-      (sourceTuple_getElem?_two_mul_of_le r rb H Hs (le_argsStage v k))
+      (stateAt r rb H Hs s₀ (argsStage v)).tightMap.codIdx).domain) : ℕ)
+      = toFun r rb H Hs s₀ (v k) := fun k ↦
+    realizer_toFun r rb H Hs h₀ hf
+      (sourceTuple_getElem?_two_mul_of_le r rb H Hs s₀ (le_argsStage v k))
   have hrel := f.map_rel' R x
-  rw [show (fun k ↦ toFun r rb H Hs (v k))
+  rw [show (fun k ↦ toFun r rb H Hs s₀ (v k))
     = fun k ↦ ((f (x k) : (T.canonicalAge.memberAt
-      (stateAt r rb H Hs (argsStage v)).tightMap.codIdx).domain) : ℕ)
+      (stateAt r rb H Hs s₀ (argsStage v)).tightMap.codIdx).domain) : ℕ)
     from funext fun k ↦ (hargs k).symm]
   exact hrel
 
 end BackForthState
 
-/-! ### The package -/
+/-! ### The packages -/
+
+/-- **The back-and-forth isomorphism from a matched seed.** A computable isomorphism of
+representations between the canonical ages, computable homogeneity of both structures, and a matched
+initial state `s₀` yield a computable isomorphism of the structures that **extends the seed**
+(`backForthIsoFrom_extends`).
+
+The two covers and the two selectors are pinned by direction exactly as in Proposition 3.2. Nothing
+here assumes `O ⊆ E`: the seed is fixed data. -/
+noncomputable def backForthIsoFrom {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
+    (r : RepresentationIsoIn E S.canonicalAge T.canonicalAge)
+    (Hs : ComputablyHomogeneousIn E S) (Ht : ComputablyHomogeneousIn E T) (s₀ : BackForthState)
+    (h₀ : s₀.Matched S T) : ComputableStructureIsoIn E S T where
+  toFun := BackForthState.toFun r.forward r.backward Ht Hs s₀
+  invFun := BackForthState.invFun r.forward r.backward Ht Hs s₀
+  toFun_computableIn := BackForthState.toFun_computableIn r.forward r.backward Ht Hs s₀
+  invFun_computableIn := BackForthState.invFun_computableIn r.forward r.backward Ht Hs s₀
+  left_inv := BackForthState.invFun_toFun r.forward r.backward Ht Hs h₀
+  right_inv := BackForthState.toFun_invFun r.forward r.backward Ht Hs h₀
+  toFun_funMap := fun _ fs v ↦ BackForthState.toFun_funMap r.forward r.backward Ht Hs h₀ fs v
+  toFun_relMap := fun _ R v ↦ BackForthState.toFun_relMap r.forward r.backward Ht Hs h₀ R v
+
+@[simp] theorem backForthIsoFrom_toFun {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
+    (r : RepresentationIsoIn E S.canonicalAge T.canonicalAge)
+    (Hs : ComputablyHomogeneousIn E S) (Ht : ComputablyHomogeneousIn E T) (s₀ : BackForthState)
+    (h₀ : s₀.Matched S T) :
+    (backForthIsoFrom r Hs Ht s₀ h₀).toFun = BackForthState.toFun r.forward r.backward Ht Hs s₀ :=
+  rfl
+
+/-- **The seed is extended**: every coordinate of the seed, repeated ones included, is carried to
+its prescribed image. -/
+theorem backForthIsoFrom_extends {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
+    (r : RepresentationIsoIn E S.canonicalAge T.canonicalAge)
+    (Hs : ComputablyHomogeneousIn E S) (Ht : ComputablyHomogeneousIn E T) {s₀ : BackForthState}
+    (h₀ : s₀.Matched S T) {i x : ℕ} (hx : s₀.sourceTuple[i]? = some x) :
+    s₀.targetTuple[i]? = some ((backForthIsoFrom r Hs Ht s₀ h₀).toFun x) :=
+  BackForthState.toFun_extends r.forward r.backward Ht Hs h₀ hx
 
 /-- **CHMM Proposition 3.2.** A computable isomorphism of representations between the canonical
 ages, together with computable homogeneity of both structures, yields a computable isomorphism of
-the structures themselves.
+the structures themselves — the seeded construction from the empty state, matched by the forward
+cover alone.
 
 The two covers are pinned by direction: `r.forward` drives the forth half and the base case, and
 `r.backward` drives the back half. The homogeneity selectors are pinned the same way — the forth
@@ -194,25 +233,20 @@ half consults the **target**'s, the back half the **source**'s. Nothing here ass
 noncomputable def backForthIso {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
     (r : RepresentationIsoIn E S.canonicalAge T.canonicalAge)
     (Hs : ComputablyHomogeneousIn E S) (Ht : ComputablyHomogeneousIn E T) :
-    ComputableStructureIsoIn E S T where
-  toFun := BackForthState.toFun r.forward r.backward Ht Hs
-  invFun := BackForthState.invFun r.forward r.backward Ht Hs
-  toFun_computableIn := BackForthState.toFun_computableIn r.forward r.backward Ht Hs
-  invFun_computableIn := BackForthState.invFun_computableIn r.forward r.backward Ht Hs
-  left_inv := BackForthState.invFun_toFun r.forward r.backward Ht Hs
-  right_inv := BackForthState.toFun_invFun r.forward r.backward Ht Hs
-  toFun_funMap := fun _ fs v ↦ BackForthState.toFun_funMap r.forward r.backward Ht Hs fs v
-  toFun_relMap := fun _ R v ↦ BackForthState.toFun_relMap r.forward r.backward Ht Hs R v
+    ComputableStructureIsoIn E S T :=
+  backForthIsoFrom r Hs Ht BackForthState.empty (BackForthState.empty_matched r.forward)
 
 @[simp] theorem backForthIso_toFun {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
     (r : RepresentationIsoIn E S.canonicalAge T.canonicalAge)
     (Hs : ComputablyHomogeneousIn E S) (Ht : ComputablyHomogeneousIn E T) :
-    (backForthIso r Hs Ht).toFun = BackForthState.toFun r.forward r.backward Ht Hs := rfl
+    (backForthIso r Hs Ht).toFun
+      = BackForthState.toFun r.forward r.backward Ht Hs BackForthState.empty := rfl
 
 @[simp] theorem backForthIso_invFun {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
     (r : RepresentationIsoIn E S.canonicalAge T.canonicalAge)
     (Hs : ComputablyHomogeneousIn E S) (Ht : ComputablyHomogeneousIn E T) :
-    (backForthIso r Hs Ht).invFun = BackForthState.invFun r.forward r.backward Ht Hs := rfl
+    (backForthIso r Hs Ht).invFun
+      = BackForthState.invFun r.forward r.backward Ht Hs BackForthState.empty := rfl
 
 end Iso
 
