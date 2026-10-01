@@ -21,7 +21,11 @@ jobs:
       - uses: actions/checkout@v5
       # The audit runner's own regression test: fast, and needs no build.
       - run: scripts/test-run-audit-modules.sh
+      # `lake build --wfail`: any build warning fails CI. This gates the library build only; the
+      # strict classical check and the audit runner below have their own warning policies.
       - uses: leanprover/lean-action@v1
+        with:
+          build-args: "--wfail"
       # The classical Fraïssé layer, strictly: warnings as errors, and without the package's
       # compatibility settings (see the script's header).
       - run: scripts/check-classical-layer.sh
