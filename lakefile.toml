@@ -23,7 +23,7 @@ leanOptions = [
 [[require]]
 name = "InfinitaryLogic"
 git = "https://github.com/cameronfreer/infinitary-logic"
-rev = "e4c674f944da0041c2f3119f242cca423582415f"
+rev = "098fb36d54c2c3b319c07a94a1687851ac46521d"
 
 # Mathlib last so its dependency versions take precedence over transitive ones
 # (e.g. batteries / Cli pulled in by LeanArchitect), per Mathlib's lake update guidance.
