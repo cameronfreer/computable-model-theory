@@ -18,6 +18,7 @@ modules=(
   ComputableModelTheory.ModelTheory.RepresentativeAge
   ComputableModelTheory.ModelTheory.ExtensionRichDirectLimit
   ComputableModelTheory.ModelTheory.OrbitIsolation
+  ComputableModelTheory.ModelTheory.NamedParameters
   ComputableModelTheory.ModelTheory.CountablePrime
 )
 
