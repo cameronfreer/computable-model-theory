@@ -60,6 +60,7 @@ def AtomicDisagreement (F : PotentialEmbeddingData) (d : AtomicData L ℕ) : Pro
       K.realizeAtomicData F.codIdx F.rangeTuple d)
 
 set_option maxHeartbeats 1000000 in
+-- Existing elaboration-budget override retained; necessity was not remeasured during this cleanup.
 /-- Atomic disagreement is computable uniformly in the data and the witness. -/
 theorem atomicDisagreement_computablePredIn :
     ComputablePredIn O fun p : PotentialEmbeddingData × AtomicData L ℕ ↦
@@ -115,7 +116,7 @@ theorem exists_nonEmbeddingCandidate_of_atomicDisagreement
     {F : PotentialEmbeddingData} {d : AtomicData L ℕ}
     (hd : K.AtomicDisagreement F d) : ∃ n, K.nonEmbeddingCandidate F n := by
   refine ⟨@encode (AtomicData L ℕ) Primcodable.toEncodable d + 1, ?_⟩
-  show Option.casesOn (motive := fun _ ↦ Prop)
+  change Option.casesOn (motive := fun _ ↦ Prop)
     (@decode (AtomicData L ℕ) Primcodable.toEncodable
       (@encode (AtomicData L ℕ) Primcodable.toEncodable d)) False
     (fun d ↦ K.AtomicDisagreement F d)
@@ -155,6 +156,7 @@ theorem exists_nonEmbeddingCandidate_iff (F : PotentialEmbeddingData) :
     · exact ⟨0, hWF⟩
 
 set_option maxHeartbeats 1000000 in
+-- Existing elaboration-budget override retained; necessity was not remeasured during this cleanup.
 /-- The tagged search predicate is computable uniformly in the data and the tag. -/
 theorem nonEmbeddingCandidate_computablePredIn :
     ComputablePredIn O fun p : PotentialEmbeddingData × ℕ ↦

@@ -517,7 +517,7 @@ theorem requirementAvail_eq_true_iff {s e : ℕ} :
         K.landsBy q.targetIdx s q.targetImage
       else false) = true ↔ _
     by_cases hr : q.chainStage ≤ s
-    · rw [if_pos hr]
+    · rw [ite_eq_left hr]
       simp only [Bool.and_eq_true, decide_eq_true_eq]
       constructor
       · rintro ⟨⟨hstat, h₁⟩, h₂⟩
@@ -527,7 +527,7 @@ theorem requirementAvail_eq_true_iff {s e : ℕ} :
         rw [hq] at hq''
         obtain rfl := Option.some.inj hq''
         exact ⟨⟨hstat, h₁⟩, h₂⟩
-    · rw [if_neg hr]
+    · rw [ite_eq_right hr]
       refine ⟨fun h ↦ absurd h (by simp), ?_⟩
       rintro ⟨q', hq', hr', -⟩
       have := K.decode_eq_of_decodeAt d hq'

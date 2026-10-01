@@ -223,7 +223,8 @@ private theorem exists_coe_eq_getElem (S : ComputableStructureIn O L) (t : Tuple
 bound on the target side has to be produced.
 
 Public because the structure laws of the limit map consume it: they must know where a *specific*
-carrier point of a matched stage goes, which the coordinate-consistency theorems below do not say. -/
+carrier point of a matched stage goes, which the coordinate-consistency theorems below do not
+say. -/
 theorem realizer_getElem?
     {f : (S.canonicalAge.memberAt s.tightMap.domIdx).domain ↪[L]
       (T.canonicalAge.memberAt s.tightMap.codIdx).domain}
@@ -745,7 +746,7 @@ theorem backCoverEquiv_symm_realizes :
   refine PartialAgeIn.exists_partialRealizesBetween_congr ?_
     ⟨_, toCanonicalRangeEquiv_symm_realizes
       (rb.generatorEmbeddingData_realized (s.backPushedIdx n))⟩
-  show PotentialEmbeddingData.ofTriple (encode (backImage rb s n), s.backPushedIdx n,
+  change PotentialEmbeddingData.ofTriple (encode (backImage rb s n), s.backPushedIdx n,
     T.canonicalAge.gens (s.backPushedIdx n)) = _
   rw [gens_backPushedIdx]
 
@@ -817,7 +818,7 @@ theorem backExtension_symm_realizes (Hs : ComputablyHomogeneousIn E S) (h : s.Ma
     (A := S.canonicalAge) (B := S.canonicalAge) hdata hact
   refine PartialAgeIn.exists_partialRealizesBetween_congr ?_
     ⟨_, toCanonicalRangeEquiv_symm_realizes hg⟩
-  show PotentialEmbeddingData.ofTriple
+  change PotentialEmbeddingData.ofTriple
     (encode (s.sourceTuple ++ [Hs.imageOfNewPoint (backQuery rb s n)]),
       encode (backImage rb s n), S.canonicalAge.gens (encode (backImage rb s n))) = _
   rw [gens_encode]

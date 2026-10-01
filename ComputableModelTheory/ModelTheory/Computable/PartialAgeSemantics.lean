@@ -91,7 +91,7 @@ theorem realize_domain_val (P : PartialCePresentationIn O L) {n : ℕ} (v : Fin 
   induction T with
   | var k => rfl
   | @func m f ts ih =>
-    show @Structure.funMap L ℕ P.str m f (fun k ↦ (((ts k).realize v : P.domain) : ℕ)) =
+    change @Structure.funMap L ℕ P.str m f (fun k ↦ (((ts k).realize v : P.domain) : ℕ)) =
       @Structure.funMap L ℕ P.str m f
         fun k ↦ @Term.realize L ℕ P.str _ (fun k ↦ ((v k : ℕ))) (ts k)
     exact congrArg _ (funext fun k ↦ ih k)
@@ -113,11 +113,11 @@ def eqDomainEquiv {P Q : PartialCePresentationIn O L} (hstr : Q.str = P.str)
   left_inv _ := rfl
   right_inv _ := rfl
   map_fun' {m} f v := Subtype.ext (by
-    show @Structure.funMap L ℕ Q.str m f (fun k ↦ (v k).1) =
+    change @Structure.funMap L ℕ Q.str m f (fun k ↦ (v k).1) =
       @Structure.funMap L ℕ P.str m f (fun k ↦ (v k).1)
     rw [hstr])
   map_rel' {m} r v := by
-    show @Structure.RelMap L ℕ P.str m r (fun k ↦ (v k).1) ↔
+    change @Structure.RelMap L ℕ P.str m r (fun k ↦ (v k).1) ↔
       @Structure.RelMap L ℕ Q.str m r (fun k ↦ (v k).1)
     rw [hstr]
 
@@ -135,11 +135,11 @@ def toCeDomainEquiv {P : PartialCePresentationIn O L} {E : Set (ℕ →. ℕ)}
   left_inv _ := rfl
   right_inv _ := rfl
   map_fun' {m} f v := Subtype.ext (by
-    show @Structure.funMap L ℕ P.str m f (fun k ↦ (v k).1) =
+    change @Structure.funMap L ℕ P.str m f (fun k ↦ (v k).1) =
       @Structure.funMap L ℕ Q.str m f (fun k ↦ (v k).1)
     rw [hstr])
   map_rel' {m} r v := by
-    show @Structure.RelMap L ℕ Q.str m r (fun k ↦ (v k).1) ↔
+    change @Structure.RelMap L ℕ Q.str m r (fun k ↦ (v k).1) ↔
       @Structure.RelMap L ℕ P.str m r (fun k ↦ (v k).1)
     rw [hstr]
 
@@ -158,11 +158,11 @@ def subsetDomainEmbedding {P Q : PartialCePresentationIn O L} (hstr : Q.str = P.
   toFun q := ⟨q.1, hdom q.2⟩
   inj' _ _ h := Subtype.ext (congrArg Subtype.val h : (_ : ℕ) = _)
   map_fun' {m} f v := Subtype.ext (by
-    show @Structure.funMap L ℕ Q.str m f (fun k ↦ (v k).1) =
+    change @Structure.funMap L ℕ Q.str m f (fun k ↦ (v k).1) =
       @Structure.funMap L ℕ P.str m f (fun k ↦ (v k).1)
     rw [hstr])
   map_rel' {m} r v := by
-    show @Structure.RelMap L ℕ P.str m r (fun k ↦ (v k).1) ↔
+    change @Structure.RelMap L ℕ P.str m r (fun k ↦ (v k).1) ↔
       @Structure.RelMap L ℕ Q.str m r (fun k ↦ (v k).1)
     rw [hstr]
 
@@ -199,11 +199,11 @@ def closureDomainEquiv {P Q : PartialCePresentationIn O L} {n : ℕ} (t : Fin n 
       left_inv := fun _ ↦ rfl
       right_inv := fun _ ↦ rfl
       map_fun' := fun {m} f v ↦ Subtype.ext (Subtype.ext (by
-        show @Structure.funMap L ℕ Q.str m f (fun k ↦ (v k).1) =
+        change @Structure.funMap L ℕ Q.str m f (fun k ↦ (v k).1) =
           @Structure.funMap L ℕ P.str m f (fun k ↦ (v k).1)
         rw [hstr]))
       map_rel' := fun {m} r v ↦ by
-        show @Structure.RelMap L ℕ P.str m r (fun k ↦ (v k).1) ↔
+        change @Structure.RelMap L ℕ P.str m r (fun k ↦ (v k).1) ↔
           @Structure.RelMap L ℕ Q.str m r (fun k ↦ (v k).1)
         rw [hstr] }
 

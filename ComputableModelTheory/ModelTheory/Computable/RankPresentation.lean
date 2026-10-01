@@ -109,12 +109,12 @@ theorem rankFunEval_spec (d : FunctionApplicationData L ℕ)
     with hd'
   have hargs : d'.args = src := by
     funext i
-    show (List.ofFn src).get (Fin.cast hlen.symm i) = src i
+    change (List.ofFn src).get (Fin.cast hlen.symm i) = src i
     simp
   have hd'args : ∀ k, d'.args k ∈ P.domain := fun k ↦ hargs ▸ hdom k
   have hfunMap : @FunctionApplicationData.funMap L ℕ P.str d' =
       @Structure.funMap L ℕ P.str d.arity d.symbol src := by
-    show @Structure.funMap L ℕ P.str _ d'.symbol d'.args = _
+    change @Structure.funMap L ℕ P.str _ d'.symbol d'.args = _
     rw [hargs]
     exact rfl
   have hvalue := P.funEval_correct d' hd'args
@@ -145,12 +145,12 @@ theorem rankRelEval_spec (d : RelationApplicationData L ℕ)
     with hd'
   have hargs : d'.args = src := by
     funext i
-    show (List.ofFn src).get (Fin.cast hlen.symm i) = src i
+    change (List.ofFn src).get (Fin.cast hlen.symm i) = src i
     simp
   have hd'args : ∀ k, d'.args k ∈ P.domain := fun k ↦ hargs ▸ hdom k
   have hrelMap : @RelationApplicationData.relMap L ℕ P.str d' ↔
       @Structure.RelMap L ℕ P.str d.arity d.symbol src := by
-    show @Structure.RelMap L ℕ P.str _ d'.symbol d'.args ↔ _
+    change @Structure.RelMap L ℕ P.str _ d'.symbol d'.args ↔ _
     rw [hargs]
     exact Iff.rfl
   obtain ⟨b, hb, hbiff⟩ := P.relEval_correct d' hd'args
@@ -189,7 +189,7 @@ theorem rankStr_funMap_mem_rankOf {n : ℕ} (f : L.Functions n) (v src : Fin n �
   obtain ⟨y, hy, hyeval⟩ :=
     P.rankFunEval_spec (FunctionApplicationData.ofFixed f v) src hsrc
   have hval : @Structure.funMap L ℕ P.rankStr n f v = y := by
-    show ((P.rankFunEval (FunctionApplicationData.ofFixed f v)).toOption).getD 0 = y
+    change ((P.rankFunEval (FunctionApplicationData.ofFixed f v)).toOption).getD 0 = y
     rw [Part.toOption_eq_some_iff.2 hyeval]
     rfl
   rwa [hval]
@@ -210,7 +210,7 @@ theorem rankStr_relMap_iff {n : ℕ} (R : L.Relations n) (v src : Fin n → ℕ)
     @Structure.RelMap L ℕ P.rankStr n R v ↔ @Structure.RelMap L ℕ P.str n R src := by
   obtain ⟨b, hb, hbiff⟩ :=
     P.rankRelEval_spec (RelationApplicationData.ofFixed R v) src hsrc
-  show true ∈ P.rankRelEval (RelationApplicationData.ofFixed R v) ↔ _
+  change true ∈ P.rankRelEval (RelationApplicationData.ofFixed R v) ↔ _
   constructor
   · intro htrue
     exact hbiff.1 (Part.mem_unique hb htrue)
@@ -246,7 +246,7 @@ noncomputable def rankPresentation : CePresentationIn O L where
     have hspec := P.rankFunEval_spec d (P.srcOf d.args hd) (P.srcOf_mem d.args hd)
     obtain ⟨y, hy, hyeval⟩ := hspec
     have hval : @FunctionApplicationData.funMap L ℕ P.rankStr d = y := by
-      show @Structure.funMap L ℕ P.rankStr _ d.symbol d.args = y
+      change @Structure.funMap L ℕ P.rankStr _ d.symbol d.args = y
       have := P.rankStr_funMap_mem_rankOf d.symbol d.args
         (P.srcOf d.args hd) (P.srcOf_mem d.args hd)
       exact Part.mem_unique this hy

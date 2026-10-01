@@ -117,7 +117,7 @@ theorem range_getD {m₀ x₀ : ℕ} (h₀ : P.enum? m₀ = Option.some x₀) :
       exact ⟨m, by rw [he, hm]⟩
   · rintro ⟨m, hm⟩
     refine ⟨m, ?_⟩
-    show (P.enum? m).getD x₀ = x
+    change (P.enum? m).getD x₀ = x
     rw [hm]
     rfl
 

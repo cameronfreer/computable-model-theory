@@ -326,7 +326,7 @@ theorem atomicData?_eq_some_of_rel {n : ℕ} (R : L.Relations n)
         (List.finRange n).map (fun i ↦ (Sum.inl ⟨0, ts i⟩ : FormulaSymbol L α)) from by
       rw [BoundedFormula.listEncode]
       simp]
-  show some (Sum.inr (((⟨n, R⟩ : L.RelationSymbol), ((List.finRange n).map
+  change some (Sum.inr (((⟨n, R⟩ : L.RelationSymbol), ((List.finRange n).map
     (fun i ↦ (Sum.inl ⟨0, ts i⟩ : FormulaSymbol L α))).filterMap termOfSymbol?)) :
       AtomicData L α) = _
   rw [List.filterMap_map,

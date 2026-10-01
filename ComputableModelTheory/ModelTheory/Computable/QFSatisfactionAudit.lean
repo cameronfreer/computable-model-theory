@@ -128,7 +128,7 @@ theorem test_satStack_index_mismatch :
     satStack (L := Language.empty) ![5]
       [Sum.inl ⟨0, Term.var (Sum.inl 0)⟩, Sum.inl ⟨1, Term.var (Sum.inl 0)⟩] =
       [((0 : ℕ), true, false)] := by
-  rw [satStack, if_neg (by omega)]
+  rw [satStack, ite_eq_right (by omega)]
   simp [satStack]
 
 /-- The adjacency formula of the graph language on two variables. -/

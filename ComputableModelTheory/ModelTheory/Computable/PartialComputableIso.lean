@@ -193,7 +193,7 @@ theorem conjugate_comp {P Q W P' Q' W' : PartialCePresentationIn O L}
     (f : P.domain ↪[L] Q.domain) (g : Q.domain ↪[L] W.domain) :
     conjugate σ τ (g.comp f) = (conjugate ρ τ g).comp (conjugate σ ρ f) := by
   refine DFunLike.ext _ _ fun y ↦ ?_
-  show τ.toEquiv (g (f (σ.toEquiv.symm y))) =
+  change τ.toEquiv (g (f (σ.toEquiv.symm y))) =
     τ.toEquiv (g (ρ.toEquiv.symm (ρ.toEquiv (f (σ.toEquiv.symm y)))))
   rw [Equiv.symm_apply_apply]
 
@@ -210,7 +210,7 @@ theorem conjugate_symm_conjugate {P Q P' Q' : PartialCePresentationIn O L}
     (f : P.domain ↪[L] Q.domain) :
     conjugate σ.symm τ.symm (conjugate σ τ f) = f := by
   refine DFunLike.ext _ _ fun x ↦ ?_
-  show τ.toEquiv.symm (τ.toEquiv (f (σ.toEquiv.symm (σ.toEquiv x)))) = f x
+  change τ.toEquiv.symm (τ.toEquiv (f (σ.toEquiv.symm (σ.toEquiv x)))) = f x
   rw [Equiv.symm_apply_apply, Equiv.symm_apply_apply]
 
 /-- **Commuting squares transport.** Conjugating all four legs of a commuting square preserves the

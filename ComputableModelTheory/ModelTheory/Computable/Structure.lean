@@ -68,7 +68,7 @@ namespace FunctionApplicationData
 re-association of codes. -/
 theorem primrec_ofFixed (n : ℕ) :
     Primrec fun p : L.Functions n × (Fin n → M) ↦ ofFixed p.1 p.2 := by
-  letI : Primcodable { s : L.FunctionSymbol // s.arity = n } :=
+  let : Primcodable { s : L.FunctionSymbol // s.arity = n } :=
     Primcodable.subtype (Primrec.eq.comp primrec_functionSymbol_arity (Primrec.const n))
   have hsym : Primrec fun f : L.Functions n ↦ (functionsEquivSubtype n f).val :=
     Primrec.subtype_val.comp (Primrec.of_equiv (e := functionsEquivSubtype n))
@@ -91,7 +91,7 @@ namespace RelationApplicationData
 re-association of codes. -/
 theorem primrec_ofFixed (n : ℕ) :
     Primrec fun p : L.Relations n × (Fin n → M) ↦ ofFixed p.1 p.2 := by
-  letI : Primcodable { s : L.RelationSymbol // s.arity = n } :=
+  let : Primcodable { s : L.RelationSymbol // s.arity = n } :=
     Primcodable.subtype (Primrec.eq.comp primrec_relationSymbol_arity (Primrec.const n))
   have hsym : Primrec fun r : L.Relations n ↦ (relationsEquivSubtype n r).val :=
     Primrec.subtype_val.comp (Primrec.of_equiv (e := relationsEquivSubtype n))

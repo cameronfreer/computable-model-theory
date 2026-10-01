@@ -12,7 +12,8 @@ Given a finite tuple of ω-codes — the shape a CHP query arrives in — produc
 elements *of that stage* whose ω-images are the original codes. Two traversals composed:
 
 ```
-s : List ℕ  ──listMapPart rankEnum──▶  raw  ──transportRawArgsPart──▶  out,  at stage rawStageBound raw
+s : List ℕ  ──listMapPart rankEnum──▶  raw  ──transportRawArgsPart──▶  out
+(at stage rawStageBound raw)
 ```
 
 **The stage is returned with the tuple.** Returning `List ℕ` alone would discard the index needed to

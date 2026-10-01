@@ -122,7 +122,7 @@ theorem eq_embedding {i x y : ℕ} (hy : y ∈ G.map i x) :
   Part.mem_unique hy (G.map_apply_mem i ⟨x, G.mem_domainAt_of_mem_map hy⟩)
 
 theorem map_injOn {i x₁ x₂ y : ℕ} (h₁ : y ∈ G.map i x₁) (h₂ : y ∈ G.map i x₂) : x₁ = x₂ := by
-  letI : L.Structure ℕ := S.inst
+  let : L.Structure ℕ := S.inst
   exact congrArg Subtype.val
     ((G.embedding i).injective ((G.eq_embedding h₁).symm.trans (G.eq_embedding h₂)))
 
@@ -188,7 +188,7 @@ decides the backward search's success. -/
 theorem range_embedding (i : ℕ) :
     Set.range (fun x : (A.memberAt (G.sourceIndex i)).domain ↦ (G.embedding i x : ℕ))
       = S.canonicalAge.domainAt (encode (G.imageTuple i)) := by
-  letI : L.Structure ℕ := S.inst
+  let : L.Structure ℕ := S.inst
   rw [S.canonicalAge_domainAt_eq_closure, allTupleFor_encode, G.range_view_imageTuple]
   ext y
   rw [SetLike.mem_coe, mem_closure_range_iff_exists_term]
@@ -328,7 +328,7 @@ noncomputable def isoAt (hOE : O ⊆ E) (i : ℕ) :
     exact (G.map_injOn (G.mem_preimagePart hx') h) ▸ hx'
   toFun_invFun := fun h ↦ G.mem_preimagePart h
   toFun_funMap := fun n f v w hw ↦ by
-    letI : L.Structure ℕ := S.inst
+    let : L.Structure ℕ := S.inst
     have hv : ∀ k, v k ∈ A.domainAt (G.sourceIndex i) :=
       fun k ↦ G.mem_domainAt_of_mem_map (hw k)
     have hvw : w = fun k ↦ (G.embedding i ⟨v k, hv k⟩ : ℕ) :=
@@ -345,7 +345,7 @@ noncomputable def isoAt (hOE : O ⊆ E) (i : ℕ) :
     rw [← hfm] at hmem
     exact hmem
   toFun_relMap := fun n R v w hw ↦ by
-    letI : L.Structure ℕ := S.inst
+    let : L.Structure ℕ := S.inst
     have hv : ∀ k, v k ∈ A.domainAt (G.sourceIndex i) :=
       fun k ↦ G.mem_domainAt_of_mem_map (hw k)
     have hvw : w = fun k ↦ (G.embedding i ⟨v k, hv k⟩ : ℕ) :=

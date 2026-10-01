@@ -121,11 +121,11 @@ theorem gensTermValue?_computableIn :
         (g := fun _ (v : ℕ) ↦ Option.some v)
         hcall (ComputableIn.option_some.comp ComputableIn.snd).to₂).to₂)
   refine hpart.of_eq fun p ↦ ?_
-  show _ = Part.some (A.gensTermValue? p.1 p.2)
+  change _ = Part.some (A.gensTermValue? p.1 p.2)
   rw [gensTermValue?]
   rcases h : Term.boundedDecode (L := L) (A.gens p.1).length p.2 with - | t
   · rfl
-  · show (A.partialRealize p.1 (A.gens p.1) t).map Option.some = _
+  · change (A.partialRealize p.1 (A.gens p.1) t).map Option.some = _
     rw [partialRealize_eq_some (gens_forall_mem_domainAt p.1)
       (Term.boundedDecode_eq_some_iff.1 h).2]
     rfl
@@ -342,7 +342,7 @@ theorem partialRealize_rangeTuple_eq_some {F : PotentialEmbeddingData}
       (A.memberAt F.domIdx).domain) =
         (t.restrictVar fun x ↦ (⟨x.1, ht x.1 x.2⟩ : Fin (A.gens F.domIdx).length)).realize
           (A.gensView F.domIdx) := by
-    letI : L.Structure ℕ := A.structureAt F.domIdx
+    let : L.Structure ℕ := A.structureAt F.domIdx
     refine (Subtype.ext ?_).symm
     rw [(A.memberAt F.domIdx).realize_domain_val (A.gensView F.domIdx) _]
     exact (Term.realize_envFun_restrictVar (L := L) rfl t ht).symm

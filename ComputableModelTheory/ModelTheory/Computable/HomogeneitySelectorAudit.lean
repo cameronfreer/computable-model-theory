@@ -243,7 +243,7 @@ theorem test_new_point_outside_left_leg {q : HomogeneityQueryData}
       (F, (listReq n p a (encode (p.2.drop n))).targetMap)) := by
     rw [hDeq] at hz
     exact listAge.le_sum_of_mem (List.mem_append_left _ (List.mem_of_getElem? hz))
-  rw [hzl, hlastv, listAge.glue, if_neg hnotin] at hzle
+  rw [hzl, hlastv, listAge.glue, ite_eq_right hnotin] at hzle
   omega
 
 /-- **The pin is not vacuous**: on the query `(d⃗, c⃗, x) = ([], [], 0)` the packaged selector's `y`

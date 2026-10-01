@@ -46,7 +46,7 @@ def isTermCodeFor (i x c : ℕ) : Bool :=
 so every `x` is realized by a term over them, which relabels to a bounded natural-variable
 term. -/
 theorem exists_isTermCodeFor (i x : ℕ) : ∃ c, K.isTermCodeFor i x c = true := by
-  letI := K.structureAt i
+  let := K.structureAt i
   obtain ⟨t, ht⟩ := (Tuple.generates_iff (K.gens i)).1 (K.generates i) x
   refine ⟨@encode (L.Term ℕ) Primcodable.toEncodable (t.relabel Fin.val), ?_⟩
   have hval : K.termRealize ((i, K.gens i), t.relabel Fin.val) = x := by

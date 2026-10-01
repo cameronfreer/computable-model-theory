@@ -29,9 +29,10 @@ halted, hence source membership, whatever the later partial programs would have 
 The bind tree is written in the association its recursiveness proof follows.
 
 The carrier crossing below is **public and shared**: constructions on the family side land in
-`K.memberAt (cjepSchedule … n)`, while the limit's stage embeddings expect `(cjepChain …).stageAt n`.
-Same carrier, same stored structure, different subtype types. The forward cover makes the same
-crossing in the opposite direction and should use this API rather than repeat it.
+`K.memberAt (cjepSchedule … n)`, while the limit's stage embeddings expect
+`(cjepChain …).stageAt n`. Same carrier, same stored structure, different subtype types. The
+forward cover makes the same crossing in the opposite direction and should use this API rather
+than repeat it.
 -/
 
 open Encodable Part FirstOrder Language
@@ -219,7 +220,8 @@ noncomputable def backwardCover :
   (toLimitEmbedding Z cert).toCanonicalAgeCover (Set.Subset.refl O)
 
 @[simp] theorem backwardCover_indexMap (i : ℕ) :
-    (backwardCover Z cert).indexMap i = encode ((toLimitEmbedding Z cert).toSelected.imageTuple i) :=
+    (backwardCover Z cert).indexMap i =
+      encode ((toLimitEmbedding Z cert).toSelected.imageTuple i) :=
   rfl
 
 /-- **The backward cover is generator-compatible** — the constructor's theorem, with no new

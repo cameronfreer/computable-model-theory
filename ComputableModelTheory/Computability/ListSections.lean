@@ -101,7 +101,7 @@ theorem list_replicate : Primrec₂ fun (n : ℕ) (b : β) ↦ List.replicate n 
         (Primrec.snd.comp Primrec.snd)).to₂)
   refine h.of_eq fun p ↦ ?_
   obtain ⟨n, b⟩ := p
-  show Nat.rec (motive := fun _ ↦ List β) [] (fun _ ih ↦ b :: ih) n = List.replicate n b
+  change Nat.rec (motive := fun _ ↦ List β) [] (fun _ ih ↦ b :: ih) n = List.replicate n b
   induction n with
   | zero => rfl
   | succ m ih => rw [List.replicate_succ, ← ih]

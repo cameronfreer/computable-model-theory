@@ -67,9 +67,9 @@ theorem mem_reindexed_domain_iff_term (e : ℕ) (x : ℕ) :
     x ∈ (A.reindexed.memberAt e).domain ↔
       ∃ T : L.Term (Fin (A.reindexed.gens e).length),
         ((T.realize (A.reindexGens e) : (A.memberAt (memberIndex e).1).domain) : ℕ) = x := by
-  letI : L.Structure ℕ := A.structureAt (memberIndex e).1
+  let : L.Structure ℕ := A.structureAt (memberIndex e).1
   rw [PartialAgeIn.memberAt_domain, A.reindexed_domainAt e]
-  show x ∈ Substructure.closure L (Set.range (Tuple.view (A.reindexed.gens e))) ↔ _
+  change x ∈ Substructure.closure L (Set.range (Tuple.view (A.reindexed.gens e))) ↔ _
   rw [mem_closure_range_iff_exists_term]
   exact exists_congr fun T ↦ by
     rw [(A.memberAt (memberIndex e).1).realize_domain_val (A.reindexGens e) T]
@@ -105,19 +105,19 @@ theorem exists_isoTo_reindexed (j : ℕ) :
   obtain ⟨steps, -, hsteps⟩ := A.exists_mem_stepsForTuple (A.gens_forall_mem_domainAt j)
   obtain ⟨e, he⟩ := memberIndex_surjective j steps
   have hstr : (A.memberAt j).str = (A.reindexed.memberAt e).str := by
-    show A.structureAt j = A.structureAt (memberIndex e).1
+    change A.structureAt j = A.structureAt (memberIndex e).1
     rw [he]
   have hdom : (A.memberAt j).domain = (A.reindexed.memberAt e).domain := by
     rw [PartialAgeIn.memberAt_domain, PartialAgeIn.memberAt_domain, A.reindexed_domainAt e]
     ext x
     rw [A.mem_domainAt_iff_term]
-    show (∃ T : L.Term (Fin (A.gens j).length),
+    change (∃ T : L.Term (Fin (A.gens j).length),
         x = @Term.realize L ℕ (A.structureAt j) _ (Tuple.view (A.gens j)) T) ↔
       x ∈ @Substructure.closure L ℕ (A.structureAt (memberIndex e).1)
         (Set.range (Tuple.view (A.tupleAtSteps (memberIndex e).1 (memberIndex e).2)))
     rw [he]
-    letI : L.Structure ℕ := A.structureAt j
-    show _ ↔ x ∈ Substructure.closure L (Set.range (Tuple.view (A.tupleAtSteps j steps)))
+    let : L.Structure ℕ := A.structureAt j
+    change _ ↔ x ∈ Substructure.closure L (Set.range (Tuple.view (A.tupleAtSteps j steps)))
     rw [hsteps, mem_closure_range_iff_exists_term]
     exact ⟨fun ⟨T, hT⟩ ↦ ⟨T, hT.symm⟩, fun ⟨T, hT⟩ ↦ ⟨T, hT.symm⟩⟩
   exact ⟨e, ⟨PartialCePresentationIn.eqDomainEquiv hstr hdom⟩⟩

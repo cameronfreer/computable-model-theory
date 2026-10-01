@@ -88,13 +88,13 @@ theorem test_compData_assoc (K : ComputableAgeIn O L) {F G H : PotentialEmbeddin
 theorem test_checkedComp_actual (K : ComputableAgeIn O L) (G F : PotentialEmbeddingData)
     (hG : G.IsEmbedding K) : K.checkedComp G F = K.compData G F := by
   unfold ComputableAgeIn.checkedComp
-  exact if_pos hG
+  exact ite_eq_left hG
 
 /-- The checked totalization falls back off actual `G`. -/
 theorem test_checkedComp_fallback (K : ComputableAgeIn O L) (G F : PotentialEmbeddingData)
     (hG : ¬ G.IsEmbedding K) : K.checkedComp G F = ⟨F.domIdx, G.codIdx, G.rangeTuple⟩ := by
   unfold ComputableAgeIn.checkedComp
-  exact if_neg hG
+  exact ite_eq_right hG
 
 end
 

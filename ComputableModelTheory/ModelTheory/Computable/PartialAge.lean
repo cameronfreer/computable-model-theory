@@ -148,7 +148,7 @@ theorem mem_domainAt_iff_term {i x : ℕ} :
 theorem gens_mem_domainAt {i : ℕ} (k : Fin (A.gens i).length) :
     (A.gens i).get k ∈ A.domainAt i :=
   (A.mem_domainAt_iff_term).2 ⟨Term.var k, by
-    letI : L.Structure ℕ := A.structureAt i
+    let : L.Structure ℕ := A.structureAt i
     rw [Term.realize_var]
     rfl⟩
 
@@ -161,7 +161,7 @@ theorem mem_domainAt_of_mem_gens {i x : ℕ} (hx : x ∈ A.gens i) : x ∈ A.dom
 theorem domainAt_closed {i n : ℕ} (f : L.Functions n) {v : Fin n → ℕ}
     (hv : ∀ k, v k ∈ A.domainAt i) :
     @Structure.funMap L ℕ (A.structureAt i) n f v ∈ A.domainAt i := by
-  letI : L.Structure ℕ := A.structureAt i
+  let : L.Structure ℕ := A.structureAt i
   choose Ts hTs using fun k ↦ (A.mem_domainAt_iff_term).1 (hv k)
   refine (A.mem_domainAt_iff_term).2 ⟨Term.func f Ts, ?_⟩
   rw [Term.realize_func]

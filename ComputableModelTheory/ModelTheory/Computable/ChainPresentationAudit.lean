@@ -63,7 +63,7 @@ theorem test_coded_junk {n : ℕ} (f : L.Functions n) (R : L.Relations n)
     (v : Fin n → ℕ) (h : ¬∀ k, CeStructureChainIn.IsCanonicalCode D cert (v k)) :
     D.codedFunMap cert f v = 0 ∧ ¬D.codedRelMap cert R v := by
   constructor
-  · rw [CeStructureChainIn.codedFunMap, dif_neg h]
+  · rw [CeStructureChainIn.codedFunMap, dite_eq_right h]
   · exact fun hc ↦ h hc.1
 
 /-- Gate: the inclusion of the coded presentation into the c.e. level preserves the

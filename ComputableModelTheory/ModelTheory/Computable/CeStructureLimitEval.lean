@@ -27,8 +27,8 @@ need not name limit elements for evaluation to be defined.
 
 **The raw output pair is named.** `limMem_rawFunOutput` says `(M, y)` is a valid representative, and
 that single fact supplies both the halting of the final canonicalization and the semantic theorem:
-`limEquiv (M, y) (rawRep c)` turns the stage computation directly into `LimFunGraph`. Relations reuse
-everything up to the stage evaluation and omit only that last step.
+`limEquiv (M, y) (rawRep c)` turns the stage computation directly into `LimFunGraph`. Relations
+reuse everything up to the stage evaluation and omit only that last step.
 
 The definitions are written in exactly the `bind`/`map` association their `RecursiveIn` proofs
 follow. That is a definition-time decision, not a proof detail: a monad-equivalent reassociation is
@@ -186,7 +186,7 @@ theorem limMem_rawFunOutput {d : FunctionApplicationData L ℕ} {src : List ℕ}
     (hy : y ∈ (D.stageAt (D.argStage d.argsList)).funEval
       (FunctionApplicationData.equivSubtype.symm ⟨(d.toSymbol, src), hlen⟩)) :
     D.toDomainChain.limMem (D.argStage d.argsList, y) := by
-  letI : L.Structure ℕ := (D.stageAt (D.argStage d.argsList)).str
+  let : L.Structure ℕ := (D.stageAt (D.argStage d.argsList)).str
   set d' : FunctionApplicationData L ℕ :=
     FunctionApplicationData.equivSubtype.symm ⟨(d.toSymbol, src), hlen⟩ with hd'
   have hargs := funData_args_mem_stage (D := D) hsrc (hlen := hlen)

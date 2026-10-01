@@ -19,8 +19,8 @@ back at odd — would need `n / 2` as the point to match and would leave the two
 lengths between stages. Here `stateAt n` always has both tuples of length `2 * n`, and after stage
 `n + 1` the number `n` is present on *both* sides: at source position `2 * n` because the forth half
 pushed it there, and at target position `2 * n + 1` because the back half did. Those two positions
-are what the eventual surjectivity arguments consume, and they are deliberately different: the source
-tuple's `2 * n + 1` entry is the point the back half's homogeneity *chose*, not `n`.
+are what the eventual surjectivity arguments consume, and they are deliberately different: the
+source tuple's `2 * n + 1` entry is the point the back half's homogeneity *chose*, not `n`.
 
 ## Persistence
 
@@ -75,7 +75,7 @@ noncomputable def roundBackPoint (n : ℕ) (s : BackForthState) : ℕ :=
 @[simp] theorem roundState_sourceTuple (n : ℕ) (s : BackForthState) :
     (roundState r rb H Hs n s).sourceTuple
       = s.sourceTuple ++ [n, roundBackPoint r rb H Hs n s] := by
-  show (s.sourceTuple ++ [n]) ++ [roundBackPoint r rb H Hs n s] = _
+  change (s.sourceTuple ++ [n]) ++ [roundBackPoint r rb H Hs n s] = _
   rw [List.append_assoc]
   rfl
 
@@ -85,7 +85,7 @@ position `2 * k` and at target position `2 * k + 1`. -/
 @[simp] theorem roundState_targetTuple (n : ℕ) (s : BackForthState) :
     (roundState r rb H Hs n s).targetTuple
       = s.targetTuple ++ [roundForthPoint r H n s, n] := by
-  show (s.targetTuple ++ [roundForthPoint r H n s]) ++ [n] = _
+  change (s.targetTuple ++ [roundForthPoint r H n s]) ++ [n] = _
   rw [List.append_assoc]
   rfl
 

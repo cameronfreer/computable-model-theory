@@ -54,18 +54,18 @@ theorem natDecodeStack_cons (c : ℕ) (l : List ℕ) :
 
 theorem natDecodeStackStep_even {c : ℕ} (h : c % 2 = 0) (acc : List (List ℕ)) :
     natDecodeStackStep L c acc = [c] :: acc := by
-  rw [natDecodeStackStep, if_neg (by omega)]
+  rw [natDecodeStackStep, ite_eq_right (by omega)]
 
 theorem natDecodeStackStep_odd_some {c n : ℕ} (h : c % 2 = 1)
     (ha : arityOfCode L (c / 2) = some n) (acc : List (List ℕ)) :
     natDecodeStackStep L c acc =
       if n ≤ acc.length then (c :: (acc.take n).flatten) :: acc.drop n else [] := by
-  rw [natDecodeStackStep, if_pos h, ha]
+  rw [natDecodeStackStep, ite_eq_left h, ha]
 
 theorem natDecodeStackStep_odd_none {c : ℕ} (h : c % 2 = 1)
     (ha : arityOfCode L (c / 2) = none) (acc : List (List ℕ)) :
     natDecodeStackStep L c acc = [] := by
-  rw [natDecodeStackStep, if_pos h, ha]
+  rw [natDecodeStackStep, ite_eq_left h, ha]
 
 /-- On the code of a variable leaf, the step pushes a singleton. -/
 theorem natDecodeStackStep_encode_inl {β : Type*} [Primcodable β] (b : β)
@@ -164,9 +164,9 @@ theorem natDecodeStack_map_encode {β : Type*} [Primcodable β]
       rw [natDecodeStackStep_encode_inr, decodeStackStep]
       rw [List.length_map]
       by_cases h : s.1 ≤ (decodeStack l).length
-      · rw [if_pos h, if_pos h, List.map_cons, List.map_cons, ← List.map_drop,
+      · rw [ite_eq_left h, ite_eq_left h, List.map_cons, List.map_cons, ← List.map_drop,
           ← List.map_take, List.map_flatten]
-      · rw [if_neg h, if_neg h]
+      · rw [ite_eq_right h, ite_eq_right h]
         rfl
 
 /-! ### Canonicalization -/
@@ -190,23 +190,23 @@ theorem canonCode_eq (k c : ℕ) :
     canonCode L α k c =
       (decode (α := (α ⊕ Fin k) ⊕ (Σ i, L.Functions i)) c).map encode := by
   by_cases h : c % 2 = 1
-  · rw [canonCode, if_pos h, decode_sum_odd h, Option.map_map]
+  · rw [canonCode, ite_eq_left h, decode_sum_odd h, Option.map_map]
     rcases decode (α := Σ i, L.Functions i) (c / 2) with - | s
     · rfl
     · rfl
   · have h0 : c % 2 = 0 := by omega
-    rw [canonCode, if_neg h, decode_sum_even h0, Option.map_map]
+    rw [canonCode, ite_eq_right h, decode_sum_even h0, Option.map_map]
     by_cases h1 : (c / 2) % 2 = 1
-    · rw [if_pos h1, decode_sum_odd h1, Option.map_map]
+    · rw [ite_eq_left h1, decode_sum_odd h1, Option.map_map]
       by_cases h2 : (c / 2) / 2 < k
-      · rw [if_pos h2, decode_fin_of_lt h2]
+      · rw [ite_eq_left h2, decode_fin_of_lt h2]
         simp only [Option.map_some, Function.comp_apply, encode_sum_inl, encode_sum_inr,
           encode_fin_val]
         exact congrArg some (by omega)
-      · rw [if_neg h2, decode_fin_eq_none_of_le (Nat.not_lt.1 h2)]
+      · rw [ite_eq_right h2, decode_fin_eq_none_of_le (Nat.not_lt.1 h2)]
         rfl
     · have h10 : (c / 2) % 2 = 0 := by omega
-      rw [if_neg h1, decode_sum_even h10, Option.map_map]
+      rw [ite_eq_right h1, decode_sum_even h10, Option.map_map]
       rcases decode (α := α) ((c / 2) / 2) with - | a
       · rfl
       · simp only [Option.map_some, Function.comp_apply, encode_sum_inl]

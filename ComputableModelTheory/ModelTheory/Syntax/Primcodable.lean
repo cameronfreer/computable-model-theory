@@ -84,11 +84,11 @@ theorem decodeStack_eq_map_listEncode (l : List (α ⊕ (Σ i, L.Functions i))) 
       dsimp only
       rw [List.length_map]
       by_cases h : n ≤ (listDecode l).length
-      · rw [dif_pos h, if_pos h, List.map_cons, listEncode, ← List.map_drop]
+      · rw [dite_eq_left h, ite_eq_left h, List.map_cons, listEncode, ← List.map_drop]
         congr 2
         rw [← List.map_take, ← List.flatMap_def, take_eq_finRange_map h, List.flatMap_map]
         rfl
-      · rw [dif_neg h, if_neg h]
+      · rw [dite_eq_right h, ite_eq_right h]
         rfl
 
 variable [Primcodable α] [L.EffectiveLanguage]

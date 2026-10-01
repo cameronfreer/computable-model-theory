@@ -144,7 +144,7 @@ theorem codedFunMap_eq_normalize {n : ℕ} (f : L.Functions n) (v : Fin n → �
         (CeDomainChainIn.normalize cert (stageBound (List.ofFn v),
           @Structure.funMap L ℕ (D.stageAt (stageBound (List.ofFn v))).str n f
             (D.canonicalSrc cert v h))).2 := by
-  rw [codedFunMap, dif_pos h]
+  rw [codedFunMap, dite_eq_left h]
 
 /-- The realized stage value is a valid pair. -/
 theorem stageValue_limMem {n : ℕ} (f : L.Functions n) (v : Fin n → ℕ)
@@ -519,12 +519,12 @@ theorem codedFunMap_mem_codedFunEvalCore (d : FunctionApplicationData L ℕ)
     with hd'
   have hargs : d'.args = src := by
     funext i
-    show (List.ofFn src).get (Fin.cast hlen.symm i) = src i
+    change (List.ofFn src).get (Fin.cast hlen.symm i) = src i
     simp
   have hd'args : ∀ k, d'.args k ∈ (D.stageAt M).domain := fun k ↦ hargs ▸ hdom k
   have hfunMap : @FunctionApplicationData.funMap L ℕ (D.stageAt M).str d' =
       @Structure.funMap L ℕ (D.stageAt M).str d.arity d.symbol src := by
-    show @Structure.funMap L ℕ (D.stageAt M).str _ d'.symbol d'.args = _
+    change @Structure.funMap L ℕ (D.stageAt M).str _ d'.symbol d'.args = _
     rw [hargs]
     exact rfl
   have hvalue := (D.stageAt M).funEval_correct d' hd'args
@@ -556,9 +556,9 @@ theorem codedFunEvalAux_eq (d : FunctionApplicationData L ℕ) :
       · rfl
       · exact absurd ((D.argsList_all_eq_true_iff cert d.args).1 hb) h
     rw [codedFunEvalAux, hall]
-    show Part.some 0 = _
+    change Part.some 0 = _
     rw [show @FunctionApplicationData.funMap L ℕ (D.codedStr cert) d
-      = D.codedFunMap cert d.symbol d.args from rfl, codedFunMap, dif_neg h]
+      = D.codedFunMap cert d.symbol d.args from rfl, codedFunMap, dite_eq_right h]
 
 /-- On canonical arguments, the relation core halts with the truth value of the coded
 relation. -/
@@ -583,12 +583,12 @@ theorem codedRelEval_mem_codedRelEvalCore (d : RelationApplicationData L ℕ)
     with hd'
   have hargs : d'.args = src := by
     funext i
-    show (List.ofFn src).get (Fin.cast hlen.symm i) = src i
+    change (List.ofFn src).get (Fin.cast hlen.symm i) = src i
     simp
   have hd'args : ∀ k, d'.args k ∈ (D.stageAt M).domain := fun k ↦ hargs ▸ hdom k
   have hrelMap : @RelationApplicationData.relMap L ℕ (D.stageAt M).str d' ↔
       @Structure.RelMap L ℕ (D.stageAt M).str d.arity d.symbol src := by
-    show @Structure.RelMap L ℕ (D.stageAt M).str _ d'.symbol d'.args ↔ _
+    change @Structure.RelMap L ℕ (D.stageAt M).str _ d'.symbol d'.args ↔ _
     rw [hargs]
     exact Iff.rfl
   obtain ⟨b, hb, hbiff⟩ := (D.stageAt M).relEval_correct d' hd'args
@@ -622,7 +622,7 @@ theorem codedRelEvalAux_eq (d : RelationApplicationData L ℕ) :
       · rfl
       · exact absurd ((D.argsList_all_eq_true_iff cert d.args).1 hb) h
     rw [codedRelEvalAux, hall]
-    show Part.some false = _
+    change Part.some false = _
     rw [codedRelEval, @decide_eq_false _ (Classical.propDecidable _) fun hc ↦ h hc.1]
 
 /-! ### The coded presentation -/

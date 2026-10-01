@@ -93,9 +93,9 @@ theorem sigmaRepr_imp (p q : Σ n, L.BoundedFormula α n) :
   · subst h
     rw [sigmaImp_apply]
     simp [sigmaRepr, imprepr, listEncode]
-  · rw [sigmaImp, dif_neg h, imprepr]
+  · rw [sigmaImp, dite_eq_right h, imprepr]
     simp only [sigmaRepr]
-    rw [if_neg h]
+    rw [ite_eq_right h]
 
 theorem sigmaRepr_all (p : Σ n, L.BoundedFormula α n) :
     sigmaRepr (sigmaAll p) = allrepr (sigmaRepr p) := by
@@ -122,9 +122,9 @@ theorem decodeStack_eq_map_listEncode (l : List (FormulaSymbol L α)) :
     congr 1
     by_cases h : n₁ = n₂
     · subst h
-      rw [if_pos rfl, dif_pos rfl]
+      rw [ite_eq_left rfl, dite_eq_left rfl]
       rfl
-    · rw [if_neg h, dif_neg h]
+    · rw [ite_eq_right h, dite_eq_right h]
   | Sum.inl ⟨n₁, t₁⟩ :: Sum.inr g :: l =>
     simp [decodeStack, listDecode]
   | Sum.inr (Sum.inl ⟨n, R⟩) :: Sum.inr (Sum.inr k) :: l =>
@@ -132,12 +132,12 @@ theorem decodeStack_eq_map_listEncode (l : List (FormulaSymbol L α)) :
       (by simp; omega) (l.drop n) rfl]
     congr 1
     by_cases h : ∀ i : Fin n, (l.map Sum.getLeft?)[i]?.join.isSome
-    · rw [dif_pos h, dif_pos h]
+    · rw [dite_eq_left h, dite_eq_left h]
       by_cases h' : ∀ i, (Option.get _ (h i)).1 = k
-      · rw [if_pos h', dif_pos h']
+      · rw [ite_eq_left h', dite_eq_left h']
         simp only [sigmaRepr, listEncode]
         refine congrArg (fun x ↦ (k, x)) ?_
-        show Sum.inr (Sum.inl ⟨n, R⟩) :: Sum.inr (Sum.inr k) :: l.take n =
+        change Sum.inr (Sum.inl ⟨n, R⟩) :: Sum.inr (Sum.inr k) :: l.take n =
           [Sum.inr (Sum.inl ⟨n, R⟩), Sum.inr (Sum.inr k)] ++
             (List.finRange n).map fun i ↦
               Sum.inl ⟨k, Eq.mp (by rw [h' i]) (Option.get _ (h i)).2⟩
@@ -183,8 +183,8 @@ theorem decodeStack_eq_map_listEncode (l : List (FormulaSymbol L α)) :
           rw [show ((List.map Sum.getLeft? l)[j]?) =
             (List.map Sum.getLeft? l)[(j : ℕ)]? from rfl, hnone] at h0
           simp at h0
-      · rw [if_neg h', dif_neg h']
-    · rw [dif_neg h, dif_neg h]
+      · rw [ite_eq_right h', dite_eq_right h']
+    · rw [dite_eq_right h, dite_eq_right h]
   | Sum.inr (Sum.inl ⟨n, R⟩) :: ([] : List (FormulaSymbol L α)) =>
     simp [decodeStack, listDecode]
   | Sum.inr (Sum.inl ⟨n, R⟩) :: Sum.inl x :: l =>
@@ -196,16 +196,16 @@ theorem decodeStack_eq_map_listEncode (l : List (FormulaSymbol L α)) :
     rw [decodeStack, listDecode]
     simp only [hd, List.length_map, List.getElem_map]
     by_cases h : 2 ≤ (listDecode (L := L) (α := α) l).length
-    · rw [dif_pos h, dif_pos h, List.map_cons, ← List.map_drop, sigmaRepr_imp]
-    · rw [dif_neg h, dif_neg h]
+    · rw [dite_eq_left h, dite_eq_left h, List.map_cons, ← List.map_drop, sigmaRepr_imp]
+    · rw [dite_eq_right h, dite_eq_right h]
       rfl
   | Sum.inr (Sum.inr 1) :: l =>
     have hd := ih l.length (by simp) l rfl
     rw [decodeStack, listDecode]
     simp only [hd, List.length_map, List.getElem_map]
     by_cases h : 1 ≤ (listDecode (L := L) (α := α) l).length
-    · rw [dif_pos h, dif_pos h, List.map_cons, ← List.map_drop, sigmaRepr_all]
-    · rw [dif_neg h, dif_neg h]
+    · rw [dite_eq_left h, dite_eq_left h, List.map_cons, ← List.map_drop, sigmaRepr_all]
+    · rw [dite_eq_right h, dite_eq_right h]
       rfl
 
 /-! ### The guarded suffix machine
@@ -223,13 +223,13 @@ def decodeStackAux (l : List (FormulaSymbol L α)) (m : ℕ) :
 /-- At the full length, the guarded suffix evaluation is the machine itself. -/
 theorem decodeStackAux_length (l : List (FormulaSymbol L α)) :
     decodeStackAux l l.length = decodeStack l := by
-  rw [decodeStackAux, if_pos le_rfl]
+  rw [decodeStackAux, ite_eq_left le_rfl]
   simp
 
 /-- In range, the guarded suffix evaluation is the machine on the suffix. -/
 theorem decodeStackAux_of_le {l : List (FormulaSymbol L α)} {m : ℕ} (hm : m ≤ l.length) :
     decodeStackAux l m = decodeStack (l.drop (l.length - m)) := by
-  rw [decodeStackAux, if_pos hm]
+  rw [decodeStackAux, ite_eq_left hm]
 
 /-- Whether a symbol is a term letter with the given variable index. -/
 def isTermLetterAt (k : ℕ) : FormulaSymbol L α → Bool
@@ -356,14 +356,14 @@ theorem rel_branch_eq (s' : List (FormulaSymbol L α)) (n k : ℕ) (R : L.Relati
      else sigmaRepr default) := by
   by_cases hb : (s'.take n).length = n ∧ (s'.take n).all (isTermLetterAt k)
   · obtain ⟨h, h'⟩ := (rel_cond_iff s' n k).1 hb
-    rw [if_pos hb, dif_pos h, if_pos h']
-  · rw [if_neg hb]
+    rw [ite_eq_left hb, dite_eq_left h, ite_eq_left h']
+  · rw [ite_eq_right hb]
     by_cases h : ∀ i : Fin n, ((s'.map Sum.getLeft?)[i]?.join).isSome
-    · rw [dif_pos h]
+    · rw [dite_eq_left h]
       by_cases h' : ∀ i, (Option.get _ (h i)).1 = k
       · exact absurd ((rel_cond_iff s' n k).2 ⟨h, h'⟩) hb
-      · rw [if_neg h']
-    · rw [dif_neg h]
+      · rw [ite_eq_right h']
+    · rw [dite_eq_right h]
 
 /-- The `imp` case of `decodeStack` in `getElem!` form (no dependent proofs). -/
 theorem decodeStack_imp_eq (s : List (FormulaSymbol L α)) :
@@ -373,8 +373,8 @@ theorem decodeStack_imp_eq (s : List (FormulaSymbol L α)) :
       else [] := by
   rw [decodeStack]
   by_cases h : 2 ≤ (decodeStack s).length
-  · rw [dif_pos h, if_pos h, getElem!_pos _ _ (by omega), getElem!_pos _ _ (by omega)]
-  · rw [dif_neg h, if_neg h]
+  · rw [dite_eq_left h, ite_eq_left h, getElem!_pos _ _ (by omega), getElem!_pos _ _ (by omega)]
+  · rw [dite_eq_right h, ite_eq_right h]
 
 /-- The `all` case of `decodeStack` in `getElem!` form (no dependent proofs). -/
 theorem decodeStack_all_eq (s : List (FormulaSymbol L α)) :
@@ -384,8 +384,8 @@ theorem decodeStack_all_eq (s : List (FormulaSymbol L α)) :
       else [] := by
   rw [decodeStack]
   by_cases h : 1 ≤ (decodeStack s).length
-  · rw [dif_pos h, if_pos h, getElem!_pos _ _ (by omega)]
-  · rw [dif_neg h, if_neg h]
+  · rw [dite_eq_left h, ite_eq_left h, getElem!_pos _ _ (by omega)]
+  · rw [dite_eq_right h, ite_eq_right h]
 
 /-- The `rel` case of `decodeStack` in Boolean-condition form. -/
 theorem decodeStack_rel_eq (n : ℕ) (R : L.Relations n) (k : ℕ)
@@ -407,14 +407,14 @@ private theorem decodeStackStepAux_spec (l : List (FormulaSymbol L α)) (m : ℕ
   rw [decodeStackStepAux]
   simp only [List.length_map, List.length_range]
   by_cases hm : m ≤ l.length
-  · rw [if_pos hm]
+  · rw [ite_eq_left hm]
     rcases hs : l.drop (l.length - m) with - | ⟨c, s⟩
     · have hm0 : m = 0 := by
         have := congrArg List.length hs
         simp at this
         omega
       subst hm0
-      rw [decodeStackAux, if_pos hm, hs]
+      rw [decodeStackAux, ite_eq_left hm, hs]
       simp [decodeStack]
     · have hmlen : m = (l.drop (l.length - m)).length := by simp; omega
       have hm1 : 1 ≤ m := by
@@ -471,8 +471,8 @@ private theorem decodeStackStepAux_spec (l : List (FormulaSymbol L α)) (m : ℕ
           · rw [decodeStackAux_of_le (show m - 2 - n ≤ l.length by omega), hstail2,
               List.drop_drop, show l.length - (m - 2) + n = l.length - (m - 2 - n) by omega]
           · rw [List.drop_eq_nil_of_le (by omega), show m - 2 - n = 0 by omega,
-              decodeStackAux, if_pos (Nat.zero_le _), Nat.sub_zero, List.drop_length]
-        show Option.map
+              decodeStackAux, ite_eq_left (Nat.zero_le _), Nat.sub_zero, List.drop_length]
+        change Option.map
             (fun rest ↦
               (if (s'.take n).length = n ∧ (s'.take n).all (isTermLetterAt k) then
                 (k, Sum.inr (Sum.inl ⟨n, R⟩) :: Sum.inr (Sum.inr k) :: s'.take n)
@@ -487,7 +487,7 @@ private theorem decodeStackStepAux_spec (l : List (FormulaSymbol L α)) (m : ℕ
       | Sum.inr (Sum.inr 1), s =>
         rw [hprev (m - 1) (by omega), decodeStack_all_eq, hds1]
         rfl
-  · rw [if_neg hm, decodeStackAux, if_neg hm]
+  · rw [ite_eq_right hm, decodeStackAux, ite_eq_right hm]
 
 /-! ### Primitive recursiveness of the step function -/
 
@@ -545,7 +545,7 @@ private theorem decodeStackStepAux_eq_cases (l : List (FormulaSymbol L α))
       else some [] := by
   rw [decodeStackStepAux]
   by_cases hg : prev.length ≤ l.length
-  · rw [if_pos hg, if_pos hg]
+  · rw [ite_eq_left hg, ite_eq_left hg]
     rcases l.drop (l.length - prev.length) with - | ⟨c, tail⟩
     · rfl
     · rcases c with s₁ | g
@@ -561,7 +561,7 @@ private theorem decodeStackStepAux_eq_cases (l : List (FormulaSymbol L α))
         · rcases j with - | j'
           · rfl
           · rcases j' with - | n <;> rfl
-  · rw [if_neg hg, if_neg hg]
+  · rw [ite_eq_right hg, ite_eq_right hg]
 
 section PrimrecStep
 

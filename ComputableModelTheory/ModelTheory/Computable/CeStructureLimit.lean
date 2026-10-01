@@ -106,7 +106,7 @@ class of the chosen realization. -/
 theorem limitStructure_funMap_eq {n : ℕ} (f : L.Functions n) (v : Fin n → D.Rep) :
     @Structure.funMap L D.Limit D.limitStructure n f (fun k ↦ ⟦v k⟧)
       = ⟦D.limFunRep f v⟧ := by
-  show ((Quotient.finChoice fun k ↦ ⟦v k⟧).liftOn _ _ : D.Limit) = _
+  change ((Quotient.finChoice fun k ↦ ⟦v k⟧).liftOn _ _ : D.Limit) = _
   rw [Quotient.finChoice_eq]
   rfl
 
@@ -115,7 +115,7 @@ limit relation. -/
 theorem limitStructure_relMap_iff {n : ℕ} (R : L.Relations n) (v : Fin n → D.Rep) :
     @Structure.RelMap L D.Limit D.limitStructure n R (fun k ↦ ⟦v k⟧)
       ↔ D.LimRelHolds R (fun k ↦ (v k).1) := by
-  show ((Quotient.finChoice fun k ↦ ⟦v k⟧).liftOn _ _ : Prop) ↔ _
+  change ((Quotient.finChoice fun k ↦ ⟦v k⟧).liftOn _ _ : Prop) ↔ _
   rw [Quotient.finChoice_eq]
   exact Iff.rfl
 
@@ -155,10 +155,10 @@ theorem stageIntoLimit_step {i x y : ℕ} (hx : x ∈ (D.stageAt i).domain)
     (hy : y ∈ (D.stageAt (i + 1)).domain) (hstep : y ∈ D.step i x) :
     D.stageIntoLimit i x hx = D.stageIntoLimit (i + 1) y hy := by
   refine Quotient.sound ⟨y, ?_, ?_⟩
-  · show y ∈ D.toDomainChain.transportTo i (max i (i + 1)) x
+  · change y ∈ D.toDomainChain.transportTo i (max i (i + 1)) x
     rw [show max i (i + 1) = i + 1 from by omega]
     exact D.toDomainChain.step_mem_transportTo_succ hstep
-  · show y ∈ D.toDomainChain.transportTo (i + 1) (max i (i + 1)) y
+  · change y ∈ D.toDomainChain.transportTo (i + 1) (max i (i + 1)) y
     rw [show max i (i + 1) = i + 1 from by omega,
       CeDomainChainIn.transportTo_self]
     exact Part.mem_some _
@@ -169,10 +169,10 @@ theorem stageIntoLimit_transport {i j x y : ℕ} (hij : i ≤ j)
     (htrans : y ∈ D.transportTo i j x) :
     D.stageIntoLimit i x hx = D.stageIntoLimit j y hy := by
   refine Quotient.sound ⟨y, ?_, ?_⟩
-  · show y ∈ D.toDomainChain.transportTo i (max i j) x
+  · change y ∈ D.toDomainChain.transportTo i (max i j) x
     rw [Nat.max_eq_right hij]
     exact htrans
-  · show y ∈ D.toDomainChain.transportTo j (max i j) y
+  · change y ∈ D.toDomainChain.transportTo j (max i j) y
     rw [Nat.max_eq_right hij, CeDomainChainIn.transportTo_self]
     exact Part.mem_some _
 
