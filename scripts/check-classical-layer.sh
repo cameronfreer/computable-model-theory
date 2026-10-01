@@ -20,6 +20,7 @@ modules=(
   ComputableModelTheory.ModelTheory.FraisseExistence
   ComputableModelTheory.ModelTheory.OrbitIsolation
   ComputableModelTheory.ModelTheory.CountablePrime
+  ComputableModelTheory.ModelTheory.NamedParameters
   ComputableModelTheory.ModelTheory.RootedExtension
 )
 
