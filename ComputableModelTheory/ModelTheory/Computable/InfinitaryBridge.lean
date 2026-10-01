@@ -12,7 +12,7 @@ import InfinitaryLogic.Methods.Henkin.Completeness
 /-!
 # Thin representation boundary to `infinitary-logic`
 
-The B1a bridge: `infinitary-logic` is pinned at `e4c674f` (Lean `v4.35.0-rc3` and the mathlib
+The B1a bridge: `infinitary-logic` is pinned at `098fb36` (Lean `v4.35.0-rc3` and the mathlib
 pin `346a4bd`, matching this repository), and this module is the *entire* deliberate import
 surface — exactly the Scott/back-and-forth modules D2 needs and the Henkin module E1 needs, no
 umbrella import. Transitive helper dependencies: `LeanArchitect` (the `@[blueprint]`
@@ -26,7 +26,7 @@ computable age carries its structures as *values* (`K.structureAt i`). The wrapp
 same discipline as the rest of the age layer — and `bfEquivAt_zero` re-exports the
 upstream level-zero characterization through the boundary.
 
-Import-surface status at `e4c674f` (all proved, standard axioms — audited in
+Import-surface status at `098fb36` (all proved, standard axioms — audited in
 `InfinitaryBridgeAudit`):
 
 * `SameAtomicType` (`Scott/AtomicDiagram.lean`) — **relational caveat**, documented
