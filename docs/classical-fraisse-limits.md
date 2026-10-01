@@ -33,11 +33,11 @@ assumed. `isFraisseLimit_of_extensionRich` packages both with Mathlib's `IsFrais
 For an independently universe-polymorphic family `F : I → Bundled L.Structure`,
 `representativeClass F` is its isomorphism closure. Finite generation, hereditary closure (it
 suffices to recognize finitely generated substructures of representatives), joint embedding and
-amalgamation of the representatives transfer to the whole class; the amalgamation premise keeps
-the literal commuting square. `isFraisse_representativeClass` assembles Mathlib's `IsFraisse`
-from an inhabited countable index. Countability is of isomorphism classes
-(`representativeClass_countable_quotient`), not of the bundled class. When the age of `M` lies in the class, every
-finite tuple of `M` factors literally through an embedding of a representative
+amalgamation of the representatives transfer to the whole class; the amalgamation premise keeps the
+literal commuting square. `isFraisse_representativeClass` assembles Mathlib's `IsFraisse` from an
+inhabited countable index. Countability is of isomorphism classes
+(`representativeClass_countable_quotient`), not of the bundled class. When the age of `M` lies in
+the class, every finite tuple of `M` factors literally through an embedding of a representative
 (`exists_factor_tuple_of_age_subset`; repeated coordinates allowed, and
 `exists_factor_embedding_of_age_subset` for injective tuples). The choice is classical, not an
 effective pullback.
@@ -62,6 +62,30 @@ Hereditary closure and amalgamation turn it into `AmalgamationRich`
 (`amalgamationRich_of_sequenceExtension`); stage membership and coverage identify the age
 separately (`age_directLimit_eq`, which needs no amalgamation); `isFraisseLimit_directLimit`
 assembles both. Its countable-limit premise can be supplied by `countable_directLimit`.
+
+## Rooted universality and uniqueness (`RootedExtension`)
+
+Thin adapters over Mathlib's back-and-forth engines `embedding_from_cg` and `equiv_between_cg`; no
+new back-and-forth construction. For a finitely generated root `A` with `aM : A ↪[L] M` and
+`aN : A ↪[L] N`:
+
+- an extension pair and countable generation of `M` give `e : M ↪[L] N` with `e.comp aM = aN`
+  (`exists_embedding_comp_eq_of_isExtensionPair`);
+- extension pairs both ways and countable generation of both give `e : M ≃[L] N` with
+  `e.toEmbedding.comp aM = aN` (`exists_equiv_comp_eq_of_isExtensionPair`).
+
+The root is always supplied. An extension pair can hold vacuously when no partial isomorphism
+exists at all: with one nullary relation, true in the source and false in the target, every other
+hypothesis holds and there is no embedding (`test_missing_seed`).
+
+`ExtendsRepresentatives F N` says that `N` extends embeddings between whole representatives of a
+family of finitely generated structures. If the age of `M` lies in `representativeClass F`, it
+gives `L.IsExtensionPair M N` (`isExtensionPair_of_age_subset`): both finitely generated
+substructures of an extension step lie in the age, so each has a representative, and no hereditary
+closure is assumed. Hence relative universality (`exists_embedding_comp_eq_of_age_subset`), with
+nothing assumed of the target's age — it may be strictly larger — or its cardinality, and rooted
+uniqueness (`exists_equiv_comp_eq_of_age_subset`), with the hypotheses on both sides; countable
+carriers suffice for countable generation (`..._of_countable`).
 
 ## The remaining existence obligation
 
@@ -96,11 +120,11 @@ Fraïssé class (`isFraisse_classSet`), and CAP supplies that amalgamation
 ## Checks
 
 `scripts/check-classical-layer.sh`, run in CI after the build, builds the three modules (and the
-rest of the classical layer: orbit isolation and countable primeness) and elaborates each module
-and its audit with warnings as errors and `autoImplicit=false`. It uses `lake env lean` on
-purpose: the ordinary audit sweep elaborates with the package's Lean options, including
+rest of the classical layer: orbit isolation, countable primeness, rooted extension) and elaborates
+each module and its audit with warnings as errors and `autoImplicit=false`. It uses `lake env lean`
+on purpose: the ordinary audit sweep elaborates with the package's Lean options, including
 project-wide compatibility settings the effective layer may need, while this gate checks the
-classical layer without them. Each audit runs `#assert_module_standard_axioms`, which checks
-the standard axioms on every declaration of the module by defining module, whatever its namespace.
-The audits also check the import boundary and pin regressions: independent universes, empty index
-and empty carriers, empty stages, and transitions given by arbitrary automorphisms.
+classical layer without them. Each audit runs `#assert_module_standard_axioms`, which checks the
+standard axioms on every declaration of the module by defining module, whatever its namespace. The
+audits also check the import boundary and pin regressions: independent universes, empty index and
+empty carriers, empty stages, and transitions given by arbitrary automorphisms.

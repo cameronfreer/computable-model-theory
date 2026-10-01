@@ -10,6 +10,7 @@ import ComputableModelTheory.ModelTheory.ExtensionRichDirectLimit
 import ComputableModelTheory.ModelTheory.ExtensionRichFamily
 import ComputableModelTheory.ModelTheory.OrbitIsolation
 import ComputableModelTheory.ModelTheory.RepresentativeAge
+import ComputableModelTheory.ModelTheory.RootedExtension
 import ComputableModelTheory.ModelTheory.Syntax
 import ComputableModelTheory.ModelTheory.TupleClosure
 
