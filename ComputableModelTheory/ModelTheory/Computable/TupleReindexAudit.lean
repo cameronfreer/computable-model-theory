@@ -141,7 +141,7 @@ theorem test_const_empty_tuple_domain :
     ((constBundle O).generatedPresentationOf ([] : Tuple ℕ)).domain = {7} := by
   rw [(constBundle O).generatedPresentationOf_domain ([] : Tuple ℕ)]
   ext x
-  simp only [Set.mem_setOf_eq, Set.mem_singleton_iff]
+  simp only [Set.mem_ofPred_eq, Set.mem_singleton_iff]
   constructor
   · rintro ⟨T, rfl⟩
     induction T with
@@ -175,7 +175,7 @@ theorem test_graph_empty_tuple_domain :
     ((pathGraphBundle O).generatedPresentationOf ([] : Tuple ℕ)).domain = ∅ := by
   rw [(pathGraphBundle O).generatedPresentationOf_domain ([] : Tuple ℕ)]
   ext x
-  simp only [Set.mem_setOf_eq, Set.mem_empty_iff_false, iff_false]
+  simp only [Set.mem_ofPred_eq, Set.mem_empty_iff_false, iff_false]
   rintro ⟨T, -⟩
   exact isEmptyElim (show Language.graph.Term (Fin 0) from T)
 

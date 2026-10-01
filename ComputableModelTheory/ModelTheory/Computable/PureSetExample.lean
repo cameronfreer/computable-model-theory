@@ -86,7 +86,7 @@ noncomputable def tinyAge (O : Set (ℕ →. ℕ)) : PartialAgeIn O Language.emp
           x = @Term.realize Language.empty ℕ emptyStructure _ (Tuple.view ([] : Tuple ℕ)) T
       constructor
       · rintro ⟨m, hm⟩
-        rw [if_neg (fun h ↦ Nat.lt_irrefl 0 h.1)] at hm
+        rw [ite_eq_right (fun h ↦ Nat.lt_irrefl 0 h.1)] at hm
         exact absurd hm (by simp)
       · rintro ⟨T, -⟩
         obtain ⟨a, -⟩ := empty_realize_mem_range T (Tuple.view ([] : Tuple ℕ))
@@ -98,10 +98,10 @@ noncomputable def tinyAge (O : Set (ℕ →. ℕ)) : PartialAgeIn O Language.emp
       constructor
       · rintro ⟨m, hm⟩
         by_cases h : 0 < i + 1 ∧ m = 0
-        · rw [if_pos h] at hm
+        · rw [ite_eq_left h] at hm
           obtain rfl := Option.some.inj hm
           exact ⟨Term.var ⟨0, by simp⟩, rfl⟩
-        · rw [if_neg h] at hm
+        · rw [ite_eq_right h] at hm
           exact absurd hm (by simp)
       · rintro ⟨T, rfl⟩
         obtain ⟨a, ha⟩ := empty_realize_mem_range T (Tuple.view ([0] : Tuple ℕ))
@@ -110,7 +110,7 @@ noncomputable def tinyAge (O : Set (ℕ →. ℕ)) : PartialAgeIn O Language.emp
           cases k with
           | zero => rfl
           | succ k => simp at hk
-        exact ⟨0, by rw [ha, ha0, if_pos ⟨Nat.succ_pos i, rfl⟩]⟩
+        exact ⟨0, by rw [ha, ha0, ite_eq_left ⟨Nat.succ_pos i, rfl⟩]⟩
 
 namespace tinyAge
 
@@ -121,14 +121,14 @@ theorem mem_domainAt_iff {i x : ℕ} : x ∈ (tinyAge O).domainAt i ↔ 0 < i �
   · rintro ⟨m, hm⟩
     change (if 0 < i ∧ m = 0 then some 0 else none) = some x at hm
     by_cases h : 0 < i ∧ m = 0
-    · rw [if_pos h] at hm
+    · rw [ite_eq_left h] at hm
       exact ⟨h.1, (Option.some.inj hm).symm⟩
-    · rw [if_neg h] at hm
+    · rw [ite_eq_right h] at hm
       exact absurd hm (by simp)
   · rintro ⟨hi, rfl⟩
     refine ⟨0, ?_⟩
     change (if 0 < i ∧ 0 = 0 then some 0 else none) = some 0
-    rw [if_pos ⟨hi, rfl⟩]
+    rw [ite_eq_left ⟨hi, rfl⟩]
 
 /-- Every member is a subsingleton: its only possible element is `0`. -/
 instance (i : ℕ) : Subsingleton ((tinyAge O).memberAt i).domain :=

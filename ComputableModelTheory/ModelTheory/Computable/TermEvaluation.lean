@@ -76,22 +76,22 @@ theorem valueStack_eq_map_realize (env : Fin m → ℕ)
       rw [hstep, ih, listDecode, valueStep, FunctionApplicationData.ofSymbolArgs?]
       dsimp only
       by_cases h : n ≤ (listDecode l).length
-      · rw [dif_pos (show (((listDecode l).map fun t ↦ t.realize env).take n).length =
+      · rw [dite_eq_left (show (((listDecode l).map fun t ↦ t.realize env).take n).length =
             FunctionSymbol.arity (⟨n, f⟩ : L.FunctionSymbol) from by
               simp only [List.length_take, List.length_map]
               exact min_eq_left h),
-          dif_pos h, Option.map_some, Option.getD_some, List.map_cons, ← List.map_drop]
+          dite_eq_left h, Option.map_some, Option.getD_some, List.map_cons, ← List.map_drop]
         congr 1
         rw [FunctionApplicationData.funMap_equivSubtype_symm]
         show Structure.funMap f _ = Structure.funMap f _
         refine congrArg _ (funext fun i ↦ ?_)
         rw [List.get_eq_getElem, List.getElem_take, List.getElem_map]
         rfl
-      · rw [dif_neg (show ¬(((listDecode l).map fun t ↦ t.realize env).take n).length =
+      · rw [dite_eq_right (show ¬(((listDecode l).map fun t ↦ t.realize env).take n).length =
             FunctionSymbol.arity (⟨n, f⟩ : L.FunctionSymbol) from by
               simp only [List.length_take, List.length_map]
               exact fun hc ↦ h (min_eq_left_iff.1 hc)),
-          dif_neg h]
+          dite_eq_right h]
         rfl
 
 end Machine

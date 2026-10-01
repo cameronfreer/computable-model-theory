@@ -247,7 +247,7 @@ theorem valid_eventually_fires {e s₀ : ℕ} (h : A.avail s₀ e = true) :
         rw [show N + (m + 1) = (N + m) + 1 from rfl, A.fired_succ_of_some hfire]
       rw [hgrow, List.filter_append]
       simp only [List.length_append, List.filter_cons, decide_eq_true_eq, hlt,
-        List.filter_nil, if_true, List.length_cons, List.length_nil]
+        List.filter_nil, ite_true, List.length_cons, List.length_nil]
       omega
   have hbound : ∀ s, ((A.fired s).filter fun x ↦ decide (x < e)).length ≤ e := by
     intro s

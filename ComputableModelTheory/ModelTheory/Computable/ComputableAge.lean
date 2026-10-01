@@ -197,7 +197,7 @@ def succAgeMixed (O : Set (ℕ →. ℕ)) : ComputableAgeIn O succLang :=
           (ComputableIn.const [0, 1]) (ComputableIn.const [0, 1, 2]))
     generates := fun i ↦ by
       by_cases hi : i = 0
-      · simp only [hi, if_true]; exact succ_tuple_generates
+      · simp only [hi, ite_true]; exact succ_tuple_generates
       · by_cases hi' : i = 1
         · simp [hi']; exact succ_pair_generates
         · simp [hi, hi']; exact succ_triple_generates }

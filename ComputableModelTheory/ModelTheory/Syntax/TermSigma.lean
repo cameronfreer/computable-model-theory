@@ -122,8 +122,8 @@ theorem primrec_sigmaFiberZero? : Primrec (sigmaFiberZero? L α) := by
   by_cases h : k = 0
   · subst h
     simp [Encodable.encode_sigma_val, sigmaFiberZero?]
-  · rw [if_neg (by simpa [Encodable.encode_sigma_val] using h),
-      show sigmaFiberZero? L α (⟨k, t⟩ : Σ k, L.Term (α ⊕ Fin k)) = none from dif_neg h]
+  · rw [ite_eq_right (by simpa [Encodable.encode_sigma_val] using h),
+      show sigmaFiberZero? L α (⟨k, t⟩ : Σ k, L.Term (α ⊕ Fin k)) = none from dite_eq_right h]
     rfl
 
 end FirstOrder.Language.Term

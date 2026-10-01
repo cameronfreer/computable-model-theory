@@ -80,12 +80,12 @@ theorem termValueStack_eq_map_realize (i : ℕ) (env : Tuple ℕ)
         FunctionApplicationData.ofSymbolArgs?]
       dsimp only
       by_cases h : n ≤ (Term.listDecode l).length
-      · rw [dif_pos (show (((Term.listDecode l).map fun t ↦
+      · rw [dite_eq_left (show (((Term.listDecode l).map fun t ↦
               t.realize (envFun env)).take n).length =
             FunctionSymbol.arity (⟨n, f⟩ : L.FunctionSymbol) from by
               simp only [List.length_take, List.length_map]
               exact min_eq_left h),
-          dif_pos h, Option.map_some, Option.getD_some, List.map_cons,
+          dite_eq_left h, Option.map_some, Option.getD_some, List.map_cons,
           ← List.map_drop]
         congr 1
         rw [FunctionApplicationData.funMap_equivSubtype_symm]
@@ -93,12 +93,12 @@ theorem termValueStack_eq_map_realize (i : ℕ) (env : Tuple ℕ)
         refine congrArg _ (funext fun j ↦ ?_)
         rw [List.get_eq_getElem, List.getElem_take, List.getElem_map]
         rfl
-      · rw [dif_neg (show ¬(((Term.listDecode l).map fun t ↦
+      · rw [dite_eq_right (show ¬(((Term.listDecode l).map fun t ↦
               t.realize (envFun env)).take n).length =
             FunctionSymbol.arity (⟨n, f⟩ : L.FunctionSymbol) from by
               simp only [List.length_take, List.length_map]
               exact fun hc ↦ h (min_eq_left_iff.1 hc)),
-          dif_neg h]
+          dite_eq_right h]
         rfl
 
 set_option maxHeartbeats 1000000 in

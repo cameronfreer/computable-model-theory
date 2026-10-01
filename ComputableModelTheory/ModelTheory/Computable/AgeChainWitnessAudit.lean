@@ -80,12 +80,12 @@ noncomputable def lateAge : PartialAgeIn O Language.empty where
       constructor
       · rintro ⟨m, hm⟩
         by_cases h : m = 3
-        · rw [h, if_pos rfl] at hm
+        · rw [h, ite_eq_left rfl] at hm
           exact (Option.some_inj.1 hm).symm
-        · rw [if_neg h] at hm
+        · rw [ite_eq_right h] at hm
           exact absurd hm (by simp)
       · rintro rfl
-        exact ⟨3, by rw [if_pos rfl]⟩
+        exact ⟨3, by rw [ite_eq_left rfl]⟩
     rw [hx]
     constructor
     · rintro rfl
@@ -100,12 +100,12 @@ noncomputable def lateAge : PartialAgeIn O Language.empty where
 private theorem lateAge_enum?_three (i : ℕ) :
     (lateAge (O := O)).enum? i 3 = Option.some 5 := by
   show (if (3 : ℕ) = 3 then Option.some 5 else Option.none) = Option.some 5
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 private theorem lateAge_enum?_of_ne {i m : ℕ} (h : m ≠ 3) :
     (lateAge (O := O)).enum? i m = Option.none := by
   show (if m = 3 then Option.some 5 else Option.none) = Option.none
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 private theorem lateAge_nonempty (n : ℕ) :
     ((lateAge (O := O)).domainAt (id n)).Nonempty :=

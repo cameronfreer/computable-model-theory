@@ -144,7 +144,7 @@ theorem codedFunMap_eq_normalize {n : ℕ} (f : L.Functions n) (v : Fin n → �
         (CeDomainChainIn.normalize cert (stageBound (List.ofFn v),
           @Structure.funMap L ℕ (D.stageAt (stageBound (List.ofFn v))).str n f
             (D.canonicalSrc cert v h))).2 := by
-  rw [codedFunMap, dif_pos h]
+  rw [codedFunMap, dite_eq_left h]
 
 /-- The realized stage value is a valid pair. -/
 theorem stageValue_limMem {n : ℕ} (f : L.Functions n) (v : Fin n → ℕ)
@@ -558,7 +558,7 @@ theorem codedFunEvalAux_eq (d : FunctionApplicationData L ℕ) :
     rw [codedFunEvalAux, hall]
     show Part.some 0 = _
     rw [show @FunctionApplicationData.funMap L ℕ (D.codedStr cert) d
-      = D.codedFunMap cert d.symbol d.args from rfl, codedFunMap, dif_neg h]
+      = D.codedFunMap cert d.symbol d.args from rfl, codedFunMap, dite_eq_right h]
 
 /-- On canonical arguments, the relation core halts with the truth value of the coded
 relation. -/

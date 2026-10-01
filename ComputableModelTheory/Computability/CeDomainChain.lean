@@ -441,7 +441,7 @@ private theorem normTest_true_iff {p : ℕ × ℕ} (hp : C.limMem p) (n : ℕ) :
     true ∈ normTest cert p n ↔ C.limMem (candOf n) ∧ C.limEquiv p (candOf n) := by
   rw [normTest]
   rcases hm : cert.memB n.unpair.1 n.unpair.2 with - | -
-  · simp only [cond_false]
+  · simp only [Bool.cond_false]
     constructor
     · intro h
       exact absurd (Part.mem_some_iff.1 h).symm (by simp)
@@ -450,7 +450,7 @@ private theorem normTest_true_iff {p : ℕ × ℕ} (hp : C.limMem p) (n : ℕ) :
   · have hqmem : C.limMem (candOf n) :=
       (cert.memB_iff n.unpair.1 n.unpair.2).1 hm
     obtain ⟨b, hb, hbiff⟩ := C.limEquivTest_spec hp hqmem
-    simp only [cond_true]
+    simp only [Bool.cond_true]
     exact ⟨fun htrue ↦ ⟨hqmem, hbiff.1 (Part.mem_unique hb htrue)⟩,
       fun hh ↦ hbiff.2 hh.2 ▸ hb⟩
 
@@ -471,7 +471,7 @@ private theorem normTest_congr {p q : ℕ × ℕ} (hp : C.limMem p) (hq : C.limM
       (cert.memB_iff n.unpair.1 n.unpair.2).1 hm
     obtain ⟨b₁, hb₁, hbiff₁⟩ := C.limEquivTest_spec hp hqmem
     obtain ⟨b₂, hb₂, hbiff₂⟩ := C.limEquivTest_spec hq hqmem
-    simp only [cond_true]
+    simp only [Bool.cond_true]
     have hbeq : b₁ = b₂ := by
       have hiff : (b₁ = true) ↔ (b₂ = true) := by
         rw [hbiff₁, hbiff₂]

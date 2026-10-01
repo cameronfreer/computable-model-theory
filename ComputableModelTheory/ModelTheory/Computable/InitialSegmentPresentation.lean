@@ -140,7 +140,7 @@ interpretation. -/
 theorem totalFunMap_correct (d : FunctionApplicationData L ℕ)
     (hd : ∀ k, d.args k ∈ Q.domain) :
     Q.totalFunMap d = @FunctionApplicationData.funMap L ℕ Q.str d := by
-  rw [totalFunMap, dif_pos ((Q.funArgGuard_iff d).2 hd)]
+  rw [totalFunMap, dite_eq_left ((Q.funArgGuard_iff d).2 hd)]
   exact Part.get_eq_of_mem (Q.funEval_correct d hd) _
 
 /-- The derived total-code relation predicate: the decider's verdict where the guard
@@ -266,7 +266,7 @@ cardinality. -/
 theorem range_posRank_eq_lt (cert : P.ExactFiniteCertificate) :
     Set.range P.posRank = {r | r < cert.card} := by
   ext r
-  rw [Set.mem_setOf_eq, ← P.rankIdx_dom_iff_mem_range_posRank]
+  rw [Set.mem_ofPred_eq, ← P.rankIdx_dom_iff_mem_range_posRank]
   constructor
   · intro h
     by_contra hge

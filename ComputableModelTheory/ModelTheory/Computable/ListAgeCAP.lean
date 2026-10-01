@@ -173,7 +173,7 @@ theorem glue_of_mem_right {z : ℕ} (hz : S.right.rangeTuple.idxOf z < S.right.r
   obtain ⟨htl, hl⟩ := left_getElem hf ht
   obtain ⟨_, hr⟩ := right_getElem hg ht
   refine ⟨ht, ?_, ?_⟩
-  · rw [glue, if_pos hz, List.getD_eq_getElem _ _ htl, hl]
+  · rw [glue, ite_eq_left hz, List.getD_eq_getElem _ _ htl, hl]
   · rw [← hr, List.getElem_idxOf]
 
 include hf hg in
@@ -209,20 +209,20 @@ theorem glue_injective : Function.Injective (glue S) := by
     rw [hg₁, hg₂] at h
     rw [hz₁, hz₂, f.injective (Subtype.ext h)]
   · have hle : glue S z₁ ≤ spanBound S := by
-      rw [glue, if_pos h₁]
+      rw [glue, ite_eq_left h₁]
       obtain ⟨htl, -⟩ := left_getElem hf (hg.2.2.1 ▸ h₁)
       rw [List.getD_eq_getElem _ _ htl]
       exact le_spanBound (List.getElem_mem _)
-    rw [h, glue, if_neg h₂] at hle
+    rw [h, glue, ite_eq_right h₂] at hle
     omega
   · have hle : glue S z₂ ≤ spanBound S := by
-      rw [glue, if_pos h₂]
+      rw [glue, ite_eq_left h₂]
       obtain ⟨htl, -⟩ := left_getElem hf (hg.2.2.1 ▸ h₂)
       rw [List.getD_eq_getElem _ _ htl]
       exact le_spanBound (List.getElem_mem _)
-    rw [← h, glue, if_neg h₁] at hle
+    rw [← h, glue, ite_eq_right h₁] at hle
     omega
-  · rw [glue, if_neg h₁, glue, if_neg h₂] at h
+  · rw [glue, ite_eq_right h₁, glue, ite_eq_right h₂] at h
     omega
 
 end Realizers

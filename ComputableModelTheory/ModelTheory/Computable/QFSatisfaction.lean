@@ -144,7 +144,7 @@ theorem flagOf_imp (v : Fin k → ℕ) (p q : Σ n, L.BoundedFormula (Fin k) n) 
   rcases q with ⟨n, ψ⟩
   by_cases h : m = n
   · subst h
-    rw [sigmaImp_apply, impFlag, if_pos (by rw [flagOf_fst, flagOf_fst])]
+    rw [sigmaImp_apply, impFlag, ite_eq_left (by rw [flagOf_fst, flagOf_fst])]
     have hq : (φ.imp ψ).IsQF ↔ φ.IsQF ∧ ψ.IsQF := by
       rw [← isQFBool_iff, ← isQFBool_iff, ← isQFBool_iff,
         show isQFBool (φ.imp ψ) = (isQFBool φ && isQFBool ψ) from rfl, Bool.and_eq_true]
@@ -152,7 +152,7 @@ theorem flagOf_imp (v : Fin k → ℕ) (p q : Σ n, L.BoundedFormula (Fin k) n) 
     | zero =>
       rw [flagOf, flagOf, flagOf]
       refine congrArg (fun r ↦ ((0 : ℕ), isQFBool φ && isQFBool ψ, r)) ?_
-      rw [if_pos (by trivial)]
+      rw [ite_eq_left (by trivial)]
       have hr : Formula.Realize (φ.imp ψ) v ↔
           (Formula.Realize φ v → Formula.Realize ψ v) := by
         rw [Formula.Realize, Formula.Realize, Formula.Realize]
@@ -171,9 +171,9 @@ theorem flagOf_imp (v : Fin k → ℕ) (p q : Σ n, L.BoundedFormula (Fin k) n) 
         · exact ⟨⟨h₁, h₂⟩, fun _ ↦ h₃.2⟩
     | succ m =>
       rw [flagOf, flagOf, flagOf]
-      rw [if_neg (Nat.succ_ne_zero m)]
+      rw [ite_eq_right (Nat.succ_ne_zero m)]
       rfl
-  · rw [sigmaImp, dif_neg h, impFlag, if_neg (by rw [flagOf_fst, flagOf_fst]; exact h),
+  · rw [sigmaImp, dite_eq_right h, impFlag, ite_eq_right (by rw [flagOf_fst, flagOf_fst]; exact h),
       flagOf_default]
 
 omit [L.EffectiveLanguage] in
@@ -224,7 +224,7 @@ private theorem relFlag_zero
       (List.finRange n).map fun i ↦ (ts i).relabel (Sum.elim id Fin.elim0) := by
     rw [List.filterMap_map]
     exact filterMap_eq_map_of_forall_some _ fun i _ ↦ termOfSymbol?_inl (ts i)
-  rw [relFlag, if_pos rfl, hfm,
+  rw [relFlag, ite_eq_left rfl, hfm,
     RelationApplicationData.ofSymbolArgs?_of_length_eq _ (by simp [RelationSymbol.arity])]
   show decide _ = _
   refine Bool.eq_iff_iff.2 ?_
@@ -267,7 +267,7 @@ theorem satStack_eq_map_listDecode
     congr 1
     by_cases h : n₁ = n₂
     · subst h
-      rw [if_pos rfl, dif_pos rfl]
+      rw [ite_eq_left rfl, dite_eq_left rfl]
       cases n₁ with
       | zero =>
         show ((0 : ℕ), true, eqFlag v (Sum.inl ⟨0, t₁⟩) (Sum.inl ⟨0, t₂⟩)) =
@@ -290,7 +290,7 @@ theorem satStack_eq_map_listDecode
           rw [← realize_relabelElim t₁ v, ← realize_relabelElim t₂ v] at h2
           exact h2
       | succ m => rfl
-    · rw [if_neg h, dif_neg h, flagOf_default]
+    · rw [ite_eq_right h, dite_eq_right h, flagOf_default]
   | Sum.inl ⟨n₁, t₁⟩ :: Sum.inr g :: l =>
     simp [satStack, listDecode]
   | Sum.inr (Sum.inl ⟨n, R⟩) :: Sum.inr (Sum.inr b) :: l =>
@@ -298,9 +298,9 @@ theorem satStack_eq_map_listDecode
       (by simp; omega) (l.drop n) rfl]
     congr 1
     by_cases h : ∀ i : Fin n, (l.map Sum.getLeft?)[i]?.join.isSome
-    · rw [dif_pos h, dif_pos h]
+    · rw [dite_eq_left h, dite_eq_left h]
       by_cases h' : ∀ i, (Option.get _ (h i)).1 = b
-      · rw [if_pos h', dif_pos h']
+      · rw [ite_eq_left h', dite_eq_left h']
         cases b with
         | succ m => rfl
         | zero =>
@@ -351,8 +351,8 @@ theorem satStack_eq_map_listDecode
               simp at h0
           rw [htake, relFlag_zero, flagOf]
           rfl
-      · rw [if_neg h', dif_neg h', flagOf_default]
-    · rw [dif_neg h, dif_neg h, flagOf_default]
+      · rw [ite_eq_right h', dite_eq_right h', flagOf_default]
+    · rw [dite_eq_right h, dite_eq_right h, flagOf_default]
   | Sum.inr (Sum.inl ⟨n, R⟩) :: ([] : List (FormulaSymbol L (Fin k))) =>
     simp [satStack, listDecode]
   | Sum.inr (Sum.inl ⟨n, R⟩) :: Sum.inl x :: l =>
@@ -364,16 +364,16 @@ theorem satStack_eq_map_listDecode
     rw [satStack, listDecode]
     simp only [hd, List.length_map, List.getElem_map]
     by_cases h : 2 ≤ (listDecode (L := L) (α := Fin k) l).length
-    · rw [dif_pos h, dif_pos h, List.map_cons, ← List.map_drop, flagOf_imp]
-    · rw [dif_neg h, dif_neg h]
+    · rw [dite_eq_left h, dite_eq_left h, List.map_cons, ← List.map_drop, flagOf_imp]
+    · rw [dite_eq_right h, dite_eq_right h]
       rfl
   | Sum.inr (Sum.inr 1) :: l =>
     have hd := ih l.length (by simp) l rfl
     rw [satStack, listDecode]
     simp only [hd, List.length_map, List.getElem_map]
     by_cases h : 1 ≤ (listDecode (L := L) (α := Fin k) l).length
-    · rw [dif_pos h, dif_pos h, List.map_cons, ← List.map_drop, flagOf_all]
-    · rw [dif_neg h, dif_neg h]
+    · rw [dite_eq_left h, dite_eq_left h, List.map_cons, ← List.map_drop, flagOf_all]
+    · rw [dite_eq_right h, dite_eq_right h]
       rfl
 
 /-- The quantifier-free satisfaction decider: the satisfaction flag at the head of the
@@ -416,7 +416,7 @@ omit [L.EffectiveLanguage] in
 /-- At the full length, the guarded suffix evaluation is the machine itself. -/
 theorem satStackAux_length (x : (Fin k → ℕ) × List (FormulaSymbol L (Fin k))) :
     satStackAux x x.2.length = satStack x.1 x.2 := by
-  rw [satStackAux, if_pos le_rfl]
+  rw [satStackAux, ite_eq_left le_rfl]
   simp
 
 omit [L.EffectiveLanguage] in
@@ -424,7 +424,7 @@ omit [L.EffectiveLanguage] in
 theorem satStackAux_of_le {x : (Fin k → ℕ) × List (FormulaSymbol L (Fin k))} {m : ℕ}
     (hm : m ≤ x.2.length) :
     satStackAux x m = satStack x.1 (x.2.drop (x.2.length - m)) := by
-  rw [satStackAux, if_pos hm]
+  rw [satStackAux, ite_eq_left hm]
 
 /-- The falsum branch of the step function. -/
 private def stepFalsumSat (prev : List (List (ℕ × Bool × Bool))) (n : ℕ) :
@@ -500,14 +500,14 @@ theorem satStack_rel_eq (v : Fin k → ℕ) {n : ℕ} (R : L.Relations n) (b : �
   congr 1
   by_cases hb : (s'.take n).length = n ∧ (s'.take n).all (isTermLetterAt b)
   · obtain ⟨h, h'⟩ := (rel_cond_iff s' n b).1 hb
-    rw [dif_pos h, if_pos h', if_pos hb]
-  · rw [if_neg hb]
+    rw [dite_eq_left h, ite_eq_left h', ite_eq_left hb]
+  · rw [ite_eq_right hb]
     by_cases h : ∀ i : Fin n, ((s'.map Sum.getLeft?)[i]?.join).isSome
-    · rw [dif_pos h]
+    · rw [dite_eq_left h]
       by_cases h' : ∀ i, (Option.get _ (h i)).1 = b
       · exact absurd ((rel_cond_iff s' n b).2 ⟨h, h'⟩) hb
-      · rw [if_neg h']
-    · rw [dif_neg h]
+      · rw [ite_eq_right h']
+    · rw [dite_eq_right h]
 
 omit [L.EffectiveLanguage] in
 /-- The `imp` case of `satStack` in `getElem!` form (no dependent proofs). -/
@@ -518,8 +518,8 @@ theorem satStack_imp_eq (v : Fin k → ℕ) (s : List (FormulaSymbol L (Fin k)))
       else [] := by
   rw [satStack]
   by_cases h : 2 ≤ (satStack v s).length
-  · rw [dif_pos h, if_pos h, getElem!_pos _ _ (by omega), getElem!_pos _ _ (by omega)]
-  · rw [dif_neg h, if_neg h]
+  · rw [dite_eq_left h, ite_eq_left h, getElem!_pos _ _ (by omega), getElem!_pos _ _ (by omega)]
+  · rw [dite_eq_right h, ite_eq_right h]
 
 omit [L.EffectiveLanguage] in
 /-- The `all` case of `satStack` in `getElem!` form (no dependent proofs). -/
@@ -530,8 +530,8 @@ theorem satStack_all_eq (v : Fin k → ℕ) (s : List (FormulaSymbol L (Fin k)))
       else [] := by
   rw [satStack]
   by_cases h : 1 ≤ (satStack v s).length
-  · rw [dif_pos h, if_pos h, getElem!_pos _ _ (by omega)]
-  · rw [dif_neg h, if_neg h]
+  · rw [dite_eq_left h, ite_eq_left h, getElem!_pos _ _ (by omega)]
+  · rw [dite_eq_right h, ite_eq_right h]
 
 omit [L.EffectiveLanguage] in
 /-- The step function meets the course-of-values specification. -/
@@ -546,14 +546,14 @@ private theorem satStackStepAux_spec (x : (Fin k → ℕ) × List (FormulaSymbol
   rw [satStackStepAux]
   simp only [List.length_map, List.length_range]
   by_cases hm : m ≤ x.2.length
-  · rw [if_pos hm]
+  · rw [ite_eq_left hm]
     rcases hs : x.2.drop (x.2.length - m) with - | ⟨c, s⟩
     · have hm0 : m = 0 := by
         have := congrArg List.length hs
         simp at this
         omega
       subst hm0
-      rw [satStackAux, if_pos hm, hs]
+      rw [satStackAux, ite_eq_left hm, hs]
       simp [satStack]
     · have hmlen : m = (x.2.drop (x.2.length - m)).length := by simp; omega
       have hm1 : 1 ≤ m := by
@@ -611,7 +611,7 @@ private theorem satStackStepAux_spec (x : (Fin k → ℕ) × List (FormulaSymbol
               List.drop_drop,
               show x.2.length - (m - 2) + n = x.2.length - (m - 2 - n) by omega]
           · rw [List.drop_eq_nil_of_le (by omega), show m - 2 - n = 0 by omega,
-              satStackAux, if_pos (Nat.zero_le _), Nat.sub_zero, List.drop_length]
+              satStackAux, ite_eq_left (Nat.zero_le _), Nat.sub_zero, List.drop_length]
         show Option.map
             (fun rest ↦
               (if (s'.take n).length = n ∧ (s'.take n).all (isTermLetterAt b) then
@@ -627,7 +627,7 @@ private theorem satStackStepAux_spec (x : (Fin k → ℕ) × List (FormulaSymbol
       | Sum.inr (Sum.inr 1), s =>
         rw [hprev (m - 1) (by omega), satStack_all_eq, hds1]
         rfl
-  · rw [if_neg hm, satStackAux, if_neg hm]
+  · rw [ite_eq_right hm, satStackAux, ite_eq_right hm]
 
 /-! ### Oracle computability of the step function -/
 
@@ -933,7 +933,7 @@ private theorem satStackStepAux_eq_cases
       else some [] := by
   rw [satStackStepAux]
   by_cases hg : prev.length ≤ x.2.length
-  · rw [if_pos hg, if_pos hg]
+  · rw [ite_eq_left hg, ite_eq_left hg]
     rcases x.2.drop (x.2.length - prev.length) with - | ⟨c, tail⟩
     · rfl
     · rcases c with s₁ | g
@@ -949,7 +949,7 @@ private theorem satStackStepAux_eq_cases
         · rcases j with - | j'
           · rfl
           · rcases j' with - | n <;> rfl
-  · rw [if_neg hg, if_neg hg]
+  · rw [ite_eq_right hg, ite_eq_right hg]
 
 section OracleAssembly
 

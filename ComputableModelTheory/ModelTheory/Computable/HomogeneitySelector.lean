@@ -1120,12 +1120,12 @@ variable {K : PartialAgeIn O L} {W : PartialCAPWitness E K} {i : ℕ} {hOE : O �
 theorem selectPart_of_matched {q : HomogeneityQueryData}
     (hlen : q.domainTuple.length = q.imageTuple.length) :
     selectPart Z chpSel q = (requirementPart Z chpSel q).bind (fromRequirementPart Z) := by
-  simp only [selectPart, matchedQuery?, if_pos hlen]
+  simp only [selectPart, matchedQuery?, ite_eq_left hlen]
 
 theorem selectPart_of_not_matched {q : HomogeneityQueryData}
     (hlen : ¬ q.domainTuple.length = q.imageTuple.length) :
     selectPart Z chpSel q = Part.some (fallbackAnswer q) := by
-  simp only [selectPart, matchedQuery?, if_neg hlen]
+  simp only [selectPart, matchedQuery?, ite_eq_right hlen]
 
 /-- **The requirement of a matched query is admissible** — whether or not `g` is actual. This is
 what makes the firing search halt on every matched query. -/

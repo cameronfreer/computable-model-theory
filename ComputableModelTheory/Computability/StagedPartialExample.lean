@@ -35,18 +35,18 @@ def stagedRange (O : Set (ℕ →. ℕ)) : StagedPartialIn O (fun x : ℕ ↦ Pa
   sound := by
     intro s x y h
     by_cases hx : x < s
-    · rw [if_pos hx] at h
+    · rw [ite_eq_left hx] at h
       rw [← Option.some.inj h]
       exact Part.mem_some _
-    · rw [if_neg hx] at h
+    · rw [ite_eq_right hx] at h
       exact absurd h (by simp)
   monotone := by
     intro s t x y hst h
     by_cases hx : x < s
-    · rw [if_pos hx] at h
-      rw [if_pos (Nat.lt_of_lt_of_le hx hst)]
+    · rw [ite_eq_left hx] at h
+      rw [ite_eq_left (Nat.lt_of_lt_of_le hx hst)]
       exact h
-    · rw [if_neg hx] at h
+    · rw [ite_eq_right hx] at h
       exact absurd h (by simp)
   complete := by
     intro x y h

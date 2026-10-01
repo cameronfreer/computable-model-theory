@@ -46,7 +46,7 @@ lemma sigmaEqual_apply {n} {t₁ t₂ : L.Term (α ⊕ Fin n)} :
 /-- Mismatch semantics: `sigmaEqual` on unequal variable bounds is `default`. -/
 lemma sigmaEqual_of_ne {m n} (t₁ : L.Term (α ⊕ Fin m)) (t₂ : L.Term (α ⊕ Fin n))
     (h : m ≠ n) : sigmaEqual ⟨m, t₁⟩ ⟨n, t₂⟩ = default := by
-  rw [sigmaEqual, dif_neg h]
+  rw [sigmaEqual, dite_eq_right h]
 
 /-- Applies `rel` to a packaged relation symbol and a list of sigma-packaged argument
 terms at the stated variable bound, or returns `default` if the list length mismatches
@@ -70,7 +70,7 @@ lemma sigmaRel_apply {n k : ℕ} (R : L.Relations n) (ts : Fin n → L.Term (α 
     intro i
     simp only [List.get_eq_getElem, List.getElem_map, List.getElem_finRange]
     rfl
-  rw [sigmaRel, dif_pos ⟨hlen, fun i ↦ by rw [hget i]⟩]
+  rw [sigmaRel, dite_eq_left ⟨hlen, fun i ↦ by rw [hget i]⟩]
   refine congrArg (Sigma.mk k) ?_
   refine congrArg (rel R) (funext fun i ↦ ?_)
   have hg := hget (Fin.cast hlen.symm i)
@@ -82,14 +82,14 @@ lemma sigmaRel_apply {n k : ℕ} (R : L.Relations n) (ts : Fin n → L.Term (α 
 lemma sigmaRel_of_length_ne (r : Σ m, L.Relations m) (k : ℕ)
     (ts : List (Σ k', L.Term (α ⊕ Fin k'))) (h : ts.length ≠ r.1) :
     sigmaRel r k ts = default := by
-  rw [sigmaRel, dif_neg fun hc ↦ h hc.1]
+  rw [sigmaRel, dite_eq_right fun hc ↦ h hc.1]
 
 /-- Mismatch semantics: `sigmaRel` on an argument list containing a term of the wrong
 variable bound is `default`. -/
 lemma sigmaRel_of_bound_ne (r : Σ m, L.Relations m) (k : ℕ)
     (ts : List (Σ k', L.Term (α ⊕ Fin k'))) (i : Fin ts.length)
     (h : (ts.get i).1 ≠ k) : sigmaRel r k ts = default := by
-  rw [sigmaRel, dif_neg fun hc ↦ h (hc.2 i)]
+  rw [sigmaRel, dite_eq_right fun hc ↦ h (hc.2 i)]
 
 /-- The sigma-level negation, `default`-preserving through `sigmaImp`. -/
 def sigmaNot (p : Σ n, L.BoundedFormula α n) : Σ n, L.BoundedFormula α n :=
@@ -176,9 +176,9 @@ theorem primrec₂_sigmaEqual : Primrec₂ (sigmaEqual (L := L) (α := α)) := b
   rcases p with ⟨⟨m, t₁⟩, ⟨n, t₂⟩⟩
   by_cases h : m = n
   · subst h
-    rw [if_pos rfl, sigmaEqual_apply]
+    rw [ite_eq_left rfl, sigmaEqual_apply]
     rfl
-  · rw [if_neg h, sigmaEqual, dif_neg h]
+  · rw [ite_eq_right h, sigmaEqual, dite_eq_right h]
 
 omit [Primcodable α] [L.EffectiveLanguage] in
 private theorem all_fst_eq_iff (ts : List (Σ k', L.Term (α ⊕ Fin k'))) (k : ℕ) :
@@ -238,7 +238,7 @@ theorem primrec_sigmaRel :
   by_cases hc : ts.length = m ∧ ∀ i : Fin ts.length, (ts.get i).1 = k
   · obtain ⟨h1, h2⟩ := hc
     subst h1
-    rw [if_pos ⟨rfl, (all_fst_eq_iff ts k).2 h2⟩, sigmaRel, dif_pos ⟨rfl, h2⟩]
+    rw [ite_eq_left ⟨rfl, (all_fst_eq_iff ts k).2 h2⟩, sigmaRel, dite_eq_left ⟨rfl, h2⟩]
     refine congrArg encode ?_
     show _ = listEncode _
     rw [listEncode]
@@ -251,7 +251,7 @@ theorem primrec_sigmaRel :
       refine Sigma.ext (h2 j) ?_
       simp only [eq_mp_eq_cast]
       exact (cast_heq _ _).symm
-  · rw [if_neg (fun hb ↦ hc ⟨hb.1, (all_fst_eq_iff ts k).1 hb.2⟩), sigmaRel, dif_neg hc]
+  · rw [ite_eq_right (fun hb ↦ hc ⟨hb.1, (all_fst_eq_iff ts k).1 hb.2⟩), sigmaRel, dite_eq_right hc]
 
 /-- Mathlib's sigma-level implication is primitive recursive. -/
 theorem primrec₂_sigmaImp : Primrec₂ (sigmaImp (L := L) (α := α)) := by

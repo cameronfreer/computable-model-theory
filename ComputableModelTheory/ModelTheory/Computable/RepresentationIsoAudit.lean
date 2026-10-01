@@ -318,23 +318,23 @@ noncomputable def mixedGraphAge : PartialAgeIn O Language.graph where
   relEval_correct := fun _ _ _ ↦ ⟨_, Part.mem_some _, decide_eq_true_iff⟩
   generates := fun i x ↦ by
     by_cases hi : i = 0
-    · rw [show (if i = 0 then ([] : List ℕ) else [5]) = [] from if_pos hi]
+    · rw [show (if i = 0 then ([] : List ℕ) else [5]) = [] from ite_eq_left hi]
       constructor
       · rintro ⟨m, hm⟩
-        rw [if_pos hi] at hm
+        rw [ite_eq_left hi] at hm
         exact (Option.some_ne_none _ hm.symm).elim
       · rintro ⟨T, -⟩
         cases T with
         | var k => exact k.elim0
         | @func n f ts => exact isEmptyElim f
-    · rw [show (if i = 0 then ([] : List ℕ) else [5]) = [5] from if_neg hi]
+    · rw [show (if i = 0 then ([] : List ℕ) else [5]) = [5] from ite_eq_right hi]
       constructor
       · rintro ⟨m, hm⟩
-        rw [if_neg hi] at hm
+        rw [ite_eq_right hi] at hm
         exact ⟨Term.var ⟨0, by simp⟩, (Option.some_inj.1 hm).symm⟩
       · rintro ⟨T, hT⟩
         refine ⟨0, ?_⟩
-        rw [if_neg hi]
+        rw [ite_eq_right hi]
         refine congrArg Option.some ?_
         cases T with
         | var k =>
@@ -357,7 +357,7 @@ theorem test_no_wellFormed_into_empty_member (F : PotentialEmbeddingData)
     ¬ (mixedGraphAge (O := O)).PartialWellFormed F := by
   refine PartialAgeIn.not_partialWellFormed_of_empty_codomain ?_ ?_
   · rw [hd]
-    simp only [mixedGraphAge, if_neg (by decide : ¬ (1 : ℕ) = 0)]
+    simp only [mixedGraphAge, ite_eq_right (by decide : ¬ (1 : ℕ) = 0)]
     exact List.cons_ne_nil _ _
   · rw [ha]
     exact not_mem_mixedGraphAge_zero

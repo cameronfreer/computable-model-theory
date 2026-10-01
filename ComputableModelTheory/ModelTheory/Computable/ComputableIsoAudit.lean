@@ -87,8 +87,8 @@ def paritySwapFun (x : ℕ) : ℕ :=
 theorem paritySwapFun_invol (x : ℕ) : paritySwapFun (paritySwapFun x) = x := by
   unfold paritySwapFun
   by_cases h : x % 2 = 0
-  · rw [if_pos h, if_neg (by omega), Nat.add_sub_cancel]
-  · rw [if_neg h, if_pos (by omega)]
+  · rw [ite_eq_left h, ite_eq_right (by omega), Nat.add_sub_cancel]
+  · rw [ite_eq_right h, ite_eq_left (by omega)]
     omega
 
 theorem paritySwapFun_computableIn : ComputableIn O paritySwapFun :=

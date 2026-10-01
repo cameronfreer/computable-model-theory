@@ -64,13 +64,13 @@ theorem boundedDecode_eq_some_iff {k m : ℕ} {t : L.Term ℕ} :
   · rintro ⟨u, hu, hcond⟩
     cases hb : varsBelowBool k u with
     | false =>
-      rw [hb, cond_false] at hcond
+      rw [hb, Bool.cond_false] at hcond
       exact absurd hcond (by simp)
     | true =>
-      rw [hb, cond_true, Option.some_inj] at hcond
+      rw [hb, Bool.cond_true, Option.some_inj] at hcond
       exact ⟨hcond ▸ hu, hcond ▸ (varsBelowBool_iff k u).1 hb⟩
   · rintro ⟨hd, hv⟩
-    exact ⟨t, hd, by rw [(varsBelowBool_iff k t).2 hv, cond_true]⟩
+    exact ⟨t, hd, by rw [(varsBelowBool_iff k t).2 hv, Bool.cond_true]⟩
 
 /-- Every bounded term is named by some code. -/
 theorem exists_boundedDecode_eq_some {k : ℕ} {t : L.Term ℕ} (ht : VarsBelow k t) :

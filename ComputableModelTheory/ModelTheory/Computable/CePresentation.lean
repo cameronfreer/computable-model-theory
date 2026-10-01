@@ -417,7 +417,7 @@ private theorem foldr_count_shift (g : ℕ → Bool) (l : List ℕ) (c : ℕ) :
   | cons a t ih =>
     cases h : g a
     · simpa [h] using ih
-    · simp only [List.foldr_cons, h, cond_true, ih]
+    · simp only [List.foldr_cons, h, Bool.cond_true, ih]
       omega
 
 theorem countFreshBelow_succ (k : ℕ) :

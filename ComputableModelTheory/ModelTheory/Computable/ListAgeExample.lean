@@ -199,7 +199,7 @@ noncomputable def extendVal (y : ((listAge O).memberAt b).domain) : ℕ :=
 theorem extendVal_of_range (x : ((listAge O).memberAt a).domain) :
     extendVal O f g (g x) = f x := by
   unfold extendVal
-  rw [dif_pos ⟨x, rfl⟩]
+  rw [dite_eq_left ⟨x, rfl⟩]
   exact congrArg (fun z ↦ ((f z : ((listAge O).memberAt (segIdx r)).domain) : ℕ))
     (g.injective (Classical.choose_spec (⟨x, rfl⟩ : ∃ x', g x' = g x)))
 

@@ -188,11 +188,11 @@ def ofSymbolArgs? (p : L.FunctionSymbol × List M) :
 theorem ofSymbolArgs?_of_length_eq (p : L.FunctionSymbol × List M)
     (h : p.2.length = p.1.arity) :
     ofSymbolArgs? p = some (equivSubtype.symm ⟨p, h⟩) :=
-  dif_pos h
+  dite_eq_left h
 
 theorem ofSymbolArgs?_of_length_ne (p : L.FunctionSymbol × List M)
     (h : ¬p.2.length = p.1.arity) : ofSymbolArgs? p = none :=
-  dif_neg h
+  dite_eq_right h
 
 /-- Evaluating the data assembled from a symbol and its argument list. -/
 theorem funMap_equivSubtype_symm [L.Structure M] (p : L.FunctionSymbol × List M)
@@ -284,11 +284,11 @@ def ofSymbolArgs? (p : L.RelationSymbol × List M) :
 theorem ofSymbolArgs?_of_length_eq (p : L.RelationSymbol × List M)
     (h : p.2.length = p.1.arity) :
     ofSymbolArgs? p = some (equivSubtype.symm ⟨p, h⟩) :=
-  dif_pos h
+  dite_eq_left h
 
 theorem ofSymbolArgs?_of_length_ne (p : L.RelationSymbol × List M)
     (h : ¬p.2.length = p.1.arity) : ofSymbolArgs? p = none :=
-  dif_neg h
+  dite_eq_right h
 
 /-- Evaluating the data assembled from a symbol and its argument list. -/
 theorem relMap_equivSubtype_symm [L.Structure M] (p : L.RelationSymbol × List M)

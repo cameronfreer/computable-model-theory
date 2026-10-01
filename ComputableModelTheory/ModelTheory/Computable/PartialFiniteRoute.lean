@@ -308,7 +308,7 @@ theorem exists_finiteMapRealizes_iff_partialIsEmbedding (F : PotentialEmbeddingD
   have hgmem : ∀ x ∈ B.domainAt F.domIdx, g x ∈ B.domainAt F.codIdx := by
     intro x hx
     rw [hg]
-    simp only [dif_pos hx]
+    simp only [dite_eq_left hx]
     exact (G ⟨x, hx⟩).2
   have hgx : ∀ y : (B.memberAt F.domIdx).domain,
       g (y : ℕ) = ((G y : (B.memberAt F.codIdx).domain) : ℕ) := by
@@ -316,7 +316,7 @@ theorem exists_finiteMapRealizes_iff_partialIsEmbedding (F : PotentialEmbeddingD
     have hy : (y : ℕ) ∈ B.domainAt F.domIdx := y.2
     show (if h : (y : ℕ) ∈ B.domainAt F.domIdx then
         ((G ⟨(y : ℕ), h⟩ : (B.memberAt F.codIdx).domain) : ℕ) else 0) = _
-    rw [dif_pos hy]
+    rw [dite_eq_left hy]
   refine ⟨C.imageList F.domIdx g, C.imageList_mem_finiteMaps hgmem, G, hG, fun x ↦ ?_⟩
   rw [C.applyMap_imageList x.2, hgx x]
 
