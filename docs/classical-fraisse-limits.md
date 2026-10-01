@@ -87,25 +87,39 @@ nothing assumed of the target's age — it may be strictly larger — or its car
 uniqueness (`exists_equiv_comp_eq_of_age_subset`), with the hypotheses on both sides; countable
 carriers suffice for countable generation (`..._of_countable`).
 
-## The remaining existence obligation
+## Existence (`FraisseExistence`)
 
-These are criteria for a *supplied* family or system; none constructs one. A classical existence
-theorem must still build, from a countable hereditary class with joint embedding and amalgamation,
-a sequence satisfying `SequenceExtension`, stage membership and coverage. The construction must
-serve outgoing embeddings from *historical* stages, transported along the literal connecting maps
-— serving only the current stage loses requests. One schedule: enumerate the outgoing embeddings
-of each representative; at time `Nat.pair n k`, amalgamate outgoing embedding `k` of stage `n`
-against the transition from `n` to the current stage, and use joint embedding to take in the next
-representative. The Lean obligation is the dependent finite-prefix recursion, its coherence, and
-fairness.
+The criteria above are for a *supplied* family or system; `FraisseExistence` constructs one. For a
+countable, inhabited family of finitely generated representatives with **countable carriers**, AP
+and JEP, `exists_fraisseSequence` gives stages and chain maps with coverage of every representative
+and `SequenceExtension` against the representative class (no hereditary closure needed); with
+hereditary closure, `exists_isFraisseLimit_representativeClass` packages the direct limit as a
+countable Fraïssé limit, in the representatives' universe. The carrier is the direct limit, not `ℕ`:
+the class of only the empty structure has an empty limit, and pure sets of size at most `b` have a
+limit for every `b` (both discharged in the audit through the completed theorem).
 
-**That theorem needs a countability hypothesis on carriers.** The enumeration of outgoing
-embeddings uses `Structure.FG.countable_embedding`, which needs *countable target carriers*.
-Countably many isomorphism classes does not supply that, and neither does finite generation alone
-for an arbitrary signature. So the existence theorem is to be stated under countable
-representative carriers, or with that derived from countably many function symbols and finite
-generation. This is separate from `isFraisse_representativeClass`, which needs no signature or
-carrier hypothesis, and from the criteria above.
+The construction serves outgoing embeddings from *historical* stages, along the literal composed
+transitions — serving only the current stage loses requests. An enumeration of `Σ j, F i ↪[L] F j`
+is frozen for each representative (identities make it inhabited even for empty carriers); at time
+`Nat.pair m k`, outgoing embedding `k` of stage `m` is amalgamated against the transition from
+stage `m` (which exists by `Nat.left_le_pair`), and joint embedding then takes in the next
+representative, composed onto both legs so the square survives. The recursion state records each
+transition with its source representative, so it is non-dependent; one coherence lemma identifies
+it with the composite of the chain maps. The scheduled square (`chain_square`) and coverage
+(`chain_cover`) are separate outputs before packaging.
+
+For a Mathlib `IsFraisse` class in a language with countably many function symbols,
+`exists_isFraisseLimit_of_isFraisse` chooses one representative per isomorphism class
+(`Quotient.out`) and applies the theorem above:
+`IsFraisse K → ∃ M, Countable M ∧ IsFraisseLimit K M`, with carrier countability derived from finite
+generation.
+
+**Countable carriers are a premise.** The enumeration of outgoing embeddings uses
+`Structure.FG.countable_embedding`, which needs countable target carriers; countably many
+isomorphism classes does not supply that, and neither does finite generation alone for an
+arbitrary signature. Countability of the function symbols enters only at the `IsFraisseLimit`
+packaging. This is separate from `isFraisse_representativeClass`, which needs no signature or
+carrier hypothesis.
 
 ## How this library uses them
 

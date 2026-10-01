@@ -17,6 +17,7 @@ modules=(
   ComputableModelTheory.ModelTheory.ExtensionRichFamily
   ComputableModelTheory.ModelTheory.RepresentativeAge
   ComputableModelTheory.ModelTheory.ExtensionRichDirectLimit
+  ComputableModelTheory.ModelTheory.FraisseExistence
   ComputableModelTheory.ModelTheory.OrbitIsolation
   ComputableModelTheory.ModelTheory.CountablePrime
   ComputableModelTheory.ModelTheory.RootedExtension
@@ -30,6 +31,10 @@ for m in "${modules[@]}"; do
   lake env lean -DautoImplicit=false -DwarningAsError=true -Dlinter.mathlibStandardSet=true \
     "${file}"
   echo "== ${audit}"
+  # `lake env lean` builds nothing, and an audit may import modules outside the library's import
+  # closure (e.g. extra Mathlib files for a fixture): build the audit's own imports first.
+  mapfile -t audit_imports < <(sed -n 's/^import \([^ ]*\).*/\1/p' "${audit}")
+  lake build "${audit_imports[@]}"
   lake env lean -DautoImplicit=false -DwarningAsError=true "${audit}"
 done
 echo "Classical layer: strict build, standard axioms, import isolation — all passed."
