@@ -129,10 +129,10 @@ private theorem foldl_spec (S : PotentialSpanData) :
     obtain ⟨h1, h2⟩ := ih (p ++ [a])
       (q ++ [H.imageOfNewPoint ⟨S.left.rangeTuple ++ q, S.right.rangeTuple ++ p, a⟩])
     refine ⟨?_, ?_⟩
-    · show (List.foldl (fun acc x ↦ H.capStep S acc x) (H.capStep S (p, q) a) l).1 = _
+    · change (List.foldl (fun acc x ↦ H.capStep S acc x) (H.capStep S (p, q) a) l).1 = _
       rw [capStep, h1, List.append_assoc]
       rfl
-    · show (List.foldl (fun acc x ↦ H.capStep S acc x) (H.capStep S (p, q) a) l).2.length = _
+    · change (List.foldl (fun acc x ↦ H.capStep S acc x) (H.capStep S (p, q) a) l).2.length = _
       rw [capStep, h2]
       simp
       omega
@@ -174,7 +174,7 @@ literally an entry of the apex. -/
 theorem capRight_wellFormed (S : PotentialSpanData) :
     F.canonicalAge.PartialWellFormed (H.capRight S) := by
   refine ⟨fun x hx ↦ H.mem_apex (List.mem_append_right _ hx), ?_⟩
-  show (allTupleFor S.right.codIdx).length = (H.capChosen S).length
+  change (allTupleFor S.right.codIdx).length = (H.capChosen S).length
   rw [H.capChosen_length]
 
 /-! ### The invariant -/
@@ -211,7 +211,7 @@ private theorem capInv_nil {S : PotentialSpanData}
       (PotentialEmbeddingData.ofTriple
         (encode S.left.rangeTuple, encode S.right.rangeTuple, S.right.rangeTuple)) f :=
     ⟨_, PartialAgeIn.realizes_comp hg1 hg2 (fun _ _ ↦ rfl) (fun _ _ ↦ rfl) (by
-      show (allTupleFor (encode S.left.rangeTuple)).length = S.right.rangeTuple.length
+      change (allTupleFor (encode S.left.rangeTuple)).length = S.right.rangeTuple.length
       rw [allTupleFor_encode, ← hlenL, hws, hlenR])⟩
   refine PartialAgeIn.exists_partialRealizesBetween_congr ?_ hcomp
   show PotentialEmbeddingData.ofTriple
@@ -333,13 +333,13 @@ theorem exists_closingRealizer {S : PotentialSpanData}
     ⟨rfl, rfl, ?_⟩, ?_⟩
   · -- the offset reading
     refine PartialAgeIn.realizes_of_getElem? (by
-      show (allTupleFor S.right.codIdx).length = (H.capChosen S).length
+      change (allTupleFor S.right.codIdx).length = (H.capChosen S).length
       rw [H.capChosen_length]) ?_
     intro k x hx
     have himg := PartialAgeIn.getElem?_of_realizes (k := S.right.rangeTuple.length + k)
       (x := PartialAgeIn.memberEmbedding (B := F.canonicalAge) (c := S.right.codIdx)
         (e := encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)) rfl hsub₁ x) he' (by
-        show (allTupleFor (encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)))[
+        change (allTupleFor (encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)))[
           S.right.rangeTuple.length + k]? = some ((x : ℕ))
         rw [allTupleFor_encode, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left]
         exact hx)
@@ -359,7 +359,7 @@ theorem exists_closingRealizer {S : PotentialSpanData}
     have himg := PartialAgeIn.getElem?_of_realizes (k := k)
       (x := PartialAgeIn.memberEmbedding (B := F.canonicalAge) (c := S.right.codIdx)
         (e := encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)) rfl hsub₁ x) he' (by
-        show (allTupleFor (encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)))[k]?
+        change (allTupleFor (encode (S.right.rangeTuple ++ allTupleFor S.right.codIdx)))[k]?
           = some ((x : ℕ))
         rw [allTupleFor_encode, List.getElem?_append_left hk]
         exact hx)

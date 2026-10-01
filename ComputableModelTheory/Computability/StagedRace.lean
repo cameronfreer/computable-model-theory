@@ -141,13 +141,13 @@ private theorem firstHit?_eq_some_iff {s t : ℕ} {x : α} :
   · intro h
     rw [firstHit?] at h
     by_cases hks : k ≤ s
-    · rw [if_pos hks] at h
+    · rw [ite_eq_left hks] at h
       obtain rfl : k = t := Option.some.inj h
       refine ⟨hks, ?_, hmin⟩
       have hlt : k < s + 1 := by omega
       have hget : (List.range (s + 1))[k]? = some k := List.getElem?_range (by simpa using hlt)
       exact List.findIdx_of_getElem?_eq_some (p := fun t ↦ F.hit G t x) hget
-    · rw [if_neg hks] at h
+    · rw [ite_eq_right hks] at h
       exact absurd h (by simp)
   · rintro ⟨hts, hhit, hlt⟩
     have hkt : k ≤ t := by
@@ -162,7 +162,7 @@ private theorem firstHit?_eq_some_iff {s t : ℕ} {x : α} :
       have := List.findIdx_of_getElem?_eq_some (p := fun t ↦ F.hit G t x) hget
       exact absurd this (by rw [hlt k hklt]; simp)
     have hkt' : k = t := Nat.le_antisymm hkt htk
-    rw [firstHit?, ← hk, hkt', if_pos hts]
+    rw [firstHit?, ← hk, hkt', ite_eq_left hts]
 
 /-! ### The race -/
 

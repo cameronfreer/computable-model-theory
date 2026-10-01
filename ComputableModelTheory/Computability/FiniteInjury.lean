@@ -87,12 +87,12 @@ def apply (s : StageState α) (act : Action α) : StageState α :=
 @[simp] theorem apply_of_le {s : StageState α} {act : Action α}
     (h : act.prio ≤ s.values.length) :
     s.apply act = ⟨s.values.take act.prio ++ [act.value]⟩ :=
-  if_pos h
+  ite_eq_left h
 
 /-- **The out-of-range no-op.** -/
 @[simp] theorem apply_of_gt {s : StageState α} {act : Action α}
     (h : s.values.length < act.prio) : s.apply act = s :=
-  if_neg (Nat.not_le.2 h)
+  ite_eq_right (Nat.not_le.2 h)
 
 /-! ### Injury locality — the primitive theorem -/
 
@@ -111,7 +111,7 @@ theorem apply_getElem?_of_lt (s : StageState α) (act : Action α) {i : ℕ} (h 
       rw [List.length_take]
       exact Nat.min_eq_left hle
     rw [List.getElem?_append_left (by rw [hlen]; exact h), List.getElem?_take]
-    exact if_pos h
+    exact ite_eq_left h
 
 /-- **Prefix preservation, derived.** Every prefix up to the acting priority survives.
 
@@ -123,9 +123,9 @@ theorem take_apply_of_le (s : StageState α) (act : Action α) {n : ℕ} (h : n 
   refine List.ext_getElem? fun i ↦ ?_
   rw [List.getElem?_take, List.getElem?_take]
   by_cases hi : i < n
-  · rw [if_pos hi, if_pos hi]
+  · rw [ite_eq_left hi, ite_eq_left hi]
     exact apply_getElem?_of_lt s act (Nat.lt_of_lt_of_le hi h)
-  · rw [if_neg hi, if_neg hi]
+  · rw [ite_eq_right hi, ite_eq_right hi]
 
 end StageState
 
