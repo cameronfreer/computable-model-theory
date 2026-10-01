@@ -17,6 +17,7 @@ modules=(
   ComputableModelTheory.ModelTheory.ExtensionRichFamily
   ComputableModelTheory.ModelTheory.RepresentativeAge
   ComputableModelTheory.ModelTheory.ExtensionRichDirectLimit
+  ComputableModelTheory.ModelTheory.FraisseExistence
   ComputableModelTheory.ModelTheory.OrbitIsolation
   ComputableModelTheory.ModelTheory.CountablePrime
 )
