@@ -102,7 +102,7 @@ theorem termValueStack_eq_map_realize (i : ℕ) (env : Tuple ℕ)
         rfl
 
 set_option maxHeartbeats 1000000 in
--- elaborating the composed oracle-computability term exceeds the default budget
+-- Existing elaboration-budget override retained; necessity was not remeasured during this cleanup.
 /-- Uniform term evaluation is computable in the oracle: one program over the age
 index, the list environment, and the term. -/
 theorem termRealize_computableIn : ComputableIn O K.termRealize := by

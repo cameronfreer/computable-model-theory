@@ -183,7 +183,7 @@ def realizeAtomicData (i : ℕ) (env : Tuple ℕ) : AtomicData L ℕ → Prop
       False fun d ↦ @RelationApplicationData.relMap L ℕ (K.structureAt i) d
 
 set_option maxHeartbeats 1000000 in
--- elaborating the composed oracle-computability term exceeds the default budget
+-- Existing elaboration-budget override retained; necessity was not remeasured during this cleanup.
 /-- Uniform atomic-data realization is computable in the oracle: one program over the
 index, the environment, and the data. -/
 theorem realizeAtomicData_computablePredIn :

@@ -720,7 +720,7 @@ section OracleStep
 variable (O : Set (ℕ →. ℕ)) [IsComputableStructureIn O L]
 
 set_option maxHeartbeats 1000000 in
--- elaborating the composed oracle-computability term exceeds the default budget
+-- Existing elaboration-budget override retained; necessity was not remeasured during this cleanup.
 omit [DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))] in
 private theorem computableIn_eqFlag (k : ℕ) :
     ComputableIn O fun y : (Fin k → ℕ) ×
@@ -763,7 +763,7 @@ private theorem computableIn_eqFlag (k : ℕ) :
         rw [eqFlag_eq_casesOn]
 
 set_option maxHeartbeats 1000000 in
--- elaborating the composed oracle-computability term exceeds the default budget
+-- Existing elaboration-budget override retained; necessity was not remeasured during this cleanup.
 omit [DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))] in
 private theorem computableIn_stepEqualSat (k : ℕ) :
     ComputableIn O fun q : ((Fin k → ℕ) × List (List (ℕ × Bool × Bool))) ×
@@ -801,7 +801,7 @@ private theorem computableIn_stepEqualSat (k : ℕ) :
       (hval.comp ComputableIn.fst) ComputableIn.snd).to₂)).of_eq fun q ↦ rfl
 
 set_option maxHeartbeats 1000000 in
--- elaborating the composed oracle-computability term exceeds the default budget
+-- Existing elaboration-budget override retained; necessity was not remeasured during this cleanup.
 private theorem computableIn_relFlag (k : ℕ)
     (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ decide d.relMap) :
     ComputableIn O fun z : (Fin k → ℕ) ×
@@ -832,7 +832,7 @@ private theorem computableIn_relFlag (k : ℕ)
     (ComputableIn.const false)
 
 set_option maxHeartbeats 1000000 in
--- elaborating the composed oracle-computability term exceeds the default budget
+-- Existing elaboration-budget override retained; necessity was not remeasured during this cleanup.
 private theorem computableIn_stepRelSat (k : ℕ)
     (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ decide d.relMap) :
     ComputableIn O fun q : ((Fin k → ℕ) × List (List (ℕ × Bool × Bool))) ×
@@ -970,7 +970,7 @@ private theorem primrec_dropSuffix (k : ℕ) :
     (Primrec.snd.comp Primrec.fst)
 
 set_option maxHeartbeats 1000000 in
--- elaborating the composed oracle-computability term exceeds the default budget
+-- Existing elaboration-budget override retained; necessity was not remeasured during this cleanup.
 omit [DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))] in
 private theorem computableIn_eqArm (k : ℕ) :
     ComputableIn O fun w : ((((Fin k → ℕ) ×
@@ -1006,7 +1006,7 @@ private theorem computableIn_eqArm (k : ℕ) :
       ((ComputableIn.const (some [])).to₂)).to₂)
 
 set_option maxHeartbeats 1000000 in
--- elaborating the composed oracle-computability term exceeds the default budget
+-- Existing elaboration-budget override retained; necessity was not remeasured during this cleanup.
 private theorem computableIn_relArm (k : ℕ)
     (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ decide d.relMap) :
     ComputableIn O fun w : ((((Fin k → ℕ) ×
@@ -1061,7 +1061,7 @@ private theorem computableIn_relArm (k : ℕ)
         harm.to₂).to₂)).to₂)
 
 set_option maxHeartbeats 1000000 in
--- elaborating the composed oracle-computability term exceeds the default budget
+-- Existing elaboration-budget override retained; necessity was not remeasured during this cleanup.
 omit [L.Structure ℕ] [IsComputableStructureIn O L]
   [DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))] in
 private theorem computableIn_natArm (k : ℕ) :
@@ -1085,7 +1085,7 @@ private theorem computableIn_natArm (k : ℕ) :
         ComputableIn.snd).to₂)).to₂)
 
 set_option maxHeartbeats 1000000 in
--- elaborating the composed oracle-computability term exceeds the default budget
+-- Existing elaboration-budget override retained; necessity was not remeasured during this cleanup.
 private theorem computableIn₂_satStackStepAux (k : ℕ)
     (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ decide d.relMap) :
     ComputableIn₂ O (satStackStepAux (L := L) (k := k)) := by
@@ -1150,7 +1150,7 @@ private theorem computableIn₂_satStackAux (k : ℕ)
     satStackStepAux_spec
 
 set_option maxHeartbeats 1000000 in
--- elaborating the composed oracle-computability term exceeds the default budget
+-- Existing elaboration-budget override retained; necessity was not remeasured during this cleanup.
 /-- The quantifier-free satisfaction decider is oracle computable. -/
 private theorem computableIn_qfSatBool (k : ℕ)
     (hcomp : ComputableIn O fun d : RelationApplicationData L ℕ ↦ decide d.relMap) :
