@@ -12,10 +12,11 @@ import ComputableModelTheory.Util.AssertAxioms
 Outside the root import spine; CI checks it through `scripts/run-audit-modules.sh`, and with
 warnings as errors through `scripts/check-classical-layer.sh`.
 
-* **Import guard**: `ComputableModelTheory.Classical` imports exactly the five classical modules,
+* **Import-only**: `ComputableModelTheory.Classical` defines no declarations of its own.
+* **Import guard**: `ComputableModelTheory.Classical` imports exactly the eight classical modules,
   and its transitive import closure contains no other module of this library and no module of
   `InfinitaryLogic` — downstream gets Mathlib plus the classical layer, nothing effective.
-* **Standard axioms**, by defining module, for every declaration of each classical module (the
+* **Standard axioms**, by defining module, for every declaration of each of the eight modules (the
   declarations live in `FirstOrder.Language`, so a scan filtered by this library's namespace would
   miss them).
 * **The name clash** with Mathlib's order-theoretic `IsAtomic`: the qualified forms elaborate
@@ -32,8 +33,11 @@ run_cmd do
   let classical : List Name := [`ComputableModelTheory.ModelTheory.CountablePrime,
     `ComputableModelTheory.ModelTheory.ExtensionRichDirectLimit,
     `ComputableModelTheory.ModelTheory.ExtensionRichFamily,
+    `ComputableModelTheory.ModelTheory.FraisseExistence,
+    `ComputableModelTheory.ModelTheory.NamedParameters,
     `ComputableModelTheory.ModelTheory.OrbitIsolation,
-    `ComputableModelTheory.ModelTheory.RepresentativeAge]
+    `ComputableModelTheory.ModelTheory.RepresentativeAge,
+    `ComputableModelTheory.ModelTheory.RootedExtension]
   let some idx := env.getModuleIdx? target | throwError "{target} is not imported"
   let direct := (env.header.moduleData[idx.toNat]!).imports.map (·.module)
   unless direct.filter (· != `Init) == classical.toArray do
@@ -50,6 +54,19 @@ run_cmd do
       throwError "{target} transitively imports {m}"
     if let some j := env.getModuleIdx? m then
       todo := todo ++ (env.header.moduleData[j.toNat]!).imports.map (·.module)
+
+/-! ### The entry module is import-only -/
+
+-- `ComputableModelTheory.Classical` itself defines no declarations, so the module scans below cover
+-- everything it exports.
+open Lean in
+run_cmd do
+  let env ← getEnv
+  let target := `ComputableModelTheory.Classical
+  let some idx := env.getModuleIdx? target | throwError "{target} is not imported"
+  let own := env.constants.toList.filter fun (n, _) ↦ env.getModuleIdxFor? n == some idx
+  unless own.isEmpty do
+    throwError "{target} defines declarations: {own.map (·.1)}"
 
 /-! ### The name clash, outside the namespace -/
 
@@ -77,5 +94,8 @@ theorem test_isAtomic_bare {L : FirstOrder.Language.{u, v}} {M : Type w} [L.Stru
 #assert_module_standard_axioms ComputableModelTheory.ModelTheory.CountablePrime
 #assert_module_standard_axioms ComputableModelTheory.ModelTheory.ExtensionRichDirectLimit
 #assert_module_standard_axioms ComputableModelTheory.ModelTheory.ExtensionRichFamily
+#assert_module_standard_axioms ComputableModelTheory.ModelTheory.FraisseExistence
+#assert_module_standard_axioms ComputableModelTheory.ModelTheory.NamedParameters
 #assert_module_standard_axioms ComputableModelTheory.ModelTheory.OrbitIsolation
 #assert_module_standard_axioms ComputableModelTheory.ModelTheory.RepresentativeAge
+#assert_module_standard_axioms ComputableModelTheory.ModelTheory.RootedExtension

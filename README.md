@@ -45,8 +45,9 @@ import ComputableModelTheory.Classical              -- the classical, Mathlib-on
 ```
 
 `ComputableModelTheory.Classical` is the classical model theory alone — extension-rich families,
-representative classes, direct limits, orbit isolation and countable primeness — importing only
-Mathlib (checked by its audit). Its declarations live in `FirstOrder.Language`; see its header for
+representative classes, direct limits, rooted universality and uniqueness, Fraïssé existence, orbit
+isolation, countable primeness, and named parameters — importing only Mathlib (checked by its
+audit). Its declarations live in `FirstOrder.Language`; see its header for
 the `IsAtomic` name clash with Mathlib's order theory.
 
 The substrate is usable on its own: `ComputableModelTheory.Computability` mentions no model
