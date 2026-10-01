@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Strict gate for the classical, Mathlib-only layer (the Fraïssé interfaces ExtensionRichFamily,
-# RepresentativeAge, ExtensionRichDirectLimit; orbit isolation and countable primeness): build the
-# modules, then elaborate each module and its audit with warnings as errors and the Mathlib standard
-# linter set. Fails fast.
+# RepresentativeAge, ExtensionRichDirectLimit; orbit isolation and countable primeness; rooted
+# extension): build the modules, then elaborate each module and its audit with warnings as errors
+# and the Mathlib standard linter set. Fails fast.
 #
 # Deliberately `lake env lean`, not `lake lean`: the ordinary audit sweep elaborates with the
 # package's Lean options, including any project-wide compatibility settings the effective layer
@@ -17,9 +17,11 @@ modules=(
   ComputableModelTheory.ModelTheory.ExtensionRichFamily
   ComputableModelTheory.ModelTheory.RepresentativeAge
   ComputableModelTheory.ModelTheory.ExtensionRichDirectLimit
+  ComputableModelTheory.ModelTheory.FraisseExistence
   ComputableModelTheory.ModelTheory.OrbitIsolation
   ComputableModelTheory.ModelTheory.NamedParameters
   ComputableModelTheory.ModelTheory.CountablePrime
+  ComputableModelTheory.ModelTheory.RootedExtension
 )
 
 lake build "${modules[@]}"
@@ -30,6 +32,10 @@ for m in "${modules[@]}"; do
   lake env lean -DautoImplicit=false -DwarningAsError=true -Dlinter.mathlibStandardSet=true \
     "${file}"
   echo "== ${audit}"
+  # `lake env lean` builds nothing, and an audit may import modules outside the library's import
+  # closure (e.g. extra Mathlib files for a fixture): build the audit's own imports first.
+  mapfile -t audit_imports < <(sed -n 's/^import \([^ ]*\).*/\1/p' "${audit}")
+  lake build "${audit_imports[@]}"
   lake env lean -DautoImplicit=false -DwarningAsError=true "${audit}"
 done
 echo "Classical layer: strict build, standard axioms, import isolation — all passed."

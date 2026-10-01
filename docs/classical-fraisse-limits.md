@@ -33,11 +33,11 @@ assumed. `isFraisseLimit_of_extensionRich` packages both with Mathlib's `IsFrais
 For an independently universe-polymorphic family `F : I → Bundled L.Structure`,
 `representativeClass F` is its isomorphism closure. Finite generation, hereditary closure (it
 suffices to recognize finitely generated substructures of representatives), joint embedding and
-amalgamation of the representatives transfer to the whole class; the amalgamation premise keeps
-the literal commuting square. `isFraisse_representativeClass` assembles Mathlib's `IsFraisse`
-from an inhabited countable index. Countability is of isomorphism classes
-(`representativeClass_countable_quotient`), not of the bundled class. When the age of `M` lies in the class, every
-finite tuple of `M` factors literally through an embedding of a representative
+amalgamation of the representatives transfer to the whole class; the amalgamation premise keeps the
+literal commuting square. `isFraisse_representativeClass` assembles Mathlib's `IsFraisse` from an
+inhabited countable index. Countability is of isomorphism classes
+(`representativeClass_countable_quotient`), not of the bundled class. When the age of `M` lies in
+the class, every finite tuple of `M` factors literally through an embedding of a representative
 (`exists_factor_tuple_of_age_subset`; repeated coordinates allowed, and
 `exists_factor_embedding_of_age_subset` for injective tuples). The choice is classical, not an
 effective pullback.
@@ -63,25 +63,63 @@ Hereditary closure and amalgamation turn it into `AmalgamationRich`
 separately (`age_directLimit_eq`, which needs no amalgamation); `isFraisseLimit_directLimit`
 assembles both. Its countable-limit premise can be supplied by `countable_directLimit`.
 
-## The remaining existence obligation
+## Rooted universality and uniqueness (`RootedExtension`)
 
-These are criteria for a *supplied* family or system; none constructs one. A classical existence
-theorem must still build, from a countable hereditary class with joint embedding and amalgamation,
-a sequence satisfying `SequenceExtension`, stage membership and coverage. The construction must
-serve outgoing embeddings from *historical* stages, transported along the literal connecting maps
-— serving only the current stage loses requests. One schedule: enumerate the outgoing embeddings
-of each representative; at time `Nat.pair n k`, amalgamate outgoing embedding `k` of stage `n`
-against the transition from `n` to the current stage, and use joint embedding to take in the next
-representative. The Lean obligation is the dependent finite-prefix recursion, its coherence, and
-fairness.
+Thin adapters over Mathlib's back-and-forth engines `embedding_from_cg` and `equiv_between_cg`; no
+new back-and-forth construction. For a finitely generated root `A` with `aM : A ↪[L] M` and
+`aN : A ↪[L] N`:
 
-**That theorem needs a countability hypothesis on carriers.** The enumeration of outgoing
-embeddings uses `Structure.FG.countable_embedding`, which needs *countable target carriers*.
-Countably many isomorphism classes does not supply that, and neither does finite generation alone
-for an arbitrary signature. So the existence theorem is to be stated under countable
-representative carriers, or with that derived from countably many function symbols and finite
-generation. This is separate from `isFraisse_representativeClass`, which needs no signature or
-carrier hypothesis, and from the criteria above.
+- an extension pair and countable generation of `M` give `e : M ↪[L] N` with `e.comp aM = aN`
+  (`exists_embedding_comp_eq_of_isExtensionPair`);
+- extension pairs both ways and countable generation of both give `e : M ≃[L] N` with
+  `e.toEmbedding.comp aM = aN` (`exists_equiv_comp_eq_of_isExtensionPair`).
+
+The root is always supplied. An extension pair can hold vacuously when no partial isomorphism
+exists at all: with one nullary relation, true in the source and false in the target, every other
+hypothesis holds and there is no embedding (`test_missing_seed`).
+
+`ExtendsRepresentatives F N` says that `N` extends embeddings between whole representatives of a
+family of finitely generated structures. If the age of `M` lies in `representativeClass F`, it
+gives `L.IsExtensionPair M N` (`isExtensionPair_of_age_subset`): both finitely generated
+substructures of an extension step lie in the age, so each has a representative, and no hereditary
+closure is assumed. Hence relative universality (`exists_embedding_comp_eq_of_age_subset`), with
+nothing assumed of the target's age — it may be strictly larger — or its cardinality, and rooted
+uniqueness (`exists_equiv_comp_eq_of_age_subset`), with the hypotheses on both sides; countable
+carriers suffice for countable generation (`..._of_countable`).
+
+## Existence (`FraisseExistence`)
+
+The criteria above are for a *supplied* family or system; `FraisseExistence` constructs one. For a
+countable, inhabited family of finitely generated representatives with **countable carriers**, AP
+and JEP, `exists_fraisseSequence` gives stages and chain maps with coverage of every representative
+and `SequenceExtension` against the representative class (no hereditary closure needed); with
+hereditary closure, `exists_isFraisseLimit_representativeClass` packages the direct limit as a
+countable Fraïssé limit, in the representatives' universe. The carrier is the direct limit, not `ℕ`:
+the class of only the empty structure has an empty limit, and pure sets of size at most `b` have a
+limit for every `b` (both discharged in the audit through the completed theorem).
+
+The construction serves outgoing embeddings from *historical* stages, along the literal composed
+transitions — serving only the current stage loses requests. An enumeration of `Σ j, F i ↪[L] F j`
+is frozen for each representative (identities make it inhabited even for empty carriers); at time
+`Nat.pair m k`, outgoing embedding `k` of stage `m` is amalgamated against the transition from
+stage `m` (which exists by `Nat.left_le_pair`), and joint embedding then takes in the next
+representative, composed onto both legs so the square survives. The recursion state records each
+transition with its source representative, so it is non-dependent; one coherence lemma identifies
+it with the composite of the chain maps. The scheduled square (`chain_square`) and coverage
+(`chain_cover`) are separate outputs before packaging.
+
+For a Mathlib `IsFraisse` class in a language with countably many function symbols,
+`exists_isFraisseLimit_of_isFraisse` chooses one representative per isomorphism class
+(`Quotient.out`) and applies the theorem above:
+`IsFraisse K → ∃ M, Countable M ∧ IsFraisseLimit K M`, with carrier countability derived from finite
+generation.
+
+**Countable carriers are a premise.** The enumeration of outgoing embeddings uses
+`Structure.FG.countable_embedding`, which needs countable target carriers; countably many
+isomorphism classes does not supply that, and neither does finite generation alone for an
+arbitrary signature. Countability of the function symbols enters only at the `IsFraisseLimit`
+packaging. This is separate from `isFraisse_representativeClass`, which needs no signature or
+carrier hypothesis.
 
 ## How this library uses them
 
@@ -96,11 +134,11 @@ Fraïssé class (`isFraisse_classSet`), and CAP supplies that amalgamation
 ## Checks
 
 `scripts/check-classical-layer.sh`, run in CI after the build, builds the three modules (and the
-rest of the classical layer: orbit isolation and countable primeness) and elaborates each module
-and its audit with warnings as errors and `autoImplicit=false`. It uses `lake env lean` on
-purpose: the ordinary audit sweep elaborates with the package's Lean options, including
+rest of the classical layer: orbit isolation, countable primeness, rooted extension) and elaborates
+each module and its audit with warnings as errors and `autoImplicit=false`. It uses `lake env lean`
+on purpose: the ordinary audit sweep elaborates with the package's Lean options, including
 project-wide compatibility settings the effective layer may need, while this gate checks the
-classical layer without them. Each audit runs `#assert_module_standard_axioms`, which checks
-the standard axioms on every declaration of the module by defining module, whatever its namespace.
-The audits also check the import boundary and pin regressions: independent universes, empty index
-and empty carriers, empty stages, and transitions given by arbitrary automorphisms.
+classical layer without them. Each audit runs `#assert_module_standard_axioms`, which checks the
+standard axioms on every declaration of the module by defining module, whatever its namespace. The
+audits also check the import boundary and pin regressions: independent universes, empty index and
+empty carriers, empty stages, and transitions given by arbitrary automorphisms.
