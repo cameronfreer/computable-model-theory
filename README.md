@@ -41,7 +41,14 @@ import ComputableModelTheory.Computability          -- the relative-computabilit
 import ComputableModelTheory.ModelTheory.Syntax     -- effective languages and coded syntax
 import ComputableModelTheory.ModelTheory.Computable -- structures, presentations, diagrams
 import ComputableModelTheory.ModelTheory.Age        -- ages, potential embeddings, witnesses
+import ComputableModelTheory.Classical              -- the classical, Mathlib-only layer alone
 ```
+
+`ComputableModelTheory.Classical` is the classical model theory alone — extension-rich families,
+representative classes, direct limits, rooted universality and uniqueness, Fraïssé existence, orbit
+isolation, countable primeness, and named parameters — importing only Mathlib (checked by its
+audit). Its declarations live in `FirstOrder.Language`; see its header for
+the `IsAtomic` name clash with Mathlib's order theory.
 
 The substrate is usable on its own: `ComputableModelTheory.Computability` mentions no model
 theory, and `ModelTheory.Syntax` mentions no structures.
@@ -98,6 +105,14 @@ modules.
 *Replacement condition:* once those commits are in an upstream mathlib release and
 infinitary-logic repins to it, this project returns to an upstream mathlib tag in the same bump.
 Until then, a downstream project that depends on this one must use the same mathlib commit.
+
+**Porting debt: project-wide compatibility options.** `lakefile.toml` sets
+`backward.isDefEq.respectTransparency` and
+`backward.isDefEq.respectTransparency.instanceSearchTypes` to `false` for the whole package, as
+Lean v4.35 porting shims, until the affected proofs are repaired individually (Mathlib's own port
+sets them per declaration). They are per-package options, so a downstream project inherits
+nothing. The classical layer does not rely on them: `scripts/check-classical-layer.sh`, run in CI,
+elaborates it without them.
 
 ## License
 
