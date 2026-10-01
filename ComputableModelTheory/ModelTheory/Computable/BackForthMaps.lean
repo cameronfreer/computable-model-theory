@@ -8,8 +8,10 @@ import ComputableModelTheory.ModelTheory.Computable.BackForthRun
 /-!
 # The total maps — CHMM Proposition 3.2, totality and the inverse laws
 
-The run's two tuples, read as functions of `ℕ`. Each map looks at the stage where its argument was
-first matched and reads the *other* tuple at the position where that happened:
+The run's two tuples, read as functions of `ℕ`. Each map looks at its argument's **scheduled
+discovery stage** and reads the *other* tuple at the position where the run discovers it there.
+(With a seed, the argument may already be matched at stage `0`; the scheduled discovery is still
+where the map reads, and the graph lemmas below make every occurrence agree with it.)
 
 * `toFun x` reads `targetTuple` at `ℓ + 2 * x` in `stateAt s₀ (x + 1)` — the position the forth half
   of round `x` put `x` at, on the source side;
@@ -80,12 +82,12 @@ private theorem getElem?_of_prefix {a b : Tuple ℕ} (hab : a <+: b) {i x : ℕ}
 
 /-! ### The two maps -/
 
-/-- **The forward map.** At the stage where `x` was matched, the target entry at `x`'s own
+/-- **The forward map.** At `x`'s scheduled discovery stage, the target entry at `x`'s own
 position. -/
 noncomputable def toFun (x : ℕ) : ℕ :=
   (stateAt r rb H Hs s₀ (x + 1)).targetTuple[s₀.sourceTuple.length + 2 * x]!
 
-/-- **The backward map.** At the stage where `y` was matched, the source entry at `y`'s own
+/-- **The backward map.** At `y`'s scheduled discovery stage, the source entry at `y`'s own
 position — a *different* canonical position from the forward map's. -/
 noncomputable def invFun (y : ℕ) : ℕ :=
   (stateAt r rb H Hs s₀ (y + 1)).sourceTuple[s₀.targetTuple.length + 2 * y + 1]!
