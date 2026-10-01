@@ -15,6 +15,9 @@ Three concrete traces, each discharging all four hypotheses.
   refuted from stage `3` on. Candidate `0` is selected at stage `3`. Every other stage is silent.
   The selection *decreases*, so no monotone-pointer argument applies, yet the trace is
   non-repeating, has at most `B + 1 = 2` selections, and is silent from stage `4`.
+* **The bound is eventual, not global** (`test_oneZero_eventual_bound`). On the same trace, cutoff
+  `3` with bound `0` holds and the selection stages from there are exactly `{3}`; bound `0` from
+  cutoff `0` fails, because of the earlier selection of `1`.
 * **The bound attained** (`descending`). Candidates `2, 1, 0` are selected at stages `1, 2, 3`,
   each refuted by the next selection: exactly `B + 1 = 3` selections. The count is tight.
 * **One selection, then permanent silence** (`single`). Candidate `5` is selected at stage `0` and
@@ -77,6 +80,29 @@ theorem test_oneZero_silent : oneZeroSel 0 = none ∧ oneZeroSel 2 = none ∧ �
   refine ⟨rfl, rfl, fun t ht ↦ ?_⟩
   unfold oneZeroSel
   split_ifs <;> first | rfl | omega
+
+/-- **The bound is eventual, not global.** From cutoff `3`, the same trace is bounded by `0`. -/
+theorem oneZero_bounded_from_three : EventuallyBounded oneZeroSel 3 0 := by
+  intro t c ht h
+  unfold oneZeroSel at h
+  split_ifs at h <;> simp at h <;> omega
+
+/-- The eventual bound pinned: bound `0` fails from cutoff `0`, because candidate `1` was selected
+at stage `1`. From cutoff `3` it holds, and the selection stages from there are exactly `{3}`, so
+the general count `≤ B + 1 = 1` is attained. -/
+theorem test_oneZero_eventual_bound :
+    ¬ EventuallyBounded oneZeroSel 0 0 ∧ selectionStagesFrom oneZeroSel 3 = {3} ∧
+      (selectionStagesFrom oneZeroSel 3).ncard ≤ 1 := by
+  refine ⟨fun h ↦ absurd (h (Nat.zero_le 1) rfl) (by decide), Set.ext fun t ↦ ?_,
+    ncard_selectionStagesFrom_le oneZero_persistent oneZero_rejects oneZero_replaces
+      oneZero_bounded_from_three⟩
+  simp only [selectionStagesFrom, oneZeroSel, Set.mem_ofPred_eq, Set.mem_singleton_iff]
+  constructor
+  · rintro ⟨h3, h⟩
+    by_contra hne
+    split_ifs at h with h1 <;> first | omega | simp at h
+  · rintro rfl
+    exact ⟨le_rfl, rfl⟩
 
 /-! ### The bound attained -/
 
@@ -192,6 +218,7 @@ end FiniteEliminationAudit
 #assert_standard_axioms FiniteEliminationAudit.test_oneZero_nonmonotone
 #assert_standard_axioms FiniteEliminationAudit.test_oneZero
 #assert_standard_axioms FiniteEliminationAudit.test_oneZero_silent
+#assert_standard_axioms FiniteEliminationAudit.test_oneZero_eventual_bound
 #assert_standard_axioms FiniteEliminationAudit.test_desc_attains_bound
 #assert_standard_axioms FiniteEliminationAudit.test_single
 #assert_standard_axioms FiniteEliminationAudit.test_single_general
