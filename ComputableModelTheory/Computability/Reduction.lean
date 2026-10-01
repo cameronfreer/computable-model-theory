@@ -131,7 +131,7 @@ theorem recursiveIn_predOracleTotal_of_predOracle (p : α → Prop) [DecidablePr
   · rw [show encode (none : Option α) = 0 from rfl, predOracleTotal_of_decode_none p hd]
     rfl
   · rw [show encode (Option.some a) = encode a + 1 from rfl]
-    show predOracle p n = predOracleTotal p n
+    change predOracle p n = predOracleTotal p n
     rw [predOracle, predOracleTotal, hd]
     simp
 

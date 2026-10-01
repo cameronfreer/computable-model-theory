@@ -64,7 +64,7 @@ theorem termValueStack_eq_map_realize (i : ℕ) (env : Tuple ℕ)
     K.termValueStack i env l =
       (Term.listDecode l).map fun t ↦
         @Term.realize L ℕ (K.structureAt i) ℕ (envFun env) t := by
-  letI := K.structureAt i
+  let := K.structureAt i
   induction l with
   | nil => rfl
   | cons g l ih =>
@@ -89,7 +89,7 @@ theorem termValueStack_eq_map_realize (i : ℕ) (env : Tuple ℕ)
           ← List.map_drop]
         congr 1
         rw [FunctionApplicationData.funMap_equivSubtype_symm]
-        show Structure.funMap f _ = Structure.funMap f _
+        change Structure.funMap f _ = Structure.funMap f _
         refine congrArg _ (funext fun j ↦ ?_)
         rw [List.get_eq_getElem, List.getElem_take, List.getElem_map]
         rfl

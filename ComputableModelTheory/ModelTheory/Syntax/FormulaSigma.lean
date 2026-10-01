@@ -137,7 +137,7 @@ theorem decodeStack_eq_map_listEncode (l : List (FormulaSymbol L α)) :
       · rw [ite_eq_left h', dite_eq_left h']
         simp only [sigmaRepr, listEncode]
         refine congrArg (fun x ↦ (k, x)) ?_
-        show Sum.inr (Sum.inl ⟨n, R⟩) :: Sum.inr (Sum.inr k) :: l.take n =
+        change Sum.inr (Sum.inl ⟨n, R⟩) :: Sum.inr (Sum.inr k) :: l.take n =
           [Sum.inr (Sum.inl ⟨n, R⟩), Sum.inr (Sum.inr k)] ++
             (List.finRange n).map fun i ↦
               Sum.inl ⟨k, Eq.mp (by rw [h' i]) (Option.get _ (h i)).2⟩
@@ -472,7 +472,7 @@ private theorem decodeStackStepAux_spec (l : List (FormulaSymbol L α)) (m : ℕ
               List.drop_drop, show l.length - (m - 2) + n = l.length - (m - 2 - n) by omega]
           · rw [List.drop_eq_nil_of_le (by omega), show m - 2 - n = 0 by omega,
               decodeStackAux, ite_eq_left (Nat.zero_le _), Nat.sub_zero, List.drop_length]
-        show Option.map
+        change Option.map
             (fun rest ↦
               (if (s'.take n).length = n ∧ (s'.take n).all (isTermLetterAt k) then
                 (k, Sum.inr (Sum.inl ⟨n, R⟩) :: Sum.inr (Sum.inr k) :: s'.take n)

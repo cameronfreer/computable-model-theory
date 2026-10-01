@@ -175,8 +175,9 @@ theorem PartialIsEmbedding.length {F : PotentialEmbeddingData}
 /-! ### Realization, read positionally
 
 Chaining realizers through `Fin` casts is what makes such proofs unreadable. These three lemmas
-move the whole discussion to `getElem?`: a realizer *reads off* its range tuple at a position (`getElem?_of_realizes`), a length equation plus positional images *is* a
-realization (`realizes_of_getElem?`), and two realizers compose when the first's range tuple agrees
+move the whole discussion to `getElem?`: a realizer *reads off* its range tuple at a position
+(`getElem?_of_realizes`), a length equation plus positional images *is* a realization
+(`realizes_of_getElem?`), and two realizers compose when the first's range tuple agrees
 positionally with the middle member's recorded generators (`realizes_comp`).
 
 The alignment hypothesis in `realizes_comp` is the honest content of composition: knowing where `g`

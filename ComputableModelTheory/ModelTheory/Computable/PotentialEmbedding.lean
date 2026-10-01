@@ -191,8 +191,8 @@ instance instStructureRangeClosure (K : ComputableAgeIn O L) (i : ℕ) {k : ℕ}
 /-- The generator-tuple closure at an index is everything. -/
 theorem ComputableAgeIn.rangeClosure_gens_eq_top (K : ComputableAgeIn O L) (i : ℕ) :
     K.rangeClosure i (K.gens i).view = ⊤ := by
-  letI := K.structureAt i
-  show Substructure.closure L (Set.range (K.gens i).view) = ⊤
+  let := K.structureAt i
+  change Substructure.closure L (Set.range (K.gens i).view) = ⊤
   rw [← Tuple.closure_eq]
   exact K.generates i
 

@@ -83,7 +83,7 @@ theorem valueStack_eq_map_realize (env : Fin m → ℕ)
           dite_eq_left h, Option.map_some, Option.getD_some, List.map_cons, ← List.map_drop]
         congr 1
         rw [FunctionApplicationData.funMap_equivSubtype_symm]
-        show Structure.funMap f _ = Structure.funMap f _
+        change Structure.funMap f _ = Structure.funMap f _
         refine congrArg _ (funext fun i ↦ ?_)
         rw [List.get_eq_getElem, List.getElem_take, List.getElem_map]
         rfl

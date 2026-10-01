@@ -67,7 +67,8 @@ theorem rawRep_computableIn : ComputableIn O (C.rawRep) := by
     (Primrec.snd.comp Primrec.unpair).to_comp.computableIn
   exact hfst.pair (C.enum_computableIn.comp (hfst.pair hsnd))
 
-/-- **And every valid pair is a raw representative.** This is what makes the search below succeed. -/
+/-- **And every valid pair is a raw representative.** This is what makes the search below
+succeed. -/
 theorem exists_rawRep_eq {p : ℕ × ℕ} (hp : C.limMem p) : ∃ n, C.rawRep n = p := by
   obtain ⟨m, hm⟩ := hp
   refine ⟨Nat.pair p.1 m, ?_⟩

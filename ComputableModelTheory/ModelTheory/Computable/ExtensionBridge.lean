@@ -133,7 +133,8 @@ noncomputable def CeStructureChainIn.LimitIn.omegaEquiv {D : CeStructureChainIn 
     @Language.Equiv L Z.presentation.domain ℕ _ (Z.omegaStructure cert).inst :=
   letI : L.Structure ℕ := Z.presentation.rankStr
   (Z.presentation.rankPresentation.domainEquivUniv
-    (by rw [CePresentationIn.rankPresentation_domain, Z.presentation.range_posRank_eq_univ cert])).comp
+    (by rw [CePresentationIn.rankPresentation_domain,
+      Z.presentation.range_posRank_eq_univ cert])).comp
       Z.presentation.rankIso.toEquiv
 
 namespace PartialAgeIn
@@ -223,8 +224,8 @@ theorem stage_iso (r : ℕ) :
 variable (K) in
 /-- The `t`-th prefix tuple of the extension `g : A ↪ B`: the images of `A`'s generators, followed
 by the first `t` generators of `B`. Repetitions are kept. -/
-noncomputable def prefixTuple {a b : ℕ} (g : (K.memberAt a).domain ↪[L] (K.memberAt b).domain) (t : ℕ) :
-    List ℕ :=
+noncomputable def prefixTuple {a b : ℕ} (g : (K.memberAt a).domain ↪[L] (K.memberAt b).domain)
+    (t : ℕ) : List ℕ :=
   (List.ofFn fun k ↦ ((g (K.gensView a k) : (K.memberAt b).domain) : ℕ)) ++ (K.gens b).take t
 
 variable {a b : ℕ} (g : (K.memberAt a).domain ↪[L] (K.memberAt b).domain)
@@ -592,12 +593,12 @@ theorem exists_one_point_extension {r a b : ℕ}
         Z.stageEmbedding r (runStageEquiv K W i hOE h0 r (f x)) := by
   have hf : K.PartialRealizes ((requirementOf r f g).chainMap (memberIdx K W i)) f :=
     ⟨List.length_ofFn.symm, fun k ↦ by
-      show _ = (List.ofFn fun k ↦ ((f (K.gensView a k) : _) : ℕ)).get (Fin.cast _ k)
+      change _ = (List.ofFn fun k ↦ ((f (K.gensView a k) : _) : ℕ)).get (Fin.cast _ k)
       rw [List.get_ofFn]
       rfl⟩
   have hg : K.PartialRealizes (requirementOf r f g).targetMap g :=
     ⟨List.length_ofFn.symm, fun k ↦ by
-      show _ = (List.ofFn fun k ↦ ((g (K.gensView a k) : _) : ℕ)).get (Fin.cast _ k)
+      change _ = (List.ofFn fun k ↦ ((g (K.gensView a k) : _) : ℕ)).get (Fin.cast _ k)
       rw [List.get_ofFn]
       rfl⟩
   have hadm : K.Admissible (memberIdx K W i) (requirementOf r f g) :=

@@ -387,7 +387,7 @@ theorem toLimit_representedByRawRep (U : D.UniformEvaluatorsIn) :
       (D.stageAt (D.toDomainChain.rawRep (c : ℕ)).1).domain :=
     D.toDomainChain.rawRep_limMem _
   refine ⟨hmem, Subtype.ext ?_⟩
-  show D.stageCode hmem = (c : ℕ)
+  change D.stageCode hmem = (c : ℕ)
   exact Part.mem_unique (D.mem_stageIntoPart_stageCode hmem)
     (D.toDomainChain.mem_stageIntoPart_rawRep_of_accepted hacc)
 

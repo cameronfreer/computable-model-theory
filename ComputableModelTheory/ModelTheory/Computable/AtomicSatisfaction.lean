@@ -89,7 +89,7 @@ theorem atomicSatBool_iff
     exact absurd h.1 (fun h' ↦ by cases h')
   | equal t₁ t₂ =>
     rw [atomicSatBool, atomicData?_eq_some_of_equal]
-    show decide _ = true ↔ _
+    change decide _ = true ↔ _
     rw [decide_eq_true_iff]
     constructor
     · intro h
@@ -105,12 +105,12 @@ theorem atomicSatBool_iff
       exact h2
   | rel R ts =>
     rw [atomicSatBool, atomicData?_eq_some_of_rel]
-    show (Option.casesOn (motive := fun _ ↦ Bool)
+    change (Option.casesOn (motive := fun _ ↦ Bool)
       (RelationApplicationData.ofSymbolArgs? (_, _)) false fun d ↦ decide d.relMap) =
         true ↔ _
     rw [RelationApplicationData.ofSymbolArgs?_of_length_eq _ (by
       simp [RelationSymbol.arity])]
-    show decide _ = true ↔ _
+    change decide _ = true ↔ _
     rw [decide_eq_true_iff, RelationApplicationData.relMap_equivSubtype_symm]
     constructor
     · intro h
@@ -208,7 +208,7 @@ theorem atomic_realize_computablePredIn (O : Set (ℕ →. ℕ))
       (p.1 : L.BoundedFormula (Fin k) 0).IsAtomic ∧ p.1.Realize p.2 := by
   obtain ⟨hdec, hcomp⟩ :=
     IsComputableStructureIn.relMap_computablePredIn (O := O) (L := L)
-  letI := hdec
+  let := hdec
   have hwit : DecidablePred fun p : L.Formula (Fin k) × (Fin k → ℕ) ↦
       (p.1 : L.BoundedFormula (Fin k) 0).IsAtomic ∧ p.1.Realize p.2 := fun p ↦
     if hB : atomicSatBool p = true

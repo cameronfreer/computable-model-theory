@@ -307,10 +307,10 @@ theorem mem_guard_iff {b : ℕ → Bool} {f : ℕ → ℕ} {x y : ℕ} :
     y ∈ guard b f x ↔ b x = true ∧ y = f x := by
   rcases hb : b x with - | -
   · rw [guard, hb]
-    show y ∈ (Part.none : Part ℕ) ↔ _
+    change y ∈ (Part.none : Part ℕ) ↔ _
     simp
   · rw [guard, hb]
-    show y ∈ Part.some (f x) ↔ _
+    change y ∈ Part.some (f x) ↔ _
     rw [Part.mem_some_iff]
     simp
 
@@ -593,7 +593,7 @@ noncomputable def permPresentation : CePresentationIn O L where
       exact P.enum_mem_domain m
     obtain ⟨m, hm⟩ := P.domain_closed n f _ hv'
     refine ⟨m, ?_⟩
-    show π.toFun (P.enum m) = _
+    change π.toFun (P.enum m) = _
     rw [hm]
     rfl
   funEval := P.permFunEval π
@@ -611,12 +611,12 @@ noncomputable def permPresentation : CePresentationIn O L where
         ⟨(d.toSymbol, d.argsList.map π.invFun), hlen⟩ with hd'def
     have hargs : d'.args = fun k ↦ π.invFun (d.args k) := by
       funext i
-      show (d.argsList.map π.invFun).get (Fin.cast hlen.symm i) = _
+      change (d.argsList.map π.invFun).get (Fin.cast hlen.symm i) = _
       simp [FunctionApplicationData.argsList]
     have hval := P.funEval_correct d' (by rw [hargs]; exact hd')
     have hfun : @FunctionApplicationData.funMap L ℕ P.str d'
         = @Structure.funMap L ℕ P.str d.arity d.symbol fun k ↦ π.invFun (d.args k) := by
-      show @Structure.funMap L ℕ P.str _ d'.symbol d'.args = _
+      change @Structure.funMap L ℕ P.str _ d'.symbol d'.args = _
       rw [hargs]
       exact rfl
     rw [hfun] at hval
@@ -640,13 +640,13 @@ noncomputable def permPresentation : CePresentationIn O L where
         ⟨(d.toSymbol, d.argsList.map π.invFun), hlen⟩ with hd'def
     have hargs : d'.args = fun k ↦ π.invFun (d.args k) := by
       funext i
-      show (d.argsList.map π.invFun).get (Fin.cast hlen.symm i) = _
+      change (d.argsList.map π.invFun).get (Fin.cast hlen.symm i) = _
       simp [RelationApplicationData.argsList]
     obtain ⟨b, hb, hbiff⟩ := P.relEval_correct d' (by rw [hargs]; exact hd')
     have hrel : @RelationApplicationData.relMap L ℕ P.str d'
         ↔ @Structure.RelMap L ℕ P.str d.arity d.symbol
           fun k ↦ π.invFun (d.args k) := by
-      show @Structure.RelMap L ℕ P.str _ d'.symbol d'.args ↔ _
+      change @Structure.RelMap L ℕ P.str _ d'.symbol d'.args ↔ _
       rw [hargs]
       exact Iff.rfl
     refine ⟨b, ?_, hbiff.trans hrel⟩
@@ -704,7 +704,7 @@ noncomputable def permIso : CeIsoIn P (P.permPresentation π) where
     subst hwv
     have hfun : @Structure.funMap L ℕ (P.permPresentation π).str n f
         (fun k ↦ π.toFun (v k)) = π.toFun (@Structure.funMap L ℕ P.str n f v) := by
-      show π.toFun (@Structure.funMap L ℕ P.str n f fun k ↦ π.invFun (π.toFun (v k)))
+      change π.toFun (@Structure.funMap L ℕ P.str n f fun k ↦ π.invFun (π.toFun (v k)))
         = _
       congr 1
       exact congrArg _ (funext fun k ↦ π.left_inv (v k))
@@ -718,7 +718,7 @@ noncomputable def permIso : CeIsoIn P (P.permPresentation π) where
       exact ⟨hx, hval.symm⟩
     have hwv : w = fun k ↦ π.toFun (v k) := funext fun k ↦ (hv k).2
     subst hwv
-    show @Structure.RelMap L ℕ P.str n R (fun k ↦ π.invFun (π.toFun (v k))) ↔ _
+    change @Structure.RelMap L ℕ P.str n R (fun k ↦ π.invFun (π.toFun (v k))) ↔ _
     rw [show (fun k ↦ π.invFun (π.toFun (v k))) = v from
       funext fun k ↦ π.left_inv (v k)]
 

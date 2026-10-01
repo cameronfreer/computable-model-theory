@@ -17,10 +17,11 @@ matched**, then reading the laws off that stage's realizer.
 `argsStage v` is the least stage by which every argument has been matched — a `Finset.sup` of
 `v k + 1`, so `Fin 0` gives `0` and the empty case is handled without a special clause.
 
-For a **function** application that is not enough: the value `funMap f v` must itself be recorded, so
-`funStage f v` maxes the argument bound with `funMap f v + 1`. That extra bound is exactly what makes
-the nullary case work — a constant has no arguments, so `argsStage` is `0`, yet its value still has
-to be present. For a **relation** the arguments suffice; nothing else appears in the statement.
+For a **function** application that is not enough: the value `funMap f v` must itself be recorded,
+so `funStage f v` maxes the argument bound with `funMap f v + 1`. That extra bound is exactly what
+makes the nullary case work — a constant has no arguments, so `argsStage` is `0`, yet its value
+still has to be present. For a **relation** the arguments suffice; nothing else appears in the
+statement.
 
 ## How the laws come out
 
@@ -34,8 +35,8 @@ through it.
 `map_rel'` is an `iff`, so the relation law both preserves and reflects — which is what an
 isomorphism of structures requires and an embedding-only argument would not give.
 
-No structural law for the inverse map is proved: `ComputableStructureIsoIn` asks for the forward laws
-and both inverse equations, and the inverse's laws follow from those (`symm` already does it).
+No structural law for the inverse map is proved: `ComputableStructureIsoIn` asks for the forward
+laws and both inverse equations, and the inverse's laws follow from those (`symm` already does it).
 -/
 
 open Encodable FirstOrder Language
@@ -138,7 +139,7 @@ theorem toFun_funMap {n : ℕ} (fs : L.Functions n) (v : Fin n → ℕ) :
   have hout : @Structure.funMap L _ _ n fs x
       = stagePoint r rb H Hs (funMap_lt_funStage S fs v) := by
     refine Subtype.ext ?_
-    show @Structure.funMap L ℕ S.inst n fs (fun k ↦ ((x k : _) : ℕ))
+    change @Structure.funMap L ℕ S.inst n fs (fun k ↦ ((x k : _) : ℕ))
       = @Structure.funMap L ℕ S.inst n fs v
     exact congrArg _ (funext hxk)
   -- the arguments and the value both read through the same bridge
@@ -154,12 +155,12 @@ theorem toFun_funMap {n : ℕ} (fs : L.Functions n) (v : Fin n → ℕ) :
     realizer_toFun r rb H Hs hf
       (sourceTuple_getElem?_two_mul_of_le r rb H Hs (funMap_lt_funStage S fs v))
   rw [← hvalue, ← hout, HomClass.map_fun (L := L) f fs x]
-  show @Structure.funMap L ℕ T.inst n fs (fun k ↦ ((f (x k) : _) : ℕ)) = _
+  change @Structure.funMap L ℕ T.inst n fs (fun k ↦ ((f (x k) : _) : ℕ)) = _
   exact congrArg _ (funext hargs)
 
 /-- **The forward map preserves and reflects relations.** `argsStage` suffices — a relation
-application names no value beyond its arguments — and `map_rel'` is an `iff`, so both directions come
-out at once. -/
+application names no value beyond its arguments — and `map_rel'` is an `iff`, so both directions
+come out at once. -/
 theorem toFun_relMap {n : ℕ} (R : L.Relations n) (v : Fin n → ℕ) :
     @Structure.RelMap L ℕ T.inst n R (fun k ↦ toFun r rb H Hs (v k))
       ↔ @Structure.RelMap L ℕ S.inst n R v := by
@@ -183,13 +184,13 @@ end BackForthState
 
 /-! ### The package -/
 
-/-- **CHMM Proposition 3.2.** A computable isomorphism of representations between the canonical ages,
-together with computable homogeneity of both structures, yields a computable isomorphism of the
-structures themselves.
+/-- **CHMM Proposition 3.2.** A computable isomorphism of representations between the canonical
+ages, together with computable homogeneity of both structures, yields a computable isomorphism of
+the structures themselves.
 
 The two covers are pinned by direction: `r.forward` drives the forth half and the base case, and
-`r.backward` drives the back half. The homogeneity selectors are pinned the same way — the forth half
-consults the **target**'s, the back half the **source**'s. Nothing here assumes `O ⊆ E`. -/
+`r.backward` drives the back half. The homogeneity selectors are pinned the same way — the forth
+half consults the **target**'s, the back half the **source**'s. Nothing here assumes `O ⊆ E`. -/
 noncomputable def backForthIso {E : Set (ℕ →. ℕ)} {S T : ComputableStructureIn O L}
     (r : RepresentationIsoIn E S.canonicalAge T.canonicalAge)
     (Hs : ComputablyHomogeneousIn E S) (Ht : ComputablyHomogeneousIn E T) :

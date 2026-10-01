@@ -107,7 +107,7 @@ theorem exists_canonicalEnum?_eq_some_iff {i x : ℕ} :
     (∃ m, S.canonicalEnum? i m = Option.some x) ↔
       ∃ T : L.Term (Fin (allTupleFor i).length),
         x = @Term.realize L ℕ S.inst _ (Tuple.view (allTupleFor i)) T := by
-  letI : L.Structure ℕ := S.inst
+  let : L.Structure ℕ := S.inst
   set env := allTupleFor i with henv
   constructor
   · rintro ⟨m, hm⟩
@@ -158,11 +158,11 @@ theorem canonicalEnum?_computableIn :
         (g := fun _ (v : ℕ) ↦ Option.some v)
         hcall (ComputableIn.option_some.comp ComputableIn.snd).to₂).to₂)
   refine hpart.of_eq fun p ↦ ?_
-  show _ = Part.some (S.canonicalEnum? p.1 p.2)
+  change _ = Part.some (S.canonicalEnum? p.1 p.2)
   rw [canonicalEnum?]
   rcases h : Term.boundedDecode (L := L) (allTupleFor p.1).length p.2 with - | t
   · rfl
-  · show (S.toPartialCePresentation.partialRealize (allTupleFor p.1) t).map Option.some = _
+  · change (S.toPartialCePresentation.partialRealize (allTupleFor p.1) t).map Option.some = _
     rw [PartialCePresentationIn.partialRealize_eq_some
       (fun x _ ↦ S.mem_toPartialCePresentation_domain x)
       (Term.boundedDecode_eq_some_iff.1 h).2]
@@ -223,7 +223,7 @@ are proved on the construction. -/
 theorem canonicalAge_domainAt_eq_closure (i : ℕ) :
     S.canonicalAge.domainAt i =
       ↑(@Substructure.closure L ℕ S.inst (Set.range (Tuple.view (allTupleFor i)))) := by
-  letI : L.Structure ℕ := S.inst
+  let : L.Structure ℕ := S.inst
   ext x
   rw [S.canonicalAge_domainAt, SetLike.mem_coe, mem_closure_range_iff_exists_term]
   exact ⟨fun ⟨T, hT⟩ ↦ ⟨T, hT.symm⟩, fun ⟨T, hT⟩ ↦ ⟨T, hT.symm⟩⟩
@@ -233,7 +233,7 @@ member's carrier has its carrier inside that one — the inclusion Lemma 2.6 emb
 theorem canonicalAge_domainAt_subset {i e : ℕ}
     (h : ∀ x ∈ allTupleFor i, x ∈ S.canonicalAge.domainAt e) :
     S.canonicalAge.domainAt i ⊆ S.canonicalAge.domainAt e := by
-  letI : L.Structure ℕ := S.inst
+  let : L.Structure ℕ := S.inst
   rw [S.canonicalAge_domainAt_eq_closure, S.canonicalAge_domainAt_eq_closure]
   refine SetLike.coe_subset_coe.2 (Substructure.closure_le.2 ?_)
   rintro _ ⟨k, rfl⟩

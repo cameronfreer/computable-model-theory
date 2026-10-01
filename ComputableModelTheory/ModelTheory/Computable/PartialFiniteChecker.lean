@@ -359,7 +359,7 @@ theorem exists_funInstance? {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps 
     FunctionApplicationData.equivSubtype.symm ⟨(p.1, bs), hblen⟩, ?_,
     fun k ↦ hmem _ (List.get_mem _ _), fun k ↦ hbsj _ (List.get_mem _ _)⟩
   simp only [funInstance?, FunctionApplicationData.ofSymbolArgs?_of_length_eq p hlen, hbs]
-  show Option.map (fun e ↦ (FunctionApplicationData.equivSubtype.symm ⟨p, hlen⟩, e))
+  change Option.map (fun e ↦ (FunctionApplicationData.equivSubtype.symm ⟨p, hlen⟩, e))
       (FunctionApplicationData.ofSymbolArgs? (p.1, bs)) = _
   rw [FunctionApplicationData.ofSymbolArgs?_of_length_eq (p.1, bs) hblen]
   rfl
@@ -377,7 +377,7 @@ theorem exists_relInstance? {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps 
     RelationApplicationData.equivSubtype.symm ⟨(p.1, bs), hblen⟩, ?_,
     fun k ↦ hmem _ (List.get_mem _ _), fun k ↦ hbsj _ (List.get_mem _ _)⟩
   simp only [relInstance?, RelationApplicationData.ofSymbolArgs?_of_length_eq p hlen, hbs]
-  show Option.map (fun e ↦ (RelationApplicationData.equivSubtype.symm ⟨p, hlen⟩, e))
+  change Option.map (fun e ↦ (RelationApplicationData.equivSubtype.symm ⟨p, hlen⟩, e))
       (RelationApplicationData.ofSymbolArgs? (p.1, bs)) = _
   rw [RelationApplicationData.ofSymbolArgs?_of_length_eq (p.1, bs) hblen]
   rfl
@@ -556,7 +556,7 @@ theorem funInstance?_ofFn {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i 
   · simp only [funInstance?, FunctionApplicationData.ofSymbolArgs?_of_length_eq
         ((⟨n, s⟩ : L.FunctionSymbol), List.ofFn fun k ↦ ((v k : ℕ))) hlen,
       applyMapList_ofFn_codeFun hf v]
-    show Option.map _ (FunctionApplicationData.ofSymbolArgs?
+    change Option.map _ (FunctionApplicationData.ofSymbolArgs?
       ((⟨n, s⟩ : L.FunctionSymbol), List.ofFn fun k ↦
         ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ))) = _
     rw [FunctionApplicationData.ofSymbolArgs?_of_length_eq
@@ -565,17 +565,17 @@ theorem funInstance?_ofFn {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i 
     rfl
   · intro k
     obtain ⟨m, hm⟩ := List.mem_ofFn.1 (List.get_mem _ (Fin.cast hlen.symm k))
-    show (List.ofFn fun k ↦ ((v k : ℕ))).get (Fin.cast hlen.symm k) ∈ B.domainAt i
+    change (List.ofFn fun k ↦ ((v k : ℕ))).get (Fin.cast hlen.symm k) ∈ B.domainAt i
     exact hm ▸ (v m).2
   · intro k
     obtain ⟨m, hm⟩ := List.mem_ofFn.1 (List.get_mem _ (Fin.cast hblen.symm k))
-    show (List.ofFn fun k ↦ ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)).get
+    change (List.ofFn fun k ↦ ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)).get
       (Fin.cast hblen.symm k) ∈ B.domainAt j
     exact hm ▸ (codeFun hf (v m)).2
-  · letI : L.Structure ℕ := B.structureAt i
+  · let : L.Structure ℕ := B.structureAt i
     rw [FunctionApplicationData.funMap_equivSubtype_symm]
     exact congrArg _ (funext fun k ↦ by simp)
-  · letI : L.Structure ℕ := B.structureAt j
+  · let : L.Structure ℕ := B.structureAt j
     rw [FunctionApplicationData.funMap_equivSubtype_symm]
     exact congrArg _ (funext fun k ↦ by simp)
 
@@ -604,7 +604,7 @@ theorem relInstance?_ofFn {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i 
   · simp only [relInstance?, RelationApplicationData.ofSymbolArgs?_of_length_eq
         ((⟨n, r⟩ : L.RelationSymbol), List.ofFn fun k ↦ ((v k : ℕ))) hlen,
       applyMapList_ofFn_codeFun hf v]
-    show Option.map _ (RelationApplicationData.ofSymbolArgs?
+    change Option.map _ (RelationApplicationData.ofSymbolArgs?
       ((⟨n, r⟩ : L.RelationSymbol), List.ofFn fun k ↦
         ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ))) = _
     rw [RelationApplicationData.ofSymbolArgs?_of_length_eq
@@ -613,17 +613,17 @@ theorem relInstance?_ofFn {i j : ℕ} {f : List ℕ} (hf : f ∈ C.finiteMaps i 
     rfl
   · intro k
     obtain ⟨m, hm⟩ := List.mem_ofFn.1 (List.get_mem _ (Fin.cast hlen.symm k))
-    show (List.ofFn fun k ↦ ((v k : ℕ))).get (Fin.cast hlen.symm k) ∈ B.domainAt i
+    change (List.ofFn fun k ↦ ((v k : ℕ))).get (Fin.cast hlen.symm k) ∈ B.domainAt i
     exact hm ▸ (v m).2
   · intro k
     obtain ⟨m, hm⟩ := List.mem_ofFn.1 (List.get_mem _ (Fin.cast hblen.symm k))
-    show (List.ofFn fun k ↦ ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)).get
+    change (List.ofFn fun k ↦ ((codeFun hf (v k) : (B.memberAt j).domain) : ℕ)).get
       (Fin.cast hblen.symm k) ∈ B.domainAt j
     exact hm ▸ (codeFun hf (v m)).2
-  · letI : L.Structure ℕ := B.structureAt i
+  · let : L.Structure ℕ := B.structureAt i
     rw [RelationApplicationData.relMap_equivSubtype_symm]
     exact iff_of_eq (congrArg _ (funext fun k ↦ by simp))
-  · letI : L.Structure ℕ := B.structureAt j
+  · let : L.Structure ℕ := B.structureAt j
     rw [RelationApplicationData.relMap_equivSubtype_symm]
     exact iff_of_eq (congrArg _ (funext fun k ↦ by simp))
 
@@ -818,7 +818,7 @@ theorem mem_finiteMapCheckPart_iff (F : PotentialEmbeddingData) (f : List ℕ) :
     exact absurd hv (by simp)
   | some u =>
     obtain ⟨hf, hgen, hn⟩ := (C.validToken_eq_some_iff F f).1 (by rwa [Unit.ext u ()] at hv)
-    show true ∈ ((C.functionScanPart F f).bind fun b₁ ↦
+    change true ∈ ((C.functionScanPart F f).bind fun b₁ ↦
       (C.relationScanPart F f).map fun b₂ ↦ b₁ && b₂) ↔ _
     rw [mem_bind_and]
     constructor
@@ -837,7 +837,7 @@ theorem mem_finiteMapCheckPart_iff (F : PotentialEmbeddingData) (f : List ℕ) :
         obtain ⟨d, e, hde, hd, he, hdmap, hemap⟩ := funInstance?_ofFn hf s v
         refine (mem_funCheckOne_iff hde hd he).2 ?_
         rw [hdmap, hemap]
-        show C.applyMap F.domIdx f
+        change C.applyMap F.domIdx f
             ((Structure.funMap s v : (B.memberAt F.domIdx).domain) : ℕ) =
           Option.some ((Structure.funMap s fun k ↦ codeFun hf (v k) :
             (B.memberAt F.codIdx).domain) : ℕ)
@@ -851,7 +851,7 @@ theorem mem_finiteMapCheckPart_iff (F : PotentialEmbeddingData) (f : List ℕ) :
         obtain ⟨d, e, hde, hd, he, hdmap, hemap⟩ := relInstance?_ofFn hf r v
         refine (mem_relCheckOne_iff hde hd he).2 ?_
         rw [hdmap, hemap]
-        show @Structure.RelMap L (B.memberAt F.domIdx).domain _ n r v ↔
+        change @Structure.RelMap L (B.memberAt F.domIdx).domain _ n r v ↔
           @Structure.RelMap L (B.memberAt F.codIdx).domain _ n r fun k ↦ codeFun hf (v k)
         simp only [hmap]
         exact (G.map_rel r v).symm

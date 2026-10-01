@@ -96,7 +96,7 @@ theorem hasMappedHP : (listAge O).HasMappedHP := by
     rw [listOf_encode]
     exact fun x hx ↦ (mem_domainAt_iff O).1 (hs x hx)
   refine ⟨encode s, congrArg List.length (listOf_encode s), inclusion O hs', fun k ↦ ?_⟩
-  show (listOf (encode s)).get k = s.get _
+  change (listOf (encode s)).get k = s.get _
   exact List.get_of_eq (listOf_encode s) k
 
 /-- **Joint embedding, by concatenation.** -/

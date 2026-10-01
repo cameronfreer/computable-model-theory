@@ -73,7 +73,7 @@ theorem realize_envFun_relabel_val {k : ℕ} {env : Tuple ℕ} (hk : env.length 
   rw [Term.realize_relabel]
   congr 1
   funext x
-  show (env[(x : ℕ)]?).getD 0 = env.get (Fin.cast hk.symm x)
+  change (env[(x : ℕ)]?).getD 0 = env.get (Fin.cast hk.symm x)
   rw [List.getElem?_eq_getElem (show (x : ℕ) < env.length by omega)]
   rfl
 
@@ -87,7 +87,7 @@ theorem realize_envFun_restrictVar {k : ℕ} {env : Tuple ℕ} (hk : env.length 
       (t.restrictVar fun x ↦ (⟨x.1, hv x.1 x.2⟩ : Fin k)).realize
         fun x : Fin k ↦ env.view (Fin.cast hk.symm x) := by
   refine (Term.realize_restrictVar (ComputableAgeIn.envFun env) fun v ↦ ?_).symm
-  show env.get (Fin.cast hk.symm _) = (env[(v : ℕ)]?).getD 0
+  change env.get (Fin.cast hk.symm _) = (env[(v : ℕ)]?).getD 0
   rw [List.getElem?_eq_getElem (show (v : ℕ) < env.length by
     have := hv v.1 v.2
     omega)]
@@ -202,8 +202,8 @@ variable (P : PartialCePresentationIn O L)
 /-- One step of the partial value-stack machine: a variable pushes its
 environment entry and is **undefined** off the end of the environment; a function symbol
 consumes its arity in values through the uniform application data and calls the
-presentation's partial evaluator. Arity mismatch — in particular argument underflow — leaves the step
-undefined; there is no resetting fallback. -/
+presentation's partial evaluator. Arity mismatch — in particular argument underflow — leaves the
+step undefined; there is no resetting fallback. -/
 def partialValueStep (env : Tuple ℕ) (g : ℕ ⊕ (Σ j, L.Functions j))
     (acc : List ℕ) : Part (List ℕ) :=
   match g with
@@ -246,13 +246,13 @@ theorem realize_mem_domainAt {env : Tuple ℕ}
     ∀ {t : L.Term ℕ}, Term.VarsBelow env.length t →
       @Term.realize L ℕ (P.str) ℕ (ComputableAgeIn.envFun env) t ∈
         P.domain := by
-  letI : L.Structure ℕ := P.str
+  let : L.Structure ℕ := P.str
   intro t
   induction t with
   | var n =>
     intro ht
     have hn : n < env.length := Term.varsBelow_var_iff.1 ht
-    show ComputableAgeIn.envFun env n ∈ P.domain
+    change ComputableAgeIn.envFun env n ∈ P.domain
     rw [ComputableAgeIn.envFun, List.getElem?_eq_getElem hn, Option.getD_some]
     exact henv _ (List.getElem_mem hn)
   | @func n f ts ih =>
@@ -269,7 +269,7 @@ theorem partialValueStack_listEncode_append {env : Tuple ℕ}
         P.partialValueStack env (t.listEncode ++ l) =
           (P.partialValueStack env l).map fun acc ↦
             @Term.realize L ℕ (P.str) ℕ (ComputableAgeIn.envFun env) t :: acc := by
-  letI : L.Structure ℕ := P.str
+  let : L.Structure ℕ := P.str
   intro t
   induction t with
   | var n =>
@@ -278,9 +278,9 @@ theorem partialValueStack_listEncode_append {env : Tuple ℕ}
     have hstep : ∀ acc : List ℕ, P.partialValueStep env (Sum.inl n) acc =
         Part.some (ComputableAgeIn.envFun env n :: acc) := by
       intro acc
-      show ((env[n]? : Option ℕ) : Part ℕ).map (· :: acc) = _
+      change ((env[n]? : Option ℕ) : Part ℕ).map (· :: acc) = _
       rw [List.getElem?_eq_getElem hn]
-      show Part.some (env[n] :: acc) = _
+      change Part.some (env[n] :: acc) = _
       rw [ComputableAgeIn.envFun, List.getElem?_eq_getElem hn, Option.getD_some]
     rw [Term.listEncode, List.singleton_append, P.partialValueStack_cons]
     simp only [hstep]
@@ -316,7 +316,7 @@ theorem partialValueStack_listEncode_append {env : Tuple ℕ}
       have harity : vs.length = FunctionSymbol.arity (⟨n, f⟩ : L.FunctionSymbol) := hvslen
       have htake : (vs ++ acc).take n = vs := List.take_left' hvslen
       have hdrop : (vs ++ acc).drop n = acc := List.drop_left' hvslen
-      show (((FunctionApplicationData.ofSymbolArgs?
+      change (((FunctionApplicationData.ofSymbolArgs?
           (((⟨n, f⟩ : L.FunctionSymbol), (vs ++ acc).take n)) :
         Option (FunctionApplicationData L ℕ)) : Part (FunctionApplicationData L ℕ)).bind
           fun d ↦ (P.funEval d).map (· :: (vs ++ acc).drop n)) = _
@@ -334,7 +334,7 @@ theorem partialValueStack_listEncode_append {env : Tuple ℕ}
         rw [hd, Term.realize_func]
         exact FunctionApplicationData.funMap_equivSubtype_symm_map_finRange f
           (fun j ↦ (ts j).realize v) harity
-      show (Part.some d).bind (fun e ↦ (P.funEval e).map (· :: acc)) = _
+      change (Part.some d).bind (fun e ↦ (P.funEval e).map (· :: acc)) = _
       rw [Part.bind_some, hfun, hdval]
       rfl
     rw [Term.listEncode, List.cons_append, P.partialValueStack_cons, hinner (List.finRange n),
@@ -424,7 +424,7 @@ theorem partialRealize_relabel_view {env : Tuple ℕ} {k : ℕ}
     P.partialRealize env (t.relabel Fin.val) =
       Part.some (@Term.realize L ℕ (P.str) _
         (fun x : Fin k ↦ env.view (Fin.cast hk.symm x)) t) := by
-  letI : L.Structure ℕ := P.str
+  let : L.Structure ℕ := P.str
   rw [partialRealize_eq_some henv (hk ▸ Term.varsBelow_relabel_val t)]
   exact congrArg _ (Term.realize_envFun_relabel_val hk t)
 
@@ -436,7 +436,7 @@ theorem partialRealize_eq_realize_restrictVar {env : Tuple ℕ} {k : ℕ}
       Part.some (@Term.realize L ℕ (P.str) _
         (fun x : Fin k ↦ env.view (Fin.cast hk.symm x))
         (t.restrictVar fun x ↦ (⟨x.1, hvb x.1 x.2⟩ : Fin k))) := by
-  letI : L.Structure ℕ := P.str
+  let : L.Structure ℕ := P.str
   rw [partialRealize_eq_some henv (hk ▸ hvb)]
   exact congrArg _ (Term.realize_envFun_restrictVar hk t hvb)
 
@@ -457,10 +457,10 @@ theorem partialValueStep_eq (env : Tuple ℕ) (g : ℕ ⊕ (Σ j, L.Functions j)
           P.funEval).map (· :: p.2.2) := by
   cases g with
   | inl n =>
-    show ((env[n]? : Option ℕ) : Part ℕ).map (· :: acc) = _
+    change ((env[n]? : Option ℕ) : Part ℕ).map (· :: acc) = _
     rcases h : env[n]? with - | x <;> simp [stepPlan, h]
   | inr s =>
-    show (((FunctionApplicationData.ofSymbolArgs? ((s, acc.take s.1) :
+    change (((FunctionApplicationData.ofSymbolArgs? ((s, acc.take s.1) :
         L.FunctionSymbol × List ℕ) : Option (FunctionApplicationData L ℕ)) :
       Part (FunctionApplicationData L ℕ)).bind
         fun d ↦ (P.funEval d).map (· :: acc.drop s.1)) = _
@@ -672,10 +672,10 @@ theorem partialValueStep_eq (i : ℕ) (env : Tuple ℕ) (g : ℕ ⊕ (Σ j, L.Fu
           (A.funEval i)).map (· :: p.2.2) := by
   cases g with
   | inl n =>
-    show ((env[n]? : Option ℕ) : Part ℕ).map (· :: acc) = _
+    change ((env[n]? : Option ℕ) : Part ℕ).map (· :: acc) = _
     rcases h : env[n]? with - | x <;> simp [stepPlan, h]
   | inr s =>
-    show (((FunctionApplicationData.ofSymbolArgs? ((s, acc.take s.1) :
+    change (((FunctionApplicationData.ofSymbolArgs? ((s, acc.take s.1) :
         L.FunctionSymbol × List ℕ) : Option (FunctionApplicationData L ℕ)) :
       Part (FunctionApplicationData L ℕ)).bind
         fun d ↦ (A.funEval i d).map (· :: acc.drop s.1)) = _

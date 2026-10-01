@@ -144,8 +144,8 @@ private theorem lt_length_of_target_getElem? {m i y : ℕ}
 canonical or not.
 
 The occurrence and the discovery occurrence are moved to `max m (x + 1)`, where they are two source
-positions holding the same value in one matched state; coordinate consistency then equates the target
-entries there, and the value comes back down because nothing is ever revised. -/
+positions holding the same value in one matched state; coordinate consistency then equates the
+target entries there, and the value comes back down because nothing is ever revised. -/
 theorem targetTuple_getElem?_eq_toFun {m i x : ℕ}
     (hx : (stateAt r rb H Hs m).sourceTuple[i]? = some x) :
     (stateAt r rb H Hs m).targetTuple[i]? = some (toFun r rb H Hs x) := by

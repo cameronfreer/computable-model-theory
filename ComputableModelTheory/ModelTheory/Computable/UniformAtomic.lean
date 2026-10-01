@@ -125,9 +125,9 @@ omit [L.EffectiveLanguage] in
 theorem validAtBool_iff (k : ℕ) (d : AtomicData L ℕ) :
     validAtBool k d = true ↔ ValidAt k d := by
   rcases d with q | q
-  · show (_ && _) = true ↔ _ ∧ _
+  · change (_ && _) = true ↔ _ ∧ _
     rw [Bool.and_eq_true, Term.varsBelowBool_iff, Term.varsBelowBool_iff]
-  · show (_ && _) = true ↔ _ ∧ _
+  · change (_ && _) = true ↔ _ ∧ _
     rw [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true]
     exact and_congr_right fun _ ↦
       forall₂_congr fun t _ ↦ Term.varsBelowBool_iff k t
@@ -284,12 +284,12 @@ theorem termRealize_relabel_view (i : ℕ) (env : Tuple ℕ) {k : ℕ}
     K.termRealize ((i, env), t.relabel Fin.val) =
       @Term.realize L ℕ (K.structureAt i) _
         (fun x : Fin k ↦ env.view (Fin.cast hk.symm x)) t := by
-  letI := K.structureAt i
-  show (t.relabel Fin.val).realize (envFun env) = _
+  let := K.structureAt i
+  change (t.relabel Fin.val).realize (envFun env) = _
   rw [Term.realize_relabel]
   congr 1
   funext x
-  show (env[(x : ℕ)]?).getD 0 = env.get (Fin.cast hk.symm x)
+  change (env[(x : ℕ)]?).getD 0 = env.get (Fin.cast hk.symm x)
   rw [List.getElem?_eq_getElem (show (x : ℕ) < env.length by omega)]
   rfl
 
@@ -301,10 +301,10 @@ theorem termRealize_eq_realize_restrictVar (i : ℕ) (env : Tuple ℕ) {k : ℕ}
       @Term.realize L ℕ (K.structureAt i) _
         (fun x : Fin k ↦ env.view (Fin.cast hk.symm x))
         (t.restrictVar fun x ↦ (⟨x.1, hv x.1 x.2⟩ : Fin k)) := by
-  letI := K.structureAt i
-  show t.realize (envFun env) = _
+  let := K.structureAt i
+  change t.realize (envFun env) = _
   refine (Term.realize_restrictVar (envFun env) fun v ↦ ?_).symm
-  show env.get (Fin.cast hk.symm _) = (env[(v : ℕ)]?).getD 0
+  change env.get (Fin.cast hk.symm _) = (env[(v : ℕ)]?).getD 0
   rw [List.getElem?_eq_getElem (show (v : ℕ) < env.length by
     have := hv v.1 v.2
     omega)]
@@ -322,7 +322,7 @@ theorem atomicEquivalent_iff_forall_validAtomicData (i j : ℕ) (a b : Tuple ℕ
   · rintro ⟨hEq, hRel⟩ d hd
     rcases d with q | ⟨⟨n, R⟩, ts⟩
     · obtain ⟨hv₁, hv₂⟩ := hd
-      show K.termRealize ((i, a), q.1) = K.termRealize ((i, a), q.2) ↔
+      change K.termRealize ((i, a), q.1) = K.termRealize ((i, a), q.2) ↔
         K.termRealize ((j, b), q.1) = K.termRealize ((j, b), q.2)
       rw [K.termRealize_eq_realize_restrictVar i a rfl q.1 hv₁,
         K.termRealize_eq_realize_restrictVar i a rfl q.2 hv₂,
@@ -330,7 +330,7 @@ theorem atomicEquivalent_iff_forall_validAtomicData (i j : ℕ) (a b : Tuple ℕ
         K.termRealize_eq_realize_restrictVar j b hb q.2 hv₂]
       exact hEq _ _
     · obtain ⟨hlen, hall⟩ := hd
-      show Option.casesOn (motive := fun _ ↦ Prop)
+      change Option.casesOn (motive := fun _ ↦ Prop)
           (RelationApplicationData.ofSymbolArgs?
             ((⟨n, R⟩ : L.RelationSymbol),
               ts.map fun t ↦ K.termRealize ((i, a), t))) False _ ↔
@@ -342,7 +342,7 @@ theorem atomicEquivalent_iff_forall_validAtomicData (i j : ℕ) (a b : Tuple ℕ
           simpa using hlen),
         RelationApplicationData.ofSymbolArgs?_of_length_eq _ (by
           simpa using hlen)]
-      show @RelationApplicationData.relMap L ℕ (K.structureAt i)
+      change @RelationApplicationData.relMap L ℕ (K.structureAt i)
           (RelationApplicationData.equivSubtype.symm _) ↔
         @RelationApplicationData.relMap L ℕ (K.structureAt j)
           (RelationApplicationData.equivSubtype.symm _)

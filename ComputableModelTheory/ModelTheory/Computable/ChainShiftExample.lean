@@ -76,11 +76,11 @@ theorem test_succShift_funGraph_cross :
     exact Part.mem_some _
   · -- The stage-2 value `(2, 8)` is `limEquiv` to `(0, 6)`: transport `6` up twice.
     refine ⟨8, ?_, ?_⟩
-    · show (8 : ℕ) ∈ (succShiftChain O).transportTo 2 (max 2 0) 8
+    · change (8 : ℕ) ∈ (succShiftChain O).transportTo 2 (max 2 0) 8
       rw [show max 2 0 = 2 from rfl, CeStructureChainIn.transportTo,
         CeDomainChainIn.transportTo_self]
       exact Part.mem_some _
-    · show (8 : ℕ) ∈ (succShiftChain O).transportTo 0 (max 2 0) 6
+    · change (8 : ℕ) ∈ (succShiftChain O).transportTo 0 (max 2 0) 6
       exact (succShiftChain O).toDomainChain.transportTo_trans (by omega) (by omega)
         (succShift_transport_succ O 0 6) (succShift_transport_succ O 1 7)
 
@@ -98,11 +98,11 @@ theorem test_succShift_output_normalization :
       = CeDomainChainIn.normalize (succShiftCert O) (0, 6) := by
   refine (CeDomainChainIn.normalize_eq_iff (succShiftCert O) ⟨8, rfl⟩ ⟨6, rfl⟩).2 ?_
   refine ⟨8, ?_, ?_⟩
-  · show (8 : ℕ) ∈ (succShiftChain O).transportTo 2 (max 2 0) 8
+  · change (8 : ℕ) ∈ (succShiftChain O).transportTo 2 (max 2 0) 8
     rw [show max 2 0 = 2 from rfl, CeStructureChainIn.transportTo,
       CeDomainChainIn.transportTo_self]
     exact Part.mem_some _
-  · show (8 : ℕ) ∈ (succShiftChain O).transportTo 0 (max 2 0) 6
+  · change (8 : ℕ) ∈ (succShiftChain O).transportTo 0 (max 2 0) 6
     exact (succShiftChain O).toDomainChain.transportTo_trans (by omega) (by omega)
       (succShift_transport_succ O 0 6) (succShift_transport_succ O 1 7)
 
@@ -167,11 +167,11 @@ private theorem mixedPair_transport (k : Fin 2) :
       ∈ (pathShiftChain O).transportTo ((mixedPair) k).1 2 ((mixedPair) k).2 :=
   match k with
   | ⟨0, _⟩ => by
-      show (5 : ℕ) ∈ (pathShiftChain O).transportTo 0 2 3
+      change (5 : ℕ) ∈ (pathShiftChain O).transportTo 0 2 3
       exact (pathShiftChain O).toDomainChain.transportTo_trans (by omega) (by omega)
         (pathShift_transport_succ O 0 3) (pathShift_transport_succ O 1 4)
   | ⟨1, _⟩ => by
-      show (6 : ℕ) ∈ (pathShiftChain O).transportTo 1 2 5
+      change (6 : ℕ) ∈ (pathShiftChain O).transportTo 1 2 5
       exact pathShift_transport_succ O 1 5
 
 private theorem mixedPair_stages (k : Fin 2) : ((mixedPair) k).1 ≤ 2 :=
@@ -200,11 +200,11 @@ theorem test_pathShift_not_relHolds :
         ((![(0, 3), (1, 6)] : Fin 2 → ℕ × ℕ) k).2 := fun k ↦
     match k with
     | ⟨0, _⟩ => by
-        show (5 : ℕ) ∈ (pathShiftChain O).transportTo 0 2 3
+        change (5 : ℕ) ∈ (pathShiftChain O).transportTo 0 2 3
         exact (pathShiftChain O).toDomainChain.transportTo_trans (by omega) (by omega)
           (pathShift_transport_succ O 0 3) (pathShift_transport_succ O 1 4)
     | ⟨1, _⟩ => by
-        show (7 : ℕ) ∈ (pathShiftChain O).transportTo 1 2 6
+        change (7 : ℕ) ∈ (pathShiftChain O).transportTo 1 2 6
         exact pathShift_transport_succ O 1 6
   have hm : ∀ k : Fin 2, ((![(0, 3), (1, 6)] : Fin 2 → ℕ × ℕ) k).1 ≤ 2 := fun k ↦
     match k with
@@ -229,23 +229,23 @@ theorem test_pathShift_invariance :
     match k with
     | ⟨0, _⟩ => ⟨5,
         by
-          show (5 : ℕ) ∈ (pathShiftChain O).transportTo 0 (max 0 2) 3
+          change (5 : ℕ) ∈ (pathShiftChain O).transportTo 0 (max 0 2) 3
           exact (pathShiftChain O).toDomainChain.transportTo_trans (by omega)
             (by omega) (pathShift_transport_succ O 0 3)
             (pathShift_transport_succ O 1 4),
         by
-          show (5 : ℕ) ∈ (pathShiftChain O).transportTo 2 (max 0 2) 5
+          change (5 : ℕ) ∈ (pathShiftChain O).transportTo 2 (max 0 2) 5
           rw [show max 0 2 = 2 from rfl, CeStructureChainIn.transportTo,
             CeDomainChainIn.transportTo_self]
           exact Part.mem_some _⟩
     | ⟨1, _⟩ => ⟨5,
         by
-          show (5 : ℕ) ∈ (pathShiftChain O).transportTo 1 (max 1 0) 5
+          change (5 : ℕ) ∈ (pathShiftChain O).transportTo 1 (max 1 0) 5
           rw [show max 1 0 = 1 from rfl, CeStructureChainIn.transportTo,
             CeDomainChainIn.transportTo_self]
           exact Part.mem_some _,
         by
-          show (5 : ℕ) ∈ (pathShiftChain O).transportTo 0 (max 1 0) 4
+          change (5 : ℕ) ∈ (pathShiftChain O).transportTo 0 (max 1 0) 4
           exact pathShift_transport_succ O 0 4⟩
   exact ((pathShiftChain O).limRelHolds_iff_of_limEquiv
     (.adj : Language.graph.Relations 2) (mixedPair_tupleMem O) htuple' heq).1

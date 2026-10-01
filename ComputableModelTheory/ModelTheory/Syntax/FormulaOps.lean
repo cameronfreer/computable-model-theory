@@ -240,7 +240,7 @@ theorem primrec_sigmaRel :
     subst h1
     rw [ite_eq_left ⟨rfl, (all_fst_eq_iff ts k).2 h2⟩, sigmaRel, dite_eq_left ⟨rfl, h2⟩]
     refine congrArg encode ?_
-    show _ = listEncode _
+    change _ = listEncode _
     rw [listEncode]
     simp only [List.cons_append, List.nil_append]
     refine congrArg₂ List.cons rfl (congrArg₂ List.cons rfl ?_)

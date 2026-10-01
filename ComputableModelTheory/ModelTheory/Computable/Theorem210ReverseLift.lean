@@ -13,11 +13,11 @@ oracle `O`. The genuinely remaining case is the one where they are not: they exi
 a stronger oracle `E`. This is the **selector-oracle rebase**, and it is not monotonicity of an
 already-built witness — no such witness exists yet.
 
-**The crossing is explicit, and load-bearing.** `RepresentationCoverIn` takes both representations at
-one family oracle. The limit built from `E`-computable selectors is an `E`-computable structure, so
-its `𝕂_𝒟` is a `PartialAgeIn E L`, while `K` is a `PartialAgeIn O L`. There is no cover between them.
-`K.mono hOE` is what puts `K` on the same side, and it appears in the statement rather than inside
-the proof, so a reader can see exactly which object the conclusion is about.
+**The crossing is explicit, and load-bearing.** `RepresentationCoverIn` takes both representations
+at one family oracle. The limit built from `E`-computable selectors is an `E`-computable structure,
+so its `𝕂_𝒟` is a `PartialAgeIn E L`, while `K` is a `PartialAgeIn O L`. There is no cover between
+them. `K.mono hOE` is what puts `K` on the same side, and it appears in the statement rather than
+inside the proof, so a reader can see exactly which object the conclusion is about.
 
 **Rebasing changes evidence, not the family.** `mono` copies every piece of computational data
 definitionally and lifts only the computability proofs, and the four bridges in

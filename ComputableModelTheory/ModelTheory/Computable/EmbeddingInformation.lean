@@ -116,7 +116,7 @@ theorem exists_nonEmbeddingCandidate_of_atomicDisagreement
     {F : PotentialEmbeddingData} {d : AtomicData L ℕ}
     (hd : K.AtomicDisagreement F d) : ∃ n, K.nonEmbeddingCandidate F n := by
   refine ⟨@encode (AtomicData L ℕ) Primcodable.toEncodable d + 1, ?_⟩
-  show Option.casesOn (motive := fun _ ↦ Prop)
+  change Option.casesOn (motive := fun _ ↦ Prop)
     (@decode (AtomicData L ℕ) Primcodable.toEncodable
       (@encode (AtomicData L ℕ) Primcodable.toEncodable d)) False
     (fun d ↦ K.AtomicDisagreement F d)

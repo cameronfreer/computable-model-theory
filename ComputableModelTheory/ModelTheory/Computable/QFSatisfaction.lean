@@ -124,7 +124,7 @@ omit [L.EffectiveLanguage] in
 open Classical in
 theorem flagOf_default (v : Fin k → ℕ) :
     flagOf v (default : Σ n, L.BoundedFormula (Fin k) n) = (0, true, false) := by
-  show flagOf v ⟨0, falsum⟩ = (0, true, false)
+  change flagOf v ⟨0, falsum⟩ = (0, true, false)
   rw [flagOf]
   refine congrArg (fun b ↦ ((0 : ℕ), true, b)) (decide_eq_false fun h ↦ ?_)
   exact h.2
@@ -187,13 +187,13 @@ theorem flagOf_all (v : Fin k → ℕ) (p : Σ n, L.BoundedFormula (Fin k) n) :
   · rw [sigmaAll_apply]
     cases m with
     | zero =>
-      show flagOf v ⟨0, ψ.all⟩ = ((0 : ℕ), false, false)
+      change flagOf v ⟨0, ψ.all⟩ = ((0 : ℕ), false, false)
       rw [flagOf]
       refine congrArg (fun r ↦ ((0 : ℕ), false, r)) (decide_eq_false fun h ↦ ?_)
       have := (isQFBool_iff (φ := ψ.all)).2 h.1
       simp [isQFBool] at this
     | succ m =>
-      show flagOf v ⟨m + 1, ψ.all⟩ = ((m + 1 : ℕ), false, false)
+      change flagOf v ⟨m + 1, ψ.all⟩ = ((m + 1 : ℕ), false, false)
       rfl
 
 private theorem filterMap_eq_map_of_forall_some {β γ : Type*} {f : β → Option γ}
@@ -226,7 +226,7 @@ private theorem relFlag_zero
     exact filterMap_eq_map_of_forall_some _ fun i _ ↦ termOfSymbol?_inl (ts i)
   rw [relFlag, ite_eq_left rfl, hfm,
     RelationApplicationData.ofSymbolArgs?_of_length_eq _ (by simp [RelationSymbol.arity])]
-  show decide _ = _
+  change decide _ = _
   refine Bool.eq_iff_iff.2 ?_
   simp only [decide_eq_true_eq]
   rw [RelationApplicationData.relMap_equivSubtype_symm]
@@ -270,7 +270,7 @@ theorem satStack_eq_map_listDecode
       rw [ite_eq_left rfl, dite_eq_left rfl]
       cases n₁ with
       | zero =>
-        show ((0 : ℕ), true, eqFlag v (Sum.inl ⟨0, t₁⟩) (Sum.inl ⟨0, t₂⟩)) =
+        change ((0 : ℕ), true, eqFlag v (Sum.inl ⟨0, t₁⟩) (Sum.inl ⟨0, t₂⟩)) =
           flagOf v ⟨0, equal t₁ t₂⟩
         rw [eqFlag_zero, flagOf]
         refine congrArg (fun r ↦ ((0 : ℕ), true, r)) ?_
@@ -394,7 +394,7 @@ theorem qfSatBool_iff [DecidablePred (RelationApplicationData.relMap (L := L) (M
     have h := listDecode_encode_list (L := L) (α := Fin k) [⟨0, p.1⟩]
     rwa [List.flatMap_cons, List.flatMap_nil, List.append_nil] at h
   rw [qfSatBool, satStack_eq_map_listDecode, hdec, List.map_cons, List.map_nil]
-  show ((flagOf p.2 ⟨0, p.1⟩).2.2 = true) ↔ _
+  change ((flagOf p.2 ⟨0, p.1⟩).2.2 = true) ↔ _
   rw [flagOf]
   exact decide_eq_true_iff
 
@@ -612,7 +612,7 @@ private theorem satStackStepAux_spec (x : (Fin k → ℕ) × List (FormulaSymbol
               show x.2.length - (m - 2) + n = x.2.length - (m - 2 - n) by omega]
           · rw [List.drop_eq_nil_of_le (by omega), show m - 2 - n = 0 by omega,
               satStackAux, ite_eq_left (Nat.zero_le _), Nat.sub_zero, List.drop_length]
-        show Option.map
+        change Option.map
             (fun rest ↦
               (if (s'.take n).length = n ∧ (s'.take n).all (isTermLetterAt b) then
                 (b, true, relFlag x.1 ⟨n, R⟩ b (s'.take n))
@@ -1189,7 +1189,7 @@ theorem qf_realize_computablePredIn (O : Set (ℕ →. ℕ))
       (p.1 : L.BoundedFormula (Fin k) 0).IsQF ∧ p.1.Realize p.2 := by
   obtain ⟨hdec, hcomp⟩ :=
     IsComputableStructureIn.relMap_computablePredIn (O := O) (L := L)
-  letI := hdec
+  let := hdec
   have hwit : DecidablePred fun p : L.Formula (Fin k) × (Fin k → ℕ) ↦
       (p.1 : L.BoundedFormula (Fin k) 0).IsQF ∧ p.1.Realize p.2 := fun p ↦
     if hB : qfSatBool p = true

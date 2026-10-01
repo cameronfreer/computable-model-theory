@@ -20,15 +20,15 @@ is packaged first (`ScheduledCJEPDataIn`), the certificate is attached to *its* 
 produces the scheduled package; attaching infinitude stays explicit and supplied, exactly as every
 other certificate in this development does.
 
-**The conclusion is stronger than canonicality**, and deliberately so. Definition 2.4 asks only for a
-representation isomorphism; `CanonicalAgeSeparationAudit` shows that such an isomorphism need not
+**The conclusion is stronger than canonicality**, and deliberately so. Definition 2.4 asks only for
+a representation isomorphism; `CanonicalAgeSeparationAudit` shows that such an isomorphism need not
 carry recorded generators to recorded generators, which is why the published *forward* implication
 needs `r.forward.GeneratorCompatible` as an explicit hypothesis. The reverse implication constructs
 a witness that has it — in **both** directions — so the two theorems compose. The paper-facing
 corollary forgets that extra information.
 
-**No `iff` is stated.** The unqualified published equivalence is not available: the forward direction
-is the separately corrected theorem `mappedPartialCHPIn_of_canonicalAge`, which requires
+**No `iff` is stated.** The unqualified published equivalence is not available: the forward
+direction is the separately corrected theorem `mappedPartialCHPIn_of_canonicalAge`, which requires
 compatibility on the cover running `𝕂_𝒟 → K`, and the two separations in
 `CanonicalAgeSeparationAudit` show the gaps in the two directions are independent.
 

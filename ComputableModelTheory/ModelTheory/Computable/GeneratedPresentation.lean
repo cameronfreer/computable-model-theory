@@ -101,7 +101,7 @@ the stored structure. -/
 theorem completeAtomicDiagram_true_iff {k : ℕ} (φ : AtomicFormula L (Fin k))
     (v : Fin k → ℕ) :
     P.completeAtomicDiagram k (true, φ, v) ↔ P.realize (φ : L.Formula (Fin k)) v := by
-  letI := P.toComputableStructure.inst
+  let := P.toComputableStructure.inst
   exact FirstOrder.Language.completeAtomicDiagram_true L k φ v
 
 /-- The negative sign of a presentation's complete atomic diagram is falsification in
@@ -110,52 +110,52 @@ theorem completeAtomicDiagram_false_iff {k : ℕ} (φ : AtomicFormula L (Fin k))
     (v : Fin k → ℕ) :
     P.completeAtomicDiagram k (false, φ, v) ↔
       ¬P.realize (φ : L.Formula (Fin k)) v := by
-  letI := P.toComputableStructure.inst
+  let := P.toComputableStructure.inst
   exact FirstOrder.Language.completeAtomicDiagram_false L k φ v
 
 /-- The presentation's positive atomic diagram is computable in the oracle. -/
 theorem posAtomicDiagram_computablePredIn (k : ℕ) :
     ComputablePredIn O (P.posAtomicDiagram k) := by
-  letI := P.toComputableStructure.inst
-  haveI := P.toComputableStructure.isComputable
+  let := P.toComputableStructure.inst
+  have := P.toComputableStructure.isComputable
   exact FirstOrder.Language.posAtomicDiagram_computablePredIn O
 
 /-- The presentation's negative atomic diagram is computable in the oracle. -/
 theorem negAtomicDiagram_computablePredIn (k : ℕ) :
     ComputablePredIn O (P.negAtomicDiagram k) := by
-  letI := P.toComputableStructure.inst
-  haveI := P.toComputableStructure.isComputable
+  let := P.toComputableStructure.inst
+  have := P.toComputableStructure.isComputable
   exact FirstOrder.Language.negAtomicDiagram_computablePredIn O
 
 /-- The presentation's complete atomic diagram is computable in the oracle. -/
 theorem completeAtomicDiagram_computablePredIn (k : ℕ) :
     ComputablePredIn O (P.completeAtomicDiagram k) := by
-  letI := P.toComputableStructure.inst
-  haveI := P.toComputableStructure.isComputable
+  let := P.toComputableStructure.inst
+  have := P.toComputableStructure.isComputable
   exact FirstOrder.Language.completeAtomicDiagram_computablePredIn O
 
 /-- The presentation's positive quantifier-free diagram is computable in the
 oracle. -/
 theorem posQFDiagram_computablePredIn (k : ℕ) :
     ComputablePredIn O (P.posQFDiagram k) := by
-  letI := P.toComputableStructure.inst
-  haveI := P.toComputableStructure.isComputable
+  let := P.toComputableStructure.inst
+  have := P.toComputableStructure.isComputable
   exact FirstOrder.Language.posQFDiagram_computablePredIn O
 
 /-- The presentation's negative quantifier-free diagram is computable in the
 oracle. -/
 theorem negQFDiagram_computablePredIn (k : ℕ) :
     ComputablePredIn O (P.negQFDiagram k) := by
-  letI := P.toComputableStructure.inst
-  haveI := P.toComputableStructure.isComputable
+  let := P.toComputableStructure.inst
+  have := P.toComputableStructure.isComputable
   exact FirstOrder.Language.negQFDiagram_computablePredIn O
 
 /-- The presentation's complete quantifier-free diagram is computable in the
 oracle. -/
 theorem completeQFDiagram_computablePredIn (k : ℕ) :
     ComputablePredIn O (P.completeQFDiagram k) := by
-  letI := P.toComputableStructure.inst
-  haveI := P.toComputableStructure.isComputable
+  let := P.toComputableStructure.inst
+  have := P.toComputableStructure.isComputable
   exact FirstOrder.Language.completeQFDiagram_computablePredIn O
 
 end GeneratedPresentationIn

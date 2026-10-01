@@ -198,7 +198,7 @@ theorem atomicEquivalent_iff_exists_closure_equiv (a : Fin k → M) (b : Fin k �
       have hT : (Term.func F fun j ↦ termFor a (xs j)).realize a =
           ↑(Structure.funMap F xs) := by
         rw [Term.realize_func]
-        show _ = Structure.funMap F fun j ↦ (↑(xs j) : M)
+        change _ = Structure.funMap F fun j ↦ (↑(xs j) : M)
         congr 1
         funext j
         exact termFor_spec a (xs j)
@@ -206,7 +206,7 @@ theorem atomicEquivalent_iff_exists_closure_equiv (a : Fin k → M) (b : Fin k �
       rw [Term.realize_func] at h1
       exact h1
     · intro n R xs
-      show Structure.RelMap R (fun j ↦ (↑(transfer a b (xs j)) : N)) ↔
+      change Structure.RelMap R (fun j ↦ (↑(transfer a b (xs j)) : N)) ↔
         Structure.RelMap R fun j ↦ (↑(xs j) : M)
       have hb := hRel R fun j ↦ termFor a (xs j)
       rw [show (fun j ↦ ((termFor a (xs j)).realize a)) = fun j ↦ (↑(xs j) : M) from
@@ -214,7 +214,7 @@ theorem atomicEquivalent_iff_exists_closure_equiv (a : Fin k → M) (b : Fin k �
       exact hb.symm
     · intro i
       refine Subtype.ext ?_
-      show (↑(transfer a b ⟨a i, Substructure.subset_closure ⟨i, rfl⟩⟩) : N) = _
+      change (↑(transfer a b ⟨a i, Substructure.subset_closure ⟨i, rfl⟩⟩) : N) = _
       exact coe_transfer_eq hEq
         (show (Term.var i).realize a =
           ↑(⟨a i, Substructure.subset_closure ⟨i, rfl⟩⟩ :
@@ -269,7 +269,7 @@ theorem atomicEquivalent_iff_exists_closure_equiv (a : Fin k → M) (b : Fin k �
           fun i ↦ (ts i).realize fun j ↦ ⟨b j, Substructure.subset_closure ⟨j, rfl⟩⟩
           from funext fun i ↦ hmap (ts i)] at h₁
       refine Iff.trans ?_ (Iff.trans h₁.symm ?_)
-      · show Structure.RelMap R _ ↔ Structure.RelMap R fun i ↦
+      · change Structure.RelMap R _ ↔ Structure.RelMap R fun i ↦
           (↑((ts i).realize fun j ↦
             (⟨a j, Substructure.subset_closure ⟨j, rfl⟩⟩ :
               Substructure.closure L (Set.range a))) : M)
@@ -277,7 +277,7 @@ theorem atomicEquivalent_iff_exists_closure_equiv (a : Fin k → M) (b : Fin k �
             (⟨a j, Substructure.subset_closure ⟨j, rfl⟩⟩ :
               Substructure.closure L (Set.range a))) : M)) =
             fun i ↦ (ts i).realize a from funext fun i ↦ hval_a (ts i)]
-      · show Structure.RelMap R (fun i ↦
+      · change Structure.RelMap R (fun i ↦
           (↑((ts i).realize fun j ↦
             (⟨b j, Substructure.subset_closure ⟨j, rfl⟩⟩ :
               Substructure.closure L (Set.range b))) : N)) ↔ _

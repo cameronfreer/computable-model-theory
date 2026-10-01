@@ -48,7 +48,7 @@ theorem termValue?_computableIn (O : Set (ℕ →. ℕ)) [IsComputableStructureI
 theorem termValue?_encode (a : Fin k → ℕ) (t : L.Term (Fin k)) :
     termValue? (L := L) a (@encode (L.Term (Fin k)) Primcodable.toEncodable t) =
       some (t.realize a) := by
-  show (@decode (L.Term (Fin k)) Primcodable.toEncodable
+  change (@decode (L.Term (Fin k)) Primcodable.toEncodable
       (@encode (L.Term (Fin k)) Primcodable.toEncodable t)).map
       (fun t : L.Term (Fin k) ↦ t.realize a) = some (t.realize a)
   rw [@encodek (L.Term (Fin k)) Primcodable.toEncodable t]

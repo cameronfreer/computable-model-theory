@@ -117,7 +117,7 @@ theorem climbAux_dom {i x : ℕ} (n : ℕ) (hx : x ∈ C.domainAt i) :
     refine ⟨(t.1 + 1, y), ?_, ?_, ?_⟩
     · rw [climbAux_succ]
       exact Part.mem_bind_iff.2 ⟨t, ht, (Part.mem_map_iff _).2 ⟨y, hy, rfl⟩⟩
-    · show t.1 + 1 = i + (m + 1)
+    · change t.1 + 1 = i + (m + 1)
       omega
     · have heq : t.1 + 1 = i + (m + 1) := by omega
       rw [← heq]

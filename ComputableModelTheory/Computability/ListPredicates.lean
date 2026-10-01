@@ -247,7 +247,7 @@ theorem forall_mem_computableList {l : α → List β} {p : α → β → Prop}
   let scan : α → Bool := fun a ↦ (l a).all fun b ↦ @decide (p a b) (Dpoint a b)
   have hspec : ∀ a, scan a = true ↔ ∀ b ∈ l a, p a b := by
     intro a
-    show ((l a).all fun b ↦ @decide (p a b) (Dpoint a b)) = true ↔ _
+    change ((l a).all fun b ↦ @decide (p a b) (Dpoint a b)) = true ↔ _
     rw [List.all_eq_true]
     exact ⟨fun h b hb ↦ of_decide_eq_true (h b hb), fun h b hb ↦ decide_eq_true (h b hb)⟩
   have hscan : ComputableIn O scan :=
@@ -265,7 +265,7 @@ theorem exists_mem_computableList {l : α → List β} {p : α → β → Prop}
   let scan : α → Bool := fun a ↦ (l a).any fun b ↦ @decide (p a b) (Dpoint a b)
   have hspec : ∀ a, scan a = true ↔ ∃ b ∈ l a, p a b := by
     intro a
-    show ((l a).any fun b ↦ @decide (p a b) (Dpoint a b)) = true ↔ _
+    change ((l a).any fun b ↦ @decide (p a b) (Dpoint a b)) = true ↔ _
     rw [List.any_eq_true]
     exact ⟨fun ⟨b, hb, h⟩ ↦ ⟨b, hb, of_decide_eq_true h⟩,
       fun ⟨b, hb, h⟩ ↦ ⟨b, hb, decide_eq_true h⟩⟩

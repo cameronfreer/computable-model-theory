@@ -137,7 +137,7 @@ theorem exists_genEnum?_eq_some_iff {i : ℕ} {steps : List ℕ} {x : ℕ} :
     (∃ m, A.genEnum? i steps m = Option.some x) ↔
       x ∈ @Substructure.closure L ℕ (A.structureAt i)
         (Set.range (Tuple.view (A.tupleAtSteps i steps))) := by
-  letI : L.Structure ℕ := A.structureAt i
+  let : L.Structure ℕ := A.structureAt i
   set env := A.tupleAtSteps i steps with henv
   rw [mem_closure_range_iff_exists_term]
   constructor
@@ -215,11 +215,11 @@ theorem genEnum?_computableIn :
         (g := fun _ (v : ℕ) ↦ Option.some v)
         hcall (ComputableIn.option_some.comp ComputableIn.snd).to₂).to₂)
   refine hpart.of_eq fun p ↦ ?_
-  show _ = Part.some (A.genEnum? p.1.1 p.1.2 p.2)
+  change _ = Part.some (A.genEnum? p.1.1 p.1.2 p.2)
   rw [genEnum?]
   rcases h : Term.boundedDecode (L := L) (A.tupleAtSteps p.1.1 p.1.2).length p.2 with - | t
   · rfl
-  · show (A.partialRealize p.1.1 (A.tupleAtSteps p.1.1 p.1.2) t).map Option.some = _
+  · change (A.partialRealize p.1.1 (A.tupleAtSteps p.1.1 p.1.2) t).map Option.some = _
     rw [partialRealize_eq_some (tupleAtSteps_mem_domainAt p.1.1 p.1.2)
       (Term.boundedDecode_eq_some_iff.1 h).2]
     rfl
@@ -295,7 +295,7 @@ noncomputable def reindexed : PartialAgeIn O L where
   relEval_correct := fun e d hd ↦
     A.relEval_correct (memberIndex e).1 d fun k ↦ genEnum?_mem_domainAt (hd k).choose_spec
   generates := fun e x ↦ by
-    letI : L.Structure ℕ := A.structureAt (memberIndex e).1
+    let : L.Structure ℕ := A.structureAt (memberIndex e).1
     refine (exists_genEnum?_eq_some_iff.trans ?_)
     rw [mem_closure_range_iff_exists_term]
     exact ⟨fun ⟨T, hT⟩ ↦ ⟨T, hT.symm⟩, fun ⟨T, hT⟩ ↦ ⟨T, hT.symm⟩⟩

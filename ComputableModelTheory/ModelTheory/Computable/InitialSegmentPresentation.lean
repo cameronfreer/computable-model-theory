@@ -166,7 +166,7 @@ noncomputable def toComputableStructure (h : Q.shape = .omega) :
     ComputableStructureIn O L :=
   letI : L.Structure ℕ := Q.str
   have huniv : ∀ m : ℕ, m ∈ Q.domain := fun m ↦ by
-    show m ∈ Q.shape.toSet
+    change m ∈ Q.shape.toSet
     rw [h]
     trivial
   { inst := Q.str
@@ -184,7 +184,7 @@ noncomputable def toComputableStructure (h : Q.shape = .omega) :
           refine hB.of_eq fun d ↦ ?_
           obtain ⟨b, hb, hbiff⟩ := Q.relEval_correct d fun _ ↦ huniv _
           rw [Part.get_eq_of_mem hb]
-          haveI : Decidable (@RelationApplicationData.relMap L ℕ Q.str d) :=
+          have : Decidable (@RelationApplicationData.relMap L ℕ Q.str d) :=
             Classical.propDecidable _
           by_cases hR : @RelationApplicationData.relMap L ℕ Q.str d
           · cases hbv : b with
@@ -284,13 +284,13 @@ noncomputable def upgradeOmega (cert : P.InfinitudeCertificate) :
   funEval_recursiveIn := P.rankFunEval_recursiveIn
   funEval_correct := fun d _ ↦
     P.rankPresentation.funEval_correct d fun _ ↦ by
-      show _ ∈ Set.range P.posRank
+      change _ ∈ Set.range P.posRank
       rw [P.range_posRank_eq_univ cert]; trivial
   relEval := P.rankRelEval
   relEval_recursiveIn := P.rankRelEval_recursiveIn
   relEval_correct := fun d _ ↦
     P.rankPresentation.relEval_correct d fun _ ↦ by
-      show _ ∈ Set.range P.posRank
+      change _ ∈ Set.range P.posRank
       rw [P.range_posRank_eq_univ cert]; trivial
 
 /-- The certified-exact-finite upgrade: the rank presentation with shape
@@ -301,22 +301,22 @@ noncomputable def upgradeFinite (cert : P.ExactFiniteCertificate) :
   shape := .finite cert.card
   domain_closed := fun n f v hv ↦ by
     have heq := P.range_posRank_eq_lt cert
-    show _ ∈ {r | r < cert.card}
+    change _ ∈ {r | r < cert.card}
     rw [← heq]
     exact P.rankPresentation.domain_closed n f v fun k ↦ by
-      show _ ∈ Set.range P.posRank
+      change _ ∈ Set.range P.posRank
       rw [heq]; exact hv k
   funEval := P.rankFunEval
   funEval_recursiveIn := P.rankFunEval_recursiveIn
   funEval_correct := fun d hd ↦
     P.rankPresentation.funEval_correct d fun k ↦ by
-      show _ ∈ Set.range P.posRank
+      change _ ∈ Set.range P.posRank
       rw [P.range_posRank_eq_lt cert]; exact hd k
   relEval := P.rankRelEval
   relEval_recursiveIn := P.rankRelEval_recursiveIn
   relEval_correct := fun d hd ↦
     P.rankPresentation.relEval_correct d fun k ↦ by
-      show _ ∈ Set.range P.posRank
+      change _ ∈ Set.range P.posRank
       rw [P.range_posRank_eq_lt cert]; exact hd k
 
 @[simp]

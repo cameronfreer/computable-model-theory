@@ -393,7 +393,7 @@ theorem limFunGraph_stage {i n : ℕ} (f : L.Functions n) (v : Fin n → ℕ) :
     D.LimFunGraph f (fun k ↦ (i, v k)) (i, @Structure.funMap L ℕ (D.stageAt i).str n f v) :=
   ⟨i, v, fun _ ↦ le_rfl,
     fun k ↦ by
-      show v k ∈ D.transportTo i i (v k)
+      change v k ∈ D.transportTo i i (v k)
       rw [transportTo, CeDomainChainIn.transportTo_self]
       exact Part.mem_some _,
     D.toDomainChain.limEquiv_refl _⟩
@@ -404,7 +404,7 @@ theorem limRelHolds_stage_iff {i n : ℕ} (R : L.Relations n) (v : Fin n → ℕ
     D.LimRelHolds R (fun k ↦ (i, v k)) ↔ @Structure.RelMap L ℕ (D.stageAt i).str n R v :=
   D.limRelHolds_iff_realization (v := fun k ↦ (i, v k)) R (fun k ↦ hv k) (fun _ ↦ le_rfl)
     (fun k ↦ by
-      show v k ∈ D.transportTo i i (v k)
+      change v k ∈ D.transportTo i i (v k)
       rw [transportTo, CeDomainChainIn.transportTo_self]
       exact Part.mem_some _)
 

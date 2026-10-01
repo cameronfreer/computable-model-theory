@@ -118,7 +118,7 @@ theorem ComputableStructureIn.canonicalAge_domainAt_eq_range {E' : Set (ℕ →.
     (e : @Language.Embedding L (A.memberAt c).domain ℕ _ S.inst) {t : Tuple ℕ}
     (ht : Set.range (Tuple.view t) = Set.range fun k ↦ e (A.gensView c k)) :
     S.canonicalAge.domainAt (encode t) = Set.range e := by
-  letI : L.Structure ℕ := S.inst
+  let : L.Structure ℕ := S.inst
   rw [S.canonicalAge_domainAt_eq_closure, allTupleFor_encode, ht]
   ext y
   rw [SetLike.mem_coe, mem_closure_range_iff_exists_term]
@@ -924,7 +924,7 @@ theorem extension_actual_of_mem (hchpSpec : K.MappedCHPSpec chpSel) (hrep : Z.Re
     (hy : y ∈ Z.rankStageMap (s + 1) (D.rightToApex.rangeTuple.getLastD 0))
     (horig : (Z.omegaStructure cert).canonicalAge.PartialIsEmbedding q.originalMap) :
     (Z.omegaStructure cert).canonicalAge.PartialIsEmbedding (q.extensionMap ⟨γ, y⟩) := by
-  letI : L.Structure ℕ := Z.presentation.rankStr
+  let : L.Structure ℕ := Z.presentation.rankStr
   obtain ⟨hu, hφe, hψe, hwa, hwk⟩ := query_widths Z chpSel hchpSpec hlen hp ha hk
   obtain ⟨φ, hφ⟩ : ∃ φ : (K.memberAt a).domain ↪[L] (K.memberAt (memberIdx K W i p.1)).domain,
       K.PartialRealizes (PotentialEmbeddingData.ofTriple

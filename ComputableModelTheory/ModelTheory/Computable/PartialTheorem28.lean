@@ -62,7 +62,7 @@ theorem reindexed_partialCHP (A : PartialAgeIn O L) : A.reindexed.PartialCHP := 
   refine ⟨A.chpSelect, A.chpSelect_recursiveIn, fun e s hs ↦ ?_⟩
   obtain ⟨c, hc⟩ := Part.dom_iff_mem.1 (chpSelect_dom hs)
   refine ⟨c, hc, gens_of_mem_chpSelect hc, ?_, chpSelect_domainAt_subset hc hs⟩
-  show A.structureAt (memberIndex c).1 = A.structureAt (memberIndex e).1
+  change A.structureAt (memberIndex c).1 = A.structureAt (memberIndex e).1
   rw [memberIndex_fst_of_mem_chpSelect hc]
 
 /-! ### The paper-facing selector contract

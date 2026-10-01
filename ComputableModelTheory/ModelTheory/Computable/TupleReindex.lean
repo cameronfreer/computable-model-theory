@@ -173,7 +173,7 @@ noncomputable def generatedPresentation (i : ℕ) (t : Tuple ℕ) (ht : t ≠ []
     have hfun : @Structure.funMap L ℕ (K.structureAt i) n f v
         = @Term.realize L ℕ (K.structureAt i) _
           (Tuple.view t) (Term.func f Ts) := by
-      letI : L.Structure ℕ := K.structureAt i
+      let : L.Structure ℕ := K.structureAt i
       rw [Term.realize_func]
       exact congrArg _ (funext fun k ↦ hTs k)
     rw [hfun]
@@ -304,7 +304,7 @@ noncomputable def generatedPresentationOf (t : Tuple ℕ) :
       fun k ↦ S.exists_genEnum?_eq_some_iff.1 (hv k)
     choose Ts hTs using hT
     refine S.exists_genEnum?_eq_some_iff.2 ⟨Term.func f Ts, ?_⟩
-    letI : L.Structure ℕ := S.inst
+    let : L.Structure ℕ := S.inst
     rw [Term.realize_func]
     exact congrArg _ (funext fun k ↦ hTs k)
   funEval := (ComputableStructureIn.toCePresentation S).funEval

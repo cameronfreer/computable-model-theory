@@ -139,11 +139,13 @@ theorem cjepChain_uniformEvaluators (hspec : K.JointSpec sel)
     (hsel : ComputableIn E fun p : ℕ × ℕ ↦ sel p.1 p.2) :
     (cjepChain K sel baseIdx hne hOE hspec hsel).UniformEvaluatorsIn where
   funEval_uniform := by
-    have hd : ComputableIn E (cjepSchedule sel baseIdx) := cjepSchedule_computableIn sel baseIdx hsel
+    have hd : ComputableIn E (cjepSchedule sel baseIdx) :=
+      cjepSchedule_computableIn sel baseIdx hsel
     exact ((RecursiveIn.mono hOE K.funEval_recursiveIn).comp
       ((hd.comp ComputableIn.fst).pair ComputableIn.snd)).of_eq fun _ ↦ rfl
   relEval_uniform := by
-    have hd : ComputableIn E (cjepSchedule sel baseIdx) := cjepSchedule_computableIn sel baseIdx hsel
+    have hd : ComputableIn E (cjepSchedule sel baseIdx) :=
+      cjepSchedule_computableIn sel baseIdx hsel
     exact ((RecursiveIn.mono hOE K.relEval_recursiveIn).comp
       ((hd.comp ComputableIn.fst).pair ComputableIn.snd)).of_eq fun _ ↦ rfl
 

@@ -370,7 +370,7 @@ variable (O) in
 /-- **The limit is infinite**: the member `{0, …, N}` embeds into it for every `N`. -/
 theorem runLimit_infinite : (runLimit O).presentation.domain.Infinite := by
   intro hfin
-  haveI := hfin.fintype
+  have := hfin.fintype
   set N := Fintype.card (runLimit O).presentation.domain
   have hmem : (listAge O).memberBundled (segIdx N) ∈
       Language.empty.age (runLimit O).presentation.domain := by

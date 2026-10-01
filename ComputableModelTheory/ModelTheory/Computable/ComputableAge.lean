@@ -105,7 +105,7 @@ theorem classSet_finitelyGenerated {A : CategoryTheory.Bundled L.Structure}
     (hA : A ∈ K.classSet) : Structure.FG L A := by
   obtain ⟨i, ⟨f⟩⟩ := hA
   refine (Equiv.fg_iff f).1 ?_
-  letI := K.structureAt i
+  let := K.structureAt i
   rw [Structure.fg_iff]
   refine ⟨{x | x ∈ K.gens i}, (K.gens i).finite_toSet, K.generates i⟩
 
@@ -199,8 +199,8 @@ def succAgeMixed (O : Set (ℕ →. ℕ)) : ComputableAgeIn O succLang :=
       by_cases hi : i = 0
       · simp only [hi, ite_true]; exact succ_tuple_generates
       · by_cases hi' : i = 1
-        · simp [hi']; exact succ_pair_generates
-        · simp [hi, hi']; exact succ_triple_generates }
+        · simp only [hi', one_ne_zero, ↓reduceIte]; exact succ_pair_generates
+        · simp only [hi, hi', ↓reduceIte]; exact succ_triple_generates }
 
 end SuccAge
 
