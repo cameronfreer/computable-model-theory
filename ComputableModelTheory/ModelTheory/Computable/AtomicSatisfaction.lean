@@ -134,6 +134,7 @@ private abbrev AtomicCtx (L : Language) (k : ℕ) :=
   (L.Formula (Fin k) × (Fin k → ℕ)) × AtomicData L (Fin k)
 
 set_option maxHeartbeats 1000000 in
+-- elaborating the composed oracle-computability term exceeds the default budget
 private theorem computableIn_atomicSat_eqBranch (O : Set (ℕ →. ℕ))
     [IsComputableStructureIn O L] (k : ℕ) :
     ComputableIn O fun x : AtomicCtx L k × (L.Term (Fin k) × L.Term (Fin k)) ↦
@@ -154,6 +155,7 @@ private theorem computableIn_atomicSat_eqBranch (O : Set (ℕ →. ℕ))
   exact (hcmp.comp hproj).of_eq fun _ ↦ rfl
 
 set_option maxHeartbeats 1000000 in
+-- elaborating the composed oracle-computability term exceeds the default budget
 private theorem computableIn_atomicSat_relBranch (O : Set (ℕ →. ℕ))
     [IsComputableStructureIn O L] (k : ℕ)
     [hdec : DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))]
@@ -184,6 +186,7 @@ private theorem computableIn_atomicSat_relBranch (O : Set (ℕ →. ℕ))
     ((hcomp.comp ComputableIn.snd).to₂)
 
 set_option maxHeartbeats 1000000 in
+-- elaborating the composed oracle-computability term exceeds the default budget
 private theorem computableIn_atomicSatAux (O : Set (ℕ →. ℕ))
     [IsComputableStructureIn O L] (k : ℕ)
     [hdec : DecidablePred (RelationApplicationData.relMap (L := L) (M := ℕ))]

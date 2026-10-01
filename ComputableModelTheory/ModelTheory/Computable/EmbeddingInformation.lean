@@ -60,6 +60,7 @@ def AtomicDisagreement (F : PotentialEmbeddingData) (d : AtomicData L ℕ) : Pro
       K.realizeAtomicData F.codIdx F.rangeTuple d)
 
 set_option maxHeartbeats 1000000 in
+-- elaborating the composed oracle-computability term exceeds the default budget
 /-- Atomic disagreement is computable uniformly in the data and the witness. -/
 theorem atomicDisagreement_computablePredIn :
     ComputablePredIn O fun p : PotentialEmbeddingData × AtomicData L ℕ ↦
@@ -155,6 +156,7 @@ theorem exists_nonEmbeddingCandidate_iff (F : PotentialEmbeddingData) :
     · exact ⟨0, hWF⟩
 
 set_option maxHeartbeats 1000000 in
+-- elaborating the composed oracle-computability term exceeds the default budget
 /-- The tagged search predicate is computable uniformly in the data and the tag. -/
 theorem nonEmbeddingCandidate_computablePredIn :
     ComputablePredIn O fun p : PotentialEmbeddingData × ℕ ↦

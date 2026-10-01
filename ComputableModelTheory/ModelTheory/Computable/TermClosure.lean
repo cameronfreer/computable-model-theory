@@ -35,6 +35,7 @@ def termValue? (a : Fin k → ℕ) (c : ℕ) : Option ℕ :=
   (@decode (L.Term (Fin k)) Primcodable.toEncodable c).map fun t ↦ t.realize a
 
 set_option maxHeartbeats 1000000 in
+-- elaborating the composed oracle-computability term exceeds the default budget
 /-- Decode-and-evaluate is oracle-computable in a computable structure. -/
 theorem termValue?_computableIn (O : Set (ℕ →. ℕ)) [IsComputableStructureIn O L]
     (k : ℕ) : ComputableIn₂ O (termValue? (L := L) (k := k)) := by

@@ -101,6 +101,7 @@ section Evaluation
 variable (O : Set (ℕ →. ℕ)) [L.Structure ℕ] [IsComputableStructureIn O L]
 
 set_option maxHeartbeats 1000000 in
+-- elaborating the composed oracle-computability term exceeds the default budget
 /-- Term evaluation in a computable structure is computable in the oracle: the value
 stack runs by an oracle fold whose function steps call the uniform `funMap`. -/
 theorem realize_computableIn :
