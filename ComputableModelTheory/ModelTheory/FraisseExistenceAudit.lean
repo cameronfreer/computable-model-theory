@@ -26,7 +26,8 @@ warnings as errors through `scripts/check-classical-layer.sh`.
   exists and is empty (`test_empty_only`). No infinitude is required.
 * **Pure sets of size at most `b`**, discharged through the completed theorem
   (`test_bounded_pure_sets`): amalgamation identifies points, so the class is closed under it, and
-  the limit exists for every `b`, including `b = 0`.
+  the limit exists for every `b`, including `b = 0`, and its carrier is equivalent to `Fin b`
+  (`test_bounded_pure_sets_card`): the advertised finite cardinality is pinned, not just existence.
 * **Standard axioms** for every declaration of the production module
   (`#assert_module_standard_axioms`) and for the regression rows.
 * **Import isolation**: the production module imports only `ExtensionRichDirectLimit` and
@@ -100,6 +101,8 @@ def pureSet (X : Type) : Bundled.{0} Language.empty.Structure :=
 instance (X : Type) [Countable X] : Countable (pureSet X) := inferInstanceAs (Countable X)
 
 instance (X : Type) [Finite X] : Finite (pureSet X) := inferInstanceAs (Finite X)
+
+instance (X : Type) [Fintype X] : Fintype (pureSet X) := inferInstanceAs (Fintype X)
 
 /-- A plain embedding as an embedding of pure sets. -/
 def pureEmb {X Y : Type} (f : X ↪ Y) : pureSet X ↪[Language.empty] pureSet Y where
@@ -189,6 +192,44 @@ theorem test_bounded_pure_sets (b : ℕ) :
       fun _ _ h ↦ Subtype.ext h
   exact ⟨⟨Fintype.card S, by omega⟩, ⟨pureEquiv (Fintype.equivFin S)⟩⟩
 
+/-- **The bounded limit has exactly `b` points**: the completed theorem's limit for pure sets of
+size at most `b` has a carrier equivalent to `Fin b`. Every finite set of points spans a member of
+the class, so has at most `b` points; and `Fin b` itself embeds. -/
+theorem test_bounded_pure_sets_card (b : ℕ) :
+    ∃ (M : Bundled.{0} Language.empty.Structure) (_ : Countable M),
+      IsFraisseLimit (representativeClass (boundedSets b)) M ∧ Nonempty (M ≃ Fin b) := by
+  obtain ⟨M, hM, hlim⟩ := test_bounded_pure_sets b
+  refine ⟨M, hM, hlim, ?_⟩
+  have hle : ∀ S : Finset M, S.card ≤ b := by
+    intro S
+    have h := age.fg_substructure (L := Language.empty) (Substructure.fg_closure S.finite_toSet)
+    rw [hlim.age] at h
+    obtain ⟨i, ⟨u⟩⟩ := h
+    let := Fintype.ofEquiv _ u.toEquiv.symm
+    have hcard : Fintype.card (Substructure.closure Language.empty (S : Set M)) = i :=
+      (Fintype.card_congr u.toEquiv).trans (Fintype.card_fin _)
+    have hinj := Fintype.card_le_of_injective
+      (fun x : S ↦ (⟨x, Substructure.subset_closure x.2⟩ :
+        Substructure.closure Language.empty (S : Set M)))
+      (fun _ _ h ↦ Subtype.ext (by simpa using h))
+    rw [hcard, Fintype.card_coe] at hinj
+    omega
+  have hfin : Finite M := by
+    by_contra h
+    have : Infinite M := not_finite_iff_infinite.mp h
+    obtain ⟨S, hS⟩ := Infinite.exists_subset_card_eq M (b + 1)
+    have := hle S
+    omega
+  let := Fintype.ofFinite M
+  have hub : Fintype.card M ≤ b := by simpa using hle Finset.univ
+  have hlb : b ≤ Fintype.card M := by
+    have h : boundedSets b (Fin.last b) ∈ Language.empty.age M := by
+      rw [hlim.age]
+      exact mem_representativeClass _ _
+    obtain ⟨_, ⟨g⟩⟩ := h
+    simpa using Fintype.card_le_of_injective (α := Fin b) (fun x ↦ g x) g.injective
+  exact ⟨Fintype.equivFinOfCardEq (le_antisymm hub hlb)⟩
+
 end FirstOrder.Language
 
 /-! ### Import isolation -/
@@ -226,5 +267,6 @@ run_cmd do
 #assert_standard_axioms FirstOrder.Language.test_chain_cover
 #assert_standard_axioms FirstOrder.Language.test_empty_only
 #assert_standard_axioms FirstOrder.Language.test_bounded_pure_sets
+#assert_standard_axioms FirstOrder.Language.test_bounded_pure_sets_card
 
 #assert_module_standard_axioms ComputableModelTheory.ModelTheory.FraisseExistence
