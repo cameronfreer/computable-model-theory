@@ -15,7 +15,7 @@ Named acceptance tests for the B1a import surface and boundary wrappers, checked
 
 Coverage: the boundary wrappers elaborate at indexed presentations and the level-zero
 re-export holds; and the upstream import surface — `BFEquiv.zero`, the atomic-diagram
-characterization, `model_existence`, and `karp_completeness` at `6614ec7` — is
+characterization, `model_existence`, and `karp_completeness` at `e4c674f` — is
 standard-axioms-only, auditing the imported trust base itself.
 -/
 
