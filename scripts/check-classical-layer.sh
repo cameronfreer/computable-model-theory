@@ -14,6 +14,7 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 modules=(
+  ComputableModelTheory.Classical
   ComputableModelTheory.ModelTheory.ExtensionRichFamily
   ComputableModelTheory.ModelTheory.RepresentativeAge
   ComputableModelTheory.ModelTheory.ExtensionRichDirectLimit
