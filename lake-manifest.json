@@ -7,10 +7,10 @@
    "type": "git",
    "subDir": null,
    "scope": "",
-   "rev": "38c4bae70547d107d42843f51ce7cee00481811b",
+   "rev": "e4c674f944da0041c2f3119f242cca423582415f",
    "name": "InfinitaryLogic",
    "manifestFile": "lake-manifest.json",
-   "inputRev": "38c4bae70547d107d42843f51ce7cee00481811b",
+   "inputRev": "e4c674f944da0041c2f3119f242cca423582415f",
    "inherited": false,
    "configFile": "lakefile.toml"
   },
