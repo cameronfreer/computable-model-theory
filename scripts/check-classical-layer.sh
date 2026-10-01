@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Strict gate for the classical, Mathlib-only layer (the Fraïssé interfaces ExtensionRichFamily,
-# RepresentativeAge, ExtensionRichDirectLimit; orbit isolation and countable primeness): build the
-# modules, then elaborate each module and its audit with warnings as errors and the Mathlib standard
-# linter set. Fails fast.
+# RepresentativeAge, ExtensionRichDirectLimit; orbit isolation and countable primeness; rooted
+# extension): build the modules, then elaborate each module and its audit with warnings as errors
+# and the Mathlib standard linter set. Fails fast.
 #
 # Deliberately `lake env lean`, not `lake lean`: the ordinary audit sweep elaborates with the
 # package's Lean options, including any project-wide compatibility settings the effective layer
@@ -19,6 +19,7 @@ modules=(
   ComputableModelTheory.ModelTheory.ExtensionRichDirectLimit
   ComputableModelTheory.ModelTheory.OrbitIsolation
   ComputableModelTheory.ModelTheory.CountablePrime
+  ComputableModelTheory.ModelTheory.RootedExtension
 )
 
 lake build "${modules[@]}"
