@@ -19,8 +19,8 @@ modules=(
   ComputableModelTheory.ModelTheory.ExtensionRichDirectLimit
   ComputableModelTheory.ModelTheory.FraisseExistence
   ComputableModelTheory.ModelTheory.OrbitIsolation
-  ComputableModelTheory.ModelTheory.NamedParameters
   ComputableModelTheory.ModelTheory.CountablePrime
+  ComputableModelTheory.ModelTheory.NamedParameters
   ComputableModelTheory.ModelTheory.RootedExtension
 )
 
