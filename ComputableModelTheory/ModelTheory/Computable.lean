@@ -11,6 +11,7 @@ import ComputableModelTheory.ModelTheory.Computable.AgeChainWitness
 import ComputableModelTheory.ModelTheory.Computable.AtomicEquiv
 import ComputableModelTheory.ModelTheory.Computable.AtomicEquivComputability
 import ComputableModelTheory.ModelTheory.Computable.AtomicSatisfaction
+import ComputableModelTheory.ModelTheory.Computable.AutomorphismExtension
 import ComputableModelTheory.ModelTheory.Computable.CePresentation
 import ComputableModelTheory.ModelTheory.Computable.CeStructureChain
 import ComputableModelTheory.ModelTheory.Computable.ChainShiftExample
