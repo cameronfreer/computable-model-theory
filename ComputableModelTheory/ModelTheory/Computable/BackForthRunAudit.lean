@@ -31,6 +31,11 @@ structures presented at `O`, and no hypothesis relating them.
 
 Persistence is gated alongside, since it is what the next unit consumes: prefix at a successor, and
 at an arbitrary `m ≤ n`.
+
+**The run is seeded.** The rows above are restated at the empty seed, where the offsets are `0` and
+the `2 * n` / `2 * n + 1` positions are exactly Proposition 3.2's. The seeded rows pin the general
+offsets (`test_seeded_offsets`), that the seed survives at every stage (`test_seed_preserved`), and
+the invariant from a matched seed (`test_seeded_invariant`).
 -/
 
 open Encodable FirstOrder Language
@@ -66,48 +71,91 @@ theorem test_round_preserves_matched (n : ℕ) {s : BackForthState} (h : s.Match
 
 /-- The run's two equations, and its lengths: both tuples grow by exactly two per round. -/
 theorem test_run_equations_and_lengths (n : ℕ) :
-    BackForthState.stateAt r rb H Hs 0 = BackForthState.empty ∧
-      BackForthState.stateAt r rb H Hs (n + 1)
-          = BackForthState.roundState r rb H Hs n (BackForthState.stateAt r rb H Hs n) ∧
-        (BackForthState.stateAt r rb H Hs n).sourceTuple.length = 2 * n ∧
-          (BackForthState.stateAt r rb H Hs n).targetTuple.length = 2 * n :=
-  ⟨rfl, rfl, BackForthState.stateAt_sourceTuple_length r rb H Hs n,
-    BackForthState.stateAt_targetTuple_length r rb H Hs n⟩
+    BackForthState.stateAt r rb H Hs BackForthState.empty 0 = BackForthState.empty ∧
+      BackForthState.stateAt r rb H Hs BackForthState.empty (n + 1)
+          = BackForthState.roundState r rb H Hs n
+            (BackForthState.stateAt r rb H Hs BackForthState.empty n) ∧
+        (BackForthState.stateAt r rb H Hs BackForthState.empty n).sourceTuple.length = 2 * n ∧
+          (BackForthState.stateAt r rb H Hs BackForthState.empty n).targetTuple.length = 2 * n :=
+  ⟨rfl, rfl, (BackForthState.stateAt_sourceTuple_length r rb H Hs _ n).trans (by simp),
+    (BackForthState.stateAt_targetTuple_length r rb H Hs _ n).trans (by simp)⟩
 
 /-- **The two discovery positions, and that they differ.** `n` is at source position `2 * n` and at
 target position `2 * n + 1`. -/
 theorem test_discovery_positions (n : ℕ) :
-    (BackForthState.stateAt r rb H Hs (n + 1)).sourceTuple[2 * n]? = some n ∧
-      (BackForthState.stateAt r rb H Hs (n + 1)).targetTuple[2 * n + 1]? = some n ∧
+    (BackForthState.stateAt r rb H Hs BackForthState.empty (n + 1)).sourceTuple[2 * n]? = some n ∧
+      (BackForthState.stateAt r rb H Hs BackForthState.empty (n + 1)).targetTuple[2 * n + 1]?
+          = some n ∧
         2 * n ≠ 2 * n + 1 :=
-  ⟨BackForthState.stateAt_sourceTuple_getElem?_two_mul r rb H Hs n,
-    BackForthState.stateAt_targetTuple_getElem?_two_mul_succ r rb H Hs n, by omega⟩
+  ⟨by
+    have h := BackForthState.stateAt_sourceTuple_getElem?_two_mul r rb H Hs BackForthState.empty n
+    rwa [BackForthState.empty_sourceTuple, List.length_nil, zero_add] at h,
+  by
+    have h := BackForthState.stateAt_targetTuple_getElem?_two_mul_succ r rb H Hs
+      BackForthState.empty n
+    rwa [BackForthState.empty_targetTuple, List.length_nil, zero_add] at h,
+  by omega⟩
 
 /-- **The invariant holds at every stage**, not only in the limit. -/
-theorem test_invariant_throughout (n : ℕ) : (BackForthState.stateAt r rb H Hs n).Matched S T :=
-  BackForthState.stateAt_matched r rb H Hs n
+theorem test_invariant_throughout (n : ℕ) :
+    (BackForthState.stateAt r rb H Hs BackForthState.empty n).Matched S T :=
+  BackForthState.stateAt_empty_matched r rb H Hs n
 
 /-- **The whole run is computable in the map oracle**, with `E` unrelated to `O`: no inclusion
 appears in the binders, and none is used. -/
 theorem test_run_computable_no_inclusion :
-    ComputableIn E (BackForthState.stateAt r rb H Hs) ∧
+    ComputableIn E (BackForthState.stateAt r rb H Hs BackForthState.empty) ∧
       ComputableIn E fun p : ℕ × BackForthState ↦ BackForthState.roundState r rb H Hs p.1 p.2 :=
-  ⟨BackForthState.stateAt_computableIn r rb H Hs,
+  ⟨BackForthState.stateAt_computableIn r rb H Hs _,
     BackForthState.roundState_computableIn r rb H Hs⟩
 
 /-- **Persistence**, at a successor and at an arbitrary pair of stages. Nothing is ever revised, so
 a value read at one stage is readable at the same position at every later one — the input the total
 maps will need. -/
-theorem test_persistence {m n : ℕ} (h : m ≤ n) :
-    (BackForthState.stateAt r rb H Hs m).sourceTuple
-        <+: (BackForthState.stateAt r rb H Hs n).sourceTuple ∧
-      (BackForthState.stateAt r rb H Hs m).targetTuple
-          <+: (BackForthState.stateAt r rb H Hs n).targetTuple ∧
-        (BackForthState.stateAt r rb H Hs m).sourceTuple
-          <+: (BackForthState.stateAt r rb H Hs (m + 1)).sourceTuple :=
-  ⟨BackForthState.stateAt_sourceTuple_prefix r rb H Hs h,
-    BackForthState.stateAt_targetTuple_prefix r rb H Hs h,
-    BackForthState.stateAt_sourceTuple_prefix_succ r rb H Hs m⟩
+theorem test_persistence (s₀ : BackForthState) {m n : ℕ} (h : m ≤ n) :
+    (BackForthState.stateAt r rb H Hs s₀ m).sourceTuple
+        <+: (BackForthState.stateAt r rb H Hs s₀ n).sourceTuple ∧
+      (BackForthState.stateAt r rb H Hs s₀ m).targetTuple
+          <+: (BackForthState.stateAt r rb H Hs s₀ n).targetTuple ∧
+        (BackForthState.stateAt r rb H Hs s₀ m).sourceTuple
+          <+: (BackForthState.stateAt r rb H Hs s₀ (m + 1)).sourceTuple :=
+  ⟨BackForthState.stateAt_sourceTuple_prefix r rb H Hs s₀ h,
+    BackForthState.stateAt_targetTuple_prefix r rb H Hs s₀ h,
+    BackForthState.stateAt_sourceTuple_prefix_succ r rb H Hs s₀ m⟩
+
+/-! ### The seeded run -/
+
+/-- **The offset.** From a seed `s₀`, each tuple has its seed length plus `2 * n`, and `n` is
+discovered at the seed length plus `2 * n` (source) and plus `2 * n + 1` (target). The empty start
+is the case `ℓ = 0`; a nonempty seed is what actually tests the shift (see the Corollary 3.5 audit
+for a concrete length-three seed). -/
+theorem test_seeded_offsets (s₀ : BackForthState) (n : ℕ) :
+    (BackForthState.stateAt r rb H Hs s₀ n).sourceTuple.length
+        = s₀.sourceTuple.length + 2 * n ∧
+      (BackForthState.stateAt r rb H Hs s₀ n).targetTuple.length
+          = s₀.targetTuple.length + 2 * n ∧
+        (BackForthState.stateAt r rb H Hs s₀ (n + 1)).sourceTuple[s₀.sourceTuple.length + 2 * n]?
+            = some n ∧
+          (BackForthState.stateAt r rb H Hs s₀ (n + 1)).targetTuple[
+            s₀.targetTuple.length + 2 * n + 1]? = some n :=
+  ⟨BackForthState.stateAt_sourceTuple_length r rb H Hs s₀ n,
+    BackForthState.stateAt_targetTuple_length r rb H Hs s₀ n,
+    BackForthState.stateAt_sourceTuple_getElem?_two_mul r rb H Hs s₀ n,
+    BackForthState.stateAt_targetTuple_getElem?_two_mul_succ r rb H Hs s₀ n⟩
+
+/-- **The seed survives**: it is the stage-`0` state and a prefix of every stage, on both sides —
+every initial coordinate, repeated ones included, stays at its position. -/
+theorem test_seed_preserved (s₀ : BackForthState) (n : ℕ) :
+    BackForthState.stateAt r rb H Hs s₀ 0 = s₀ ∧
+      s₀.sourceTuple <+: (BackForthState.stateAt r rb H Hs s₀ n).sourceTuple ∧
+        s₀.targetTuple <+: (BackForthState.stateAt r rb H Hs s₀ n).targetTuple :=
+  ⟨rfl, BackForthState.stateAt_sourceTuple_prefix r rb H Hs s₀ (Nat.zero_le n),
+    BackForthState.stateAt_targetTuple_prefix r rb H Hs s₀ (Nat.zero_le n)⟩
+
+/-- **The invariant from a matched seed**, with no `O ⊆ E` and no cover used for the base case. -/
+theorem test_seeded_invariant {s₀ : BackForthState} (h₀ : s₀.Matched S T) (n : ℕ) :
+    (BackForthState.stateAt r rb H Hs s₀ n).Matched S T :=
+  BackForthState.stateAt_matched r rb H Hs h₀ n
 
 end Run
 
@@ -120,3 +168,6 @@ end FirstOrder.Language
 #assert_standard_axioms FirstOrder.Language.test_invariant_throughout
 #assert_standard_axioms FirstOrder.Language.test_run_computable_no_inclusion
 #assert_standard_axioms FirstOrder.Language.test_persistence
+#assert_standard_axioms FirstOrder.Language.test_seeded_offsets
+#assert_standard_axioms FirstOrder.Language.test_seed_preserved
+#assert_standard_axioms FirstOrder.Language.test_seeded_invariant
