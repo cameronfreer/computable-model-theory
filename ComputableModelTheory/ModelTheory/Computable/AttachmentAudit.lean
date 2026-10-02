@@ -23,8 +23,12 @@ The fixture is `listAge` in the empty language. Its member `segIdx n` is the pur
   is that embedding applied to the representative `0`.
 * **Malformed widths are rejected** (`malformed`). The empty range tuple against variable `0` is
   carrier-valid, vacuously, but not well-formed. The guarded image is `Part.none` before any
-  evaluation. Without the guard the evaluator would not halt either, since halting certifies the
-  width.
+  evaluation. The raw evaluator does not halt there either, but only because halting certifies the
+  term's variable bound against the *range* length (`0 < 0` fails). It certifies nothing about the
+  source generator width.
+* **The guard, not the evaluator, enforces the width** (`narrow`). Against source width `2`, the
+  range `[0]` with variable `0` is carrier-valid and the raw evaluator **halts**, with `0`. The
+  guarded image is still `Part.none`: equality with the source width comes from the guard alone.
 * **Validity is decidable, and it fails on both counts.** It fails for a repeated label and for
   a term reaching past the generator count.
 -/
@@ -190,6 +194,28 @@ theorem test_malformed_raw_diverges :
   absurd (Term.varsBelow_var_iff.1 ((listAge O).varsBelow_of_partialRealize_dom h))
     (Nat.lt_irrefl 0)
 
+/-- Source width `2` (`{0, 1}`), but a range tuple of length `1`. -/
+def narrow : PotentialEmbeddingData :=
+  PotentialEmbeddingData.ofTriple (segIdx 1, segIdx 1, [0])
+
+theorem test_narrow_carrierValid : (listAge O).CarrierValid narrow := fun x hx ↦ by
+  have hx0 : x = 0 := by simpa [narrow] using hx
+  exact (mem_domainAt_segIdx O).2 (by omega)
+
+/-- **The raw evaluator halts on the mismatched width**: `[0]` covers variable `0`. -/
+theorem test_narrow_raw_halts :
+    (listAge O).partialRealize narrow.codIdx narrow.rangeTuple (Term.var 0) = Part.some 0 := by
+  rw [(listAge O).partialRealize_eq_some (test_narrow_carrierValid O)
+    (Term.varsBelow_var_iff.2 (by decide))]
+  rfl
+
+/-- **The guard rejects it anyway**: `2 ≠ 1`. -/
+theorem test_narrow_rejected :
+    (listAge O).attImage narrow (Term.var 0) = Part.none :=
+  PartialAgeIn.attImage_of_length_ne _ fun h ↦ by
+    rw [show narrow.domIdx = segIdx 1 from rfl, gens_segIdx] at h
+    exact absurd h (by decide)
+
 end AttachmentAudit
 
 #assert_standard_axioms AttachmentAudit.test_att_valid
@@ -205,5 +231,8 @@ end AttachmentAudit
 #assert_standard_axioms AttachmentAudit.test_malformed_not_wellFormed
 #assert_standard_axioms AttachmentAudit.test_malformed_rejected
 #assert_standard_axioms AttachmentAudit.test_malformed_raw_diverges
+#assert_standard_axioms AttachmentAudit.test_narrow_carrierValid
+#assert_standard_axioms AttachmentAudit.test_narrow_raw_halts
+#assert_standard_axioms AttachmentAudit.test_narrow_rejected
 
 #assert_module_standard_axioms ComputableModelTheory.ModelTheory.Computable.Attachment
