@@ -93,18 +93,19 @@ than reproved here.
 Both dependencies are pinned to immutable commits in `lakefile.toml`, and the manifest locks the
 transitive ones to exactly infinitary-logic's.
 
-**Temporary mathlib fork.** mathlib is currently pinned to
-[`cameronfreer/mathlib4`](https://github.com/cameronfreer/mathlib4) at `346a4bd`, not to an
-upstream tag. That commit is upstream mathlib `v4.35.0-rc3` plus three additive commits — new
-`Mathlib/ModelTheory/Infinitary` modules and their tests, and the corresponding imports in
-`Mathlib.lean` — which infinitary-logic builds on and which are being upstreamed. No existing
-leaf module is modified, so the mathlib cache serves every module except the new ones and
-`Mathlib.lean`. The pin is forced: one build has one mathlib, and infinitary-logic needs those
-modules.
+**Upstream mathlib and TauCeti.** mathlib is pinned to upstream
+[`leanprover-community/mathlib4`](https://github.com/leanprover-community/mathlib4) at `2e318fae`,
+the revision infinitary-logic v7.0.0 uses, on Lean `v4.36.0-rc1`. The earlier mathlib fork is
+retired. Its infinitary modules now live in [TauCeti](https://github.com/TauCetiProject/TauCeti)
+(`TauCeti.ModelTheory.Infinitary.*`), which infinitary-logic requires and which therefore enters
+this project's dependency graph transitively, at infinitary-logic's pin. This project imports no
+TauCeti module directly, and the classical entry point's import guard excludes TauCeti along with
+infinitary-logic. A downstream project that depends on this one must use the same mathlib and
+TauCeti revisions: one build has one mathlib.
 
-*Replacement condition:* once those commits are in an upstream mathlib release and
-infinitary-logic repins to it, this project returns to an upstream mathlib tag in the same bump.
-Until then, a downstream project that depends on this one must use the same mathlib commit.
+`allowNonModules = true` in `lakefile.toml` is a narrow Lake compatibility setting. Upstream
+mathlib is designed for the module system and this package's files are not module-system files,
+so Lake would otherwise warn on every such import. It suppresses exactly that warning class.
 
 **Porting debt: project-wide compatibility options.** `lakefile.toml` sets
 `backward.isDefEq.respectTransparency` and

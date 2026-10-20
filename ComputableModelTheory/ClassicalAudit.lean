@@ -5,6 +5,7 @@ Authors: Cameron Freer
 -/
 import ComputableModelTheory.Classical
 import ComputableModelTheory.Util.AssertAxioms
+import ComputableModelTheory.Util.ImportGuard
 
 /-!
 # Audit: the classical entry point
@@ -14,8 +15,11 @@ warnings as errors through `scripts/check-classical-layer.sh`.
 
 * **Import-only**: `ComputableModelTheory.Classical` defines no declarations of its own.
 * **Import guard**: `ComputableModelTheory.Classical` imports exactly the eight classical modules,
-  and its transitive import closure contains no other module of this library and no module of
-  `InfinitaryLogic` — downstream gets Mathlib plus the classical layer, nothing effective.
+  and its transitive import closure contains no other module of this library, no module of
+  `InfinitaryLogic` and no module of `TauCeti` (`ImportGuard.forbiddenPrefixes`) — downstream gets
+  Mathlib plus the classical layer, nothing effective. The predicate itself is checked to reject a
+  `TauCeti` module; `ImportGuardControlAudit` checks that the same walk reports TauCeti from a
+  module that does reach it.
 * **Standard axioms**, by defining module, for every declaration of each of the eight modules (the
   declarations live in `FirstOrder.Language`, so a scan filtered by this library's namespace would
   miss them).
@@ -42,18 +46,31 @@ run_cmd do
   let direct := (env.header.moduleData[idx.toNat]!).imports.map (·.module)
   unless direct.filter (· != `Init) == classical.toArray do
     throwError "unexpected direct imports of {target}: {direct}"
-  let mut seen : NameSet := {}
-  let mut todo : Array Name := direct
-  while h : todo.size > 0 do
-    let m := todo.back
-    todo := todo.pop
-    if seen.contains m then continue
-    seen := seen.insert m
-    if !classical.contains m &&
-        ((`ComputableModelTheory).isPrefixOf m || (`InfinitaryLogic).isPrefixOf m) then
-      throwError "{target} transitively imports {m}"
-    if let some j := env.getModuleIdx? m then
-      todo := todo ++ (env.header.moduleData[j.toNat]!).imports.map (·.module)
+  let bad := ComputableModelTheory.ImportGuard.forbiddenInClosure env classical direct
+  unless bad.isEmpty do
+    throwError "{target} transitively imports {bad}"
+
+/-! ### The guard's predicate, as a negative control
+
+The closure above reaches no forbidden module, so the walk alone would pass vacuously were a prefix
+missing from `forbiddenPrefixes`. The predicate is checked directly: it rejects a module of each
+forbidden prefix, including `TauCeti`, accepts the allowed classical modules and Mathlib. -/
+
+open ComputableModelTheory.ImportGuard in
+#guard isForbidden [] `TauCeti.ModelTheory.Infinitary.Syntax
+
+open ComputableModelTheory.ImportGuard in
+#guard isForbidden [] `InfinitaryLogic.Scott.BackAndForth
+
+open ComputableModelTheory.ImportGuard in
+#guard isForbidden [] `ComputableModelTheory.ModelTheory.Computable.InfinitaryBridge
+
+open ComputableModelTheory.ImportGuard in
+#guard !isForbidden [`ComputableModelTheory.ModelTheory.RootedExtension]
+  `ComputableModelTheory.ModelTheory.RootedExtension
+
+open ComputableModelTheory.ImportGuard in
+#guard !isForbidden [] `Mathlib.ModelTheory.Fraisse
 
 /-! ### The entry module is import-only -/
 
