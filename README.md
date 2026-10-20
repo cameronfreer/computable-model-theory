@@ -90,13 +90,14 @@ Henkin completeness — are imported from
 [infinitary-logic](https://github.com/cameronfreer/infinitary-logic) as a pinned dependency rather
 than reproved here.
 
-Both dependencies are pinned to immutable commits in `lakefile.toml`, and the manifest locks the
-transitive ones to exactly infinitary-logic's.
+Both direct dependencies, infinitary-logic and mathlib, are pinned to immutable commits in
+`lakefile.toml`, and the manifest locks every transitive package, TauCeti included, to exactly
+infinitary-logic's.
 
 **Upstream mathlib and TauCeti.** mathlib is pinned to upstream
 [`leanprover-community/mathlib4`](https://github.com/leanprover-community/mathlib4) at `2e318fae`,
-the revision infinitary-logic v7.0.0 uses, on Lean `v4.36.0-rc1`. The earlier mathlib fork is
-retired. Its infinitary modules now live in [TauCeti](https://github.com/TauCetiProject/TauCeti)
+the revision infinitary-logic v7.0.0 uses, on Lean `v4.36.0-rc1`. The infinitary syntax and
+semantics infinitary-logic builds on come from [TauCeti](https://github.com/TauCetiProject/TauCeti)
 (`TauCeti.ModelTheory.Infinitary.*`), which infinitary-logic requires and which therefore enters
 this project's dependency graph transitively, at infinitary-logic's pin. This project imports no
 TauCeti module directly, and the classical entry point's import guard excludes TauCeti along with
@@ -109,11 +110,11 @@ so Lake would otherwise warn on every such import. It suppresses exactly that wa
 
 **Porting debt: project-wide compatibility options.** `lakefile.toml` sets
 `backward.isDefEq.respectTransparency` and
-`backward.isDefEq.respectTransparency.instanceSearchTypes` to `false` for the whole package, as
-Lean v4.35 porting shims, until the affected proofs are repaired individually (Mathlib's own port
-sets them per declaration). They are per-package options, so a downstream project inherits
-nothing. The classical layer does not rely on them: `scripts/check-classical-layer.sh`, run in CI,
-elaborates it without them.
+`backward.isDefEq.respectTransparency.instanceSearchTypes` to `false` for the whole package.
+They were introduced as Lean v4.35 porting shims and are still set at `v4.36.0-rc1`, until the
+affected proofs are repaired individually (Mathlib's own port sets them per declaration). They are
+per-package options, so a downstream project inherits nothing. The classical layer does not rely on
+them: `scripts/check-classical-layer.sh`, run in CI, elaborates it without them.
 
 ## License
 

@@ -17,8 +17,8 @@ leanOptions = [
   ["relaxedAutoImplicit", false],
   ["weak.linter.mathlibStandardSet", true],
   ["maxSynthPendingDepth", 3],
-  # Lean v4.35 porting shims, set project-wide until the affected proofs are repaired individually
-  # (Mathlib's own port sets the same options per declaration):
+  # Lean v4.35 porting shims (still set at v4.36.0-rc1), project-wide until the affected proofs are
+  # repaired individually (Mathlib's own port sets the same options per declaration):
   # * `isDefEq` now respects transparency on implicit arguments, which breaks `rw`/`simp` on
   #   targets that only typecheck after unfolding `PFun` (`α →. β`);
   # * instance-search assignments must preserve types up to `.instances` transparency, which breaks
