@@ -83,7 +83,7 @@ theorem IsolatesTuple.typesWith_eq_singleton {T : L.Theory} [Nonempty M] [M ⊨ 
     exact h.realize_iff hb (Formula.equivSentence.symm ψ)
   · intro hp
     rcases Set.mem_singleton_iff.mp hp with rfl
-    exact Theory.CompleteType.formula_mem_typeOf.mpr h.1
+    exact (Theory.CompleteType.formula_mem_typeOf (T := T)).mpr h.1
 
 /-- A formula defining the automorphism orbit of a tuple isolates its type over
 the complete theory of the structure. No countability assumption is needed here. -/
