@@ -75,7 +75,7 @@ theorem IsolatesTuple.typesWith_eq_singleton {T : L.Theory} [Nonempty M] [M ⊨ 
   constructor
   · intro hp
     obtain ⟨N, b, rfl⟩ := Theory.exists_modelType_is_realized_in T p
-    have hb : φ.Realize b := Theory.CompleteType.formula_mem_typeOf.mp hp
+    have hb : φ.Realize b := (Theory.CompleteType.formula_mem_typeOf (T := T)).mp hp
     apply Set.mem_singleton_iff.mpr
     apply SetLike.ext
     intro ψ
