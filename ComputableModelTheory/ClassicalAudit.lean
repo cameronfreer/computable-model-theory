@@ -56,21 +56,18 @@ The closure above reaches no forbidden module, so the walk alone would pass vacu
 missing from `forbiddenPrefixes`. The predicate is checked directly: it rejects a module of each
 forbidden prefix, including `TauCeti`, accepts the allowed classical modules and Mathlib. -/
 
-open ComputableModelTheory.ImportGuard in
-#guard isForbidden [] `TauCeti.ModelTheory.Infinitary.Syntax
-
-open ComputableModelTheory.ImportGuard in
-#guard isForbidden [] `InfinitaryLogic.Scott.BackAndForth
-
-open ComputableModelTheory.ImportGuard in
-#guard isForbidden [] `ComputableModelTheory.ModelTheory.Computable.InfinitaryBridge
-
-open ComputableModelTheory.ImportGuard in
-#guard !isForbidden [`ComputableModelTheory.ModelTheory.RootedExtension]
-  `ComputableModelTheory.ModelTheory.RootedExtension
-
-open ComputableModelTheory.ImportGuard in
-#guard !isForbidden [] `Mathlib.ModelTheory.Fraisse
+open Lean ComputableModelTheory.ImportGuard in
+run_cmd do
+  let rejected : List Name := [`TauCeti.ModelTheory.Infinitary.Syntax,
+    `InfinitaryLogic.Scott.BackAndForth,
+    `ComputableModelTheory.ModelTheory.Computable.InfinitaryBridge]
+  for m in rejected do
+    unless isForbidden [] m do throwError "the import guard does not reject {m}"
+  unless !isForbidden [`ComputableModelTheory.ModelTheory.RootedExtension]
+      `ComputableModelTheory.ModelTheory.RootedExtension do
+    throwError "the import guard rejects an allowed classical module"
+  unless !isForbidden [] `Mathlib.ModelTheory.Fraisse do
+    throwError "the import guard rejects a Mathlib module"
 
 /-! ### The entry module is import-only -/
 
