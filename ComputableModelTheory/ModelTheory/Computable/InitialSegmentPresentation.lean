@@ -265,8 +265,8 @@ theorem range_posRank_eq_univ (cert : P.InfinitudeCertificate) :
 cardinality. -/
 theorem range_posRank_eq_lt (cert : P.ExactFiniteCertificate) :
     Set.range P.posRank = {r | r < cert.card} := by
-  ext r
-  rw [Set.mem_ofPred_eq, ← P.rankIdx_dom_iff_mem_range_posRank]
+  refine Set.ext fun r ↦ (P.rankIdx_dom_iff_mem_range_posRank r).symm.trans ?_
+  change _ ↔ r < cert.card
   constructor
   · intro h
     by_contra hge
